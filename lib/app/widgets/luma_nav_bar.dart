@@ -195,8 +195,13 @@ class _NavItem extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         label,
+                        maxLines: 1,
+                        softWrap: false,
                         style: TextStyle(
-                          fontSize: selected ? 12 : 11,
+                          // Fixed size in both states: growing 10 → 11 on
+                          // select widened the pill and overflowed labels
+                          // like "Settings" in the 5-slot dock.
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: selected
                               ? AppColors.peach
