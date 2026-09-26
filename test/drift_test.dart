@@ -4,6 +4,7 @@ import 'package:luma/application/expense_controller.dart';
 import 'package:luma/data/database/luma_database.dart';
 import 'package:luma/data/database/seed.dart';
 import 'package:luma/data/repositories/drift_expense_repository.dart';
+import 'package:luma/data/services/app_settings_store.dart';
 import 'package:luma/data/services/drift_merchant_learning.dart';
 import 'package:luma/domain/entities/expense.dart' as domain;
 
@@ -21,6 +22,18 @@ void main() {
               .getSingleOrNull();
       expect(settings, isNotNull);
       expect(settings!.dailyAuditEnabled, isTrue);
+      await db.close();
+    });
+
+    test('user name round-trips through app_settings', () async {
+      final db = _memoryDb();
+      await seedLumaDatabase(db);
+      final store = AppSettingsStore(db);
+      expect(await store.userName(), isEmpty);
+      await store.setUserName('Reyansh');
+      expect(await store.userName(), 'Reyansh');
+      await store.setUserName('');
+      expect(await store.userName(), isEmpty);
       await db.close();
     });
 
