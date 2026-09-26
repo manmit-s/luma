@@ -1,4 +1,5 @@
 import '../../domain/entities/category.dart';
+import '../../domain/entities/expense.dart';
 
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -61,3 +62,17 @@ String categoryName(String? id) {
 String merchantLabel(String? merchant) => (merchant == null || merchant.trim().isEmpty)
     ? 'Unknown merchant'
     : merchant.trim();
+
+/// Groups expenses (expected newest-first) by calendar day, preserving order.
+List<(DateTime, List<Expense>)> groupExpensesByDay(List<Expense> expenses) {
+  final groups = <DateTime, List<Expense>>{};
+  for (final expense in expenses) {
+    final day = DateTime(
+      expense.timestamp.year,
+      expense.timestamp.month,
+      expense.timestamp.day,
+    );
+    (groups[day] ??= []).add(expense);
+  }
+  return groups.entries.map((e) => (e.key, e.value)).toList();
+}
