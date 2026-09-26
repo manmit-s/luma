@@ -10,6 +10,15 @@ void main() {
       await store.markOnboardingDone();
       expect(await store.isOnboardingDone(), isTrue);
     });
+
+    test('null database holds a settable user name', () async {
+      final store = AppSettingsStore(null);
+      expect(await store.userName(), isEmpty);
+      await store.setUserName('  Rey  ');
+      expect(await store.userName(), 'Rey');
+      await store.setUserName('');
+      expect(await store.userName(), isEmpty);
+    });
   });
 
   group('SmsPermissionService', () {
