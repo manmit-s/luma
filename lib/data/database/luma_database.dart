@@ -58,6 +58,7 @@ class AppSettings extends Table {
   IntColumn get auditHour => integer().withDefault(const Constant(21))();
   IntColumn get auditMinute => integer().withDefault(const Constant(0))();
   BoolColumn get onboardingDone => boolean().withDefault(const Constant(false))();
+  TextColumn get userName => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -80,11 +81,20 @@ class LumaDatabase extends _$LumaDatabase {
   LumaDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            // Raw SQL: drift 2.26's addColumn has a raw-generic signature
+            // that rejects typed columns under current inference.
+            await m.database.customStatement(
+              'ALTER TABLE app_settings ADD COLUMN user_name TEXT NULL',
+            );
+          }
+        },
       );
 }
 

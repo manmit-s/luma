@@ -1733,6 +1733,17 @@ class $AppSettingsTable extends AppSettings
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _userNameMeta = const VerificationMeta(
+    'userName',
+  );
+  @override
+  late final GeneratedColumn<String> userName = GeneratedColumn<String>(
+    'user_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1740,6 +1751,7 @@ class $AppSettingsTable extends AppSettings
     auditHour,
     auditMinute,
     onboardingDone,
+    userName,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1789,6 +1801,12 @@ class $AppSettingsTable extends AppSettings
         ),
       );
     }
+    if (data.containsKey('user_name')) {
+      context.handle(
+        _userNameMeta,
+        userName.isAcceptableOrUnknown(data['user_name']!, _userNameMeta),
+      );
+    }
     return context;
   }
 
@@ -1818,6 +1836,10 @@ class $AppSettingsTable extends AppSettings
         DriftSqlType.bool,
         data['${effectivePrefix}onboarding_done'],
       )!,
+      userName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_name'],
+      ),
     );
   }
 
@@ -1833,12 +1855,14 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   final int auditHour;
   final int auditMinute;
   final bool onboardingDone;
+  final String? userName;
   const AppSetting({
     required this.id,
     required this.dailyAuditEnabled,
     required this.auditHour,
     required this.auditMinute,
     required this.onboardingDone,
+    this.userName,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1848,6 +1872,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     map['audit_hour'] = Variable<int>(auditHour);
     map['audit_minute'] = Variable<int>(auditMinute);
     map['onboarding_done'] = Variable<bool>(onboardingDone);
+    if (!nullToAbsent || userName != null) {
+      map['user_name'] = Variable<String>(userName);
+    }
     return map;
   }
 
@@ -1858,6 +1885,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       auditHour: Value(auditHour),
       auditMinute: Value(auditMinute),
       onboardingDone: Value(onboardingDone),
+      userName: userName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(userName),
     );
   }
 
@@ -1872,6 +1902,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       auditHour: serializer.fromJson<int>(json['auditHour']),
       auditMinute: serializer.fromJson<int>(json['auditMinute']),
       onboardingDone: serializer.fromJson<bool>(json['onboardingDone']),
+      userName: serializer.fromJson<String?>(json['userName']),
     );
   }
   @override
@@ -1883,6 +1914,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'auditHour': serializer.toJson<int>(auditHour),
       'auditMinute': serializer.toJson<int>(auditMinute),
       'onboardingDone': serializer.toJson<bool>(onboardingDone),
+      'userName': serializer.toJson<String?>(userName),
     };
   }
 
@@ -1892,12 +1924,14 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     int? auditHour,
     int? auditMinute,
     bool? onboardingDone,
+    Value<String?> userName = const Value.absent(),
   }) => AppSetting(
     id: id ?? this.id,
     dailyAuditEnabled: dailyAuditEnabled ?? this.dailyAuditEnabled,
     auditHour: auditHour ?? this.auditHour,
     auditMinute: auditMinute ?? this.auditMinute,
     onboardingDone: onboardingDone ?? this.onboardingDone,
+    userName: userName.present ? userName.value : this.userName,
   );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1912,6 +1946,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       onboardingDone: data.onboardingDone.present
           ? data.onboardingDone.value
           : this.onboardingDone,
+      userName: data.userName.present ? data.userName.value : this.userName,
     );
   }
 
@@ -1922,7 +1957,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('dailyAuditEnabled: $dailyAuditEnabled, ')
           ..write('auditHour: $auditHour, ')
           ..write('auditMinute: $auditMinute, ')
-          ..write('onboardingDone: $onboardingDone')
+          ..write('onboardingDone: $onboardingDone, ')
+          ..write('userName: $userName')
           ..write(')'))
         .toString();
   }
@@ -1934,6 +1970,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     auditHour,
     auditMinute,
     onboardingDone,
+    userName,
   );
   @override
   bool operator ==(Object other) =>
@@ -1943,7 +1980,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.dailyAuditEnabled == this.dailyAuditEnabled &&
           other.auditHour == this.auditHour &&
           other.auditMinute == this.auditMinute &&
-          other.onboardingDone == this.onboardingDone);
+          other.onboardingDone == this.onboardingDone &&
+          other.userName == this.userName);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1952,12 +1990,14 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<int> auditHour;
   final Value<int> auditMinute;
   final Value<bool> onboardingDone;
+  final Value<String?> userName;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
     this.dailyAuditEnabled = const Value.absent(),
     this.auditHour = const Value.absent(),
     this.auditMinute = const Value.absent(),
     this.onboardingDone = const Value.absent(),
+    this.userName = const Value.absent(),
   });
   AppSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1965,6 +2005,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.auditHour = const Value.absent(),
     this.auditMinute = const Value.absent(),
     this.onboardingDone = const Value.absent(),
+    this.userName = const Value.absent(),
   });
   static Insertable<AppSetting> custom({
     Expression<int>? id,
@@ -1972,6 +2013,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<int>? auditHour,
     Expression<int>? auditMinute,
     Expression<bool>? onboardingDone,
+    Expression<String>? userName,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1979,6 +2021,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (auditHour != null) 'audit_hour': auditHour,
       if (auditMinute != null) 'audit_minute': auditMinute,
       if (onboardingDone != null) 'onboarding_done': onboardingDone,
+      if (userName != null) 'user_name': userName,
     });
   }
 
@@ -1988,6 +2031,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Value<int>? auditHour,
     Value<int>? auditMinute,
     Value<bool>? onboardingDone,
+    Value<String?>? userName,
   }) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -1995,6 +2039,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       auditHour: auditHour ?? this.auditHour,
       auditMinute: auditMinute ?? this.auditMinute,
       onboardingDone: onboardingDone ?? this.onboardingDone,
+      userName: userName ?? this.userName,
     );
   }
 
@@ -2016,6 +2061,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (onboardingDone.present) {
       map['onboarding_done'] = Variable<bool>(onboardingDone.value);
     }
+    if (userName.present) {
+      map['user_name'] = Variable<String>(userName.value);
+    }
     return map;
   }
 
@@ -2026,7 +2074,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('dailyAuditEnabled: $dailyAuditEnabled, ')
           ..write('auditHour: $auditHour, ')
           ..write('auditMinute: $auditMinute, ')
-          ..write('onboardingDone: $onboardingDone')
+          ..write('onboardingDone: $onboardingDone, ')
+          ..write('userName: $userName')
           ..write(')'))
         .toString();
   }
