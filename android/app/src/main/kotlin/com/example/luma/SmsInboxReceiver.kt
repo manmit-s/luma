@@ -68,9 +68,15 @@ class SmsInboxReceiver : BroadcastReceiver() {
         }
     }
 
+    private val bareAmount = Regex("""(debited|paid|spent|withdrawn)\s+by\s+[\d,]+\.\d{2}""")
+
     private fun likelyTransaction(message: String): Boolean {
         val lower = message.lowercase()
-        val hasAmount = lower.contains("rs") || lower.contains("inr") || lower.contains("₹")
+        // SBI-style messages carry a bare amount ("debited by 1.00") with no
+        // Rs/INR/₹ marker — accept those only in strict "verb by N.NN" shape
+        // so phone numbers and ref numbers can't sneak through.
+        val hasAmount = lower.contains("rs") || lower.contains("inr") || lower.contains("₹") ||
+            bareAmount.containsMatchIn(lower)
         val hasTransactionWord = listOf("debited", "debit", "spent", "paid", "payment", "upi", "withdrawn", "credited", "credit").any(lower::contains)
         return hasAmount && hasTransactionWord
     }
