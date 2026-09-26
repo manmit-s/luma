@@ -1,34 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 
 import 'dart:async';
 
 import '../application/expense_controller.dart';
 import '../core/utils/format.dart';
-import '../data/services/app_settings_store.dart';
 import '../domain/entities/category.dart';
 import '../domain/entities/expense.dart';
+import '../services/export/export_service.dart';
 import '../services/notification/notification_service.dart';
 import '../services/permissions/sms_permission_service.dart';
+import '../services/sms/sms_ingest.dart'
+    show drainSmsQueue, openAutostartSettings, smsQueueSize;
+import 'providers.dart';
 import 'theme/app_theme.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/category_chip.dart';
 import 'widgets/expense_cards.dart';
+import 'widgets/expense_sheets.dart';
 import 'widgets/luma_buttons.dart';
 import 'widgets/luma_nav_bar.dart';
 import 'widgets/onboarding_sheet.dart';
 import 'widgets/section_header.dart';
 import 'widgets/sms_permission_flow.dart';
 import 'widgets/summary_card.dart';
-
-final expenseControllerProvider = ChangeNotifierProvider<ExpenseController>(
-  (ref) => ExpenseController(),
-);
-
-final appSettingsStoreProvider = Provider<AppSettingsStore>(
-  (ref) => AppSettingsStore(null),
-);
 
 final lumaNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -39,13 +34,16 @@ class LumaApp extends ConsumerStatefulWidget {
   ConsumerState<LumaApp> createState() => _LumaAppState();
 }
 
-class _LumaAppState extends ConsumerState<LumaApp> {
+class _LumaAppState extends ConsumerState<LumaApp>
+    with WidgetsBindingObserver {
   LumaTab tab = LumaTab.home;
   ExpenseController? _observedController;
+  bool _draining = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     notificationService.onTap = _handleNotificationTap;
     _observedController = ref.read(expenseControllerProvider);
     _observedController!.addListener(_syncPendingSummary);
@@ -54,8 +52,14 @@ class _LumaAppState extends ConsumerState<LumaApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _observedController?.removeListener(_syncPendingSummary);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(_drainSmsQueue());
   }
 
   void _syncPendingSummary() {
@@ -80,10 +84,11 @@ class _LumaAppState extends ConsumerState<LumaApp> {
       return;
     }
     setState(() => tab = LumaTab.home);
+    final target = matches.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = lumaNavigatorKey.currentContext;
       if (ctx == null) return;
-      showCompleteExpense(ctx, ref, matches.first);
+      openExpense(ctx, ref, target);
     });
   }
 
@@ -94,28 +99,44 @@ class _LumaAppState extends ConsumerState<LumaApp> {
     final coldPayload =
         await notificationService.consumeLaunchPayload();
     await controller.load();
-    try {
-      final queued =
-          await const MethodChannel(
-            'luma/sms',
-          ).invokeListMethod<String>('drainSmsQueue') ??
-          [];
-      for (final message in queued) {
-        final created = await controller.processSms(message);
-        if (created != null &&
-            created.status == ExpenseStatus.pending) {
-          await notificationService.showExpenseDetected(created);
-        }
-      }
-    } on MissingPluginException {
-      // Desktop and widget-test environments do not have the Android channel.
-    }
+    await _drainSmsQueue();
     await notificationService
         .syncPendingSummary(controller.pending.length);
     if (coldPayload != null && coldPayload.isNotEmpty) {
       _handleNotificationTap(coldPayload);
     }
+    await _ensureAuditScheduled();
     await _maybeShowOnboarding();
+  }
+
+  /// Pulls SMS queued by the native receiver into pending expenses.
+  ///
+  /// Runs on launch and on every foreground resume, so messages arriving
+  /// while the app is backgrounded are picked up without a restart.
+  /// Re-entrant calls collapse into one; duplicates are dropped by the
+  /// repository's fingerprint/reference check.
+  Future<void> _drainSmsQueue() async {
+    if (_draining) return;
+    _draining = true;
+    try {
+      await drainSmsQueue(ref);
+    } finally {
+      _draining = false;
+    }
+  }
+
+  /// Re-asserts the exact alarm on every launch so a reboot (which wipes
+  /// alarms) is healed as soon as the app opens. The native receiver also
+  /// reschedules on BOOT_COMPLETED without needing the app open.
+  Future<void> _ensureAuditScheduled() async {
+    try {
+      final store = ref.read(appSettingsStoreProvider);
+      if (!await store.isDailyAuditEnabled()) return;
+      final (hour, minute) = await store.auditTime();
+      await ref.read(dailyAuditServiceProvider).schedule(hour, minute);
+    } catch (_) {
+      // Audit scheduling is best-effort.
+    }
   }
 
   Future<void> _maybeShowOnboarding() async {
@@ -190,12 +211,14 @@ class _HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<_HomePage>
     with WidgetsBindingObserver {
   SmsPermissionState? _smsState;
+  String _userName = '';
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _refreshSmsState();
+    _refreshUserName();
   }
 
   @override
@@ -212,6 +235,16 @@ class _HomePageState extends ConsumerState<_HomePage>
   Future<void> _refreshSmsState() async {
     final state = await ref.read(smsPermissionServiceProvider).status();
     if (mounted) setState(() => _smsState = state);
+  }
+
+  Future<void> _refreshUserName() async {
+    final name = await ref.read(appSettingsStoreProvider).userName();
+    if (mounted) setState(() => _userName = name);
+  }
+
+  String _greeting() {
+    final base = greetingFor(DateTime.now());
+    return _userName.isEmpty ? base : '$base, $_userName';
   }
 
   @override
@@ -239,7 +272,7 @@ class _HomePageState extends ConsumerState<_HomePage>
             ),
             SizedBox(width: 6),
             Text(
-              'OFFLINE · PRIVATE',
+              'SECURE · PRIVATE',
               style: TextStyle(
                 color: AppColors.textSecondary,
                 fontSize: 12,
@@ -251,7 +284,7 @@ class _HomePageState extends ConsumerState<_HomePage>
         ),
         const SizedBox(height: AppSpacing.md),
         Text(
-          '${greetingFor(DateTime.now())}, Rey',
+          _greeting(),
           style: textTheme.headlineSmall,
         ),
         if (showSmsBanner) ...[
@@ -306,7 +339,7 @@ class _HomePageState extends ConsumerState<_HomePage>
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: ExpenseCard(
                 expense: expense,
-                onTap: () => showCompleteExpense(context, ref, expense),
+                onTap: () => openExpense(context, ref, expense),
               ),
             ),
           ),
@@ -382,7 +415,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage> {
                 selected: selectedCategory == null,
                 onSelected: (_) => setState(() => selectedCategory = null),
               ),
-              ...defaultCategories.take(5).map(
+              ...defaultCategories.map(
                     (category) => _SelectableFilterChip(
                       label: category.name,
                       selected: selectedCategory == category.id,
@@ -406,12 +439,35 @@ class _HistoryPageState extends ConsumerState<_HistoryPage> {
             subtitle: 'Try a different search or category filter.',
           )
         else
-          ...expenses.map(
-            (expense) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: ExpenseCard(
-                expense: expense,
-                onTap: () => showCompleteExpense(context, ref, expense),
+          ...groupExpensesByDay(expenses).map(
+            (group) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(bottom: AppSpacing.sm, left: 4),
+                    child: Text(
+                      formatDayLabel(group.$1),
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ),
+                  ...group.$2.map(
+                    (expense) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: ExpenseCard(
+                        expense: expense,
+                        onTap: () => openExpense(context, ref, expense),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -461,12 +517,17 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   bool dailyAudit = true;
   SmsPermissionState? _smsState;
   bool _checkingSms = true;
+  bool _loadingAudit = true;
+  String _userName = '';
+  bool _loadingName = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _refreshSmsState();
+    _loadAuditState();
+    _loadUserName();
   }
 
   @override
@@ -487,6 +548,80 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         _smsState = state;
         _checkingSms = false;
       });
+    }
+  }
+
+  Future<void> _loadAuditState() async {
+    final enabled =
+        await ref.read(appSettingsStoreProvider).isDailyAuditEnabled();
+    if (mounted) {
+      setState(() {
+        dailyAudit = enabled;
+        _loadingAudit = false;
+      });
+    }
+  }
+
+  Future<void> _loadUserName() async {
+    final name = await ref.read(appSettingsStoreProvider).userName();
+    if (mounted) {
+      setState(() {
+        _userName = name;
+        _loadingName = false;
+      });
+    }
+  }
+
+  Future<void> _editName() async {
+    final controller = TextEditingController(text: _userName);
+    try {
+      final saved = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.elevated,
+          title: const Text('Your name'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            maxLength: 24,
+            decoration: const InputDecoration(
+              hintText: 'What should Luma call you?',
+            ),
+            onSubmitted: (_) => Navigator.pop(context, true),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      );
+      if (saved != true || !mounted) return;
+      final name = controller.text.trim();
+      await ref.read(appSettingsStoreProvider).setUserName(name);
+      if (mounted) setState(() => _userName = name);
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _setAudit(bool enabled) async {
+    setState(() => dailyAudit = enabled);
+    await ref.read(appSettingsStoreProvider).setDailyAuditEnabled(enabled);
+    final audit = ref.read(dailyAuditServiceProvider);
+    if (enabled) {
+      final (hour, minute) =
+          await ref.read(appSettingsStoreProvider).auditTime();
+      await audit.schedule(hour, minute);
+    } else {
+      await audit.cancel();
     }
   }
 
@@ -535,11 +670,33 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               const Divider(height: 1, indent: 16, endIndent: 16),
               SwitchListTile(
                 value: dailyAudit,
-                onChanged: (value) => setState(() => dailyAudit = value),
+                onChanged: _loadingAudit ? null : _setAudit,
                 title: const Text('Daily audit'),
                 subtitle: const Text('Every day at 9:00 PM'),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        const _SmsDiagnosticsCard(),
+        const SizedBox(height: AppSpacing.lg),
+        Card(
+          color: AppColors.surface,
+          child: ListTile(
+            leading: const Icon(Icons.person_outline_rounded),
+            title: const Text('Your name'),
+            subtitle: Text(
+              _loadingName
+                  ? 'Loading…'
+                  : _userName.isEmpty
+                      ? 'Not set — tap to add'
+                      : _userName,
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary,
+            ),
+            onTap: _editName,
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -558,250 +715,459 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 }
 
-Future<void> showCompleteExpense(
-  BuildContext context,
-  WidgetRef ref,
-  Expense expense,
-) async {
-  String category = expense.categoryId ?? '';
-  final note = TextEditingController(text: expense.note);
-  try {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => SafeArea(
+/// Shows where an SMS can get stuck: permission → phone queue → parse.
+///
+/// Each row maps to one stage of the watch chain, so a missed transaction
+/// can be localized without a computer.
+class _SmsDiagnosticsCard extends ConsumerStatefulWidget {
+  const _SmsDiagnosticsCard();
+
+  @override
+  ConsumerState<_SmsDiagnosticsCard> createState() =>
+      _SmsDiagnosticsCardState();
+}
+
+class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
+  int? _queued;
+  bool _checkingQueue = false;
+  bool _processing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshQueue();
+  }
+
+  Future<void> _refreshQueue() async {
+    setState(() => _checkingQueue = true);
+    final count = await smsQueueSize();
+    if (mounted) {
+      setState(() {
+        _queued = count;
+        _checkingQueue = false;
+      });
+    }
+  }
+
+  Future<void> _processNow() async {
+    setState(() => _processing = true);
+    try {
+      final created = await drainSmsQueue(ref);
+      await _refreshQueue();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            created > 0
+                ? 'Imported $created pending ${created == 1 ? 'expense' : 'expenses'}.'
+                : 'Queue empty — nothing new to import.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  Future<void> _openBackgroundStart() async {
+    final opened = await openAutostartSettings();
+    if (!mounted) return;
+    if (!opened) {
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => const SafeArea(
           top: false,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              AppSpacing.lg,
-              AppSpacing.xl,
-              MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxl,
-            ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Complete expense',
+                  'Let Luma start in background',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Xiaomi / Oppo / Vivo / Realme / Samsung block background '
+                  'receivers by default. Open system Settings → Apps → Luma '
+                  'and enable Autostart (or “Allow background activity” / '
+                  '“Unrestricted” battery), then return here.',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final queueLabel = _checkingQueue
+        ? 'Checking…'
+        : _queued == null
+            ? 'Unknown on this device'
+            : _queued == 0
+                ? 'Empty — receiver caught up'
+                : '$_queued waiting — tap Process now';
+    return Card(
+      color: AppColors.surface,
+      child: Padding(
+        padding: AppSpacing.cardPadding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'SMS diagnostics',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                IconButton(
+                  onPressed: _checkingQueue ? null : _refreshQueue,
+                  icon: const Icon(Icons.refresh_rounded, size: 20),
+                  tooltip: 'Refresh',
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Phone queue: $queueLabel',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _processing ? null : _processNow,
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: Text(
+                      _processing ? 'Working…' : 'Process now',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _openBackgroundStart,
+                    icon: const Icon(Icons.battery_saver_outlined, size: 18),
+                    label: const Text('Background start'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the right sheet for an expense: complete-flow for pending,
+/// read-only detail (SPEC 28) for everything else.
+Future<void> openExpense(BuildContext context, WidgetRef ref, Expense expense) {
+  if (expense.isPending) return showCompleteExpense(context, ref, expense);
+  return showExpenseDetail(context, ref, expense);
+}
+
+String _sourceLabel(ExpenseSource source) => switch (source) {
+      ExpenseSource.sms => 'SMS detected',
+      ExpenseSource.manual => 'Manually added',
+    };
+
+String _txLabel(Expense e) => switch (e.transactionType) {
+      TransactionType.debit => 'Expense',
+      TransactionType.credit => 'Income',
+      TransactionType.unknown => 'Unknown',
+    };
+
+Future<void> showExpenseDetail(
+  BuildContext context,
+  WidgetRef ref,
+  Expense expense,
+) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => SafeArea(
+      top: false,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.xl,
+          AppSpacing.lg,
+          AppSpacing.xl,
+          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxxl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Expense detail',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                AmountDisplay(expense.amountMinor, fontSize: 36),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  merchantLabel(expense.merchant),
-                  style: const TextStyle(color: AppColors.textSecondary),
+                CategoryChip(
+                  label: categoryName(expense.categoryId),
+                  compact: true,
                 ),
-                Text(
-                  formatTime(expense.timestamp),
-                  style: const TextStyle(
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AmountDisplay(expense.amountMinor, fontSize: 36),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              merchantLabel(expense.merchant),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            if (expense.note.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.md),
+              Container(
+                width: double.infinity,
+                padding: AppSpacing.cardPadding,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.card),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Text(expense.note.trim()),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            _DetailRow(
+              label: 'Type',
+              value: _txLabel(expense),
+            ),
+            if (expense.referenceNumber?.isNotEmpty ?? false)
+              _DetailRow(label: 'Reference', value: expense.referenceNumber!),
+            _DetailRow(label: 'Source', value: _sourceLabel(expense.source)),
+            if ((expense.lastExportedAt) != null)
+              const _DetailRow(label: 'Export', value: 'Included in an export'),
+            if (expense.rawSms?.isNotEmpty ?? false)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text(
+                  'Raw SMS (debug)',
+                  style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.xxl),
-                const Text('What was this for?'),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: defaultCategories
-                      .map(
-                        (item) => CategoryChip(
-                          label: item.name,
-                          selected: category == item.id,
-                          onSelected: (_) =>
-                              setModalState(() => category = item.id),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                TextField(
-                  controller: note,
-                  maxLines: 2,
-                  minLines: 1,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a note (optional)',
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: 'Save expense',
-                    onPressed: category.isEmpty
-                        ? null
-                        : () {
-                            ref
-                                .read(expenseControllerProvider)
-                                .complete(
-                                  expense,
-                                  categoryId: category,
-                                  note: note.text.trim(),
-                                );
-                            Navigator.pop(context);
-                          },
-                  ),
-                ),
-                if (category.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(top: AppSpacing.sm),
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: AppSpacing.cardPadding,
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      border: Border.all(color: AppColors.border),
+                    ),
                     child: Text(
-                      'Pick a category to save.',
-                      style: TextStyle(
+                      expense.rawSms!,
+                      style: const TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 12,
                       ),
                     ),
                   ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  } finally {
-    note.dispose();
-  }
-}
-
-int _parseAmountToMinor(String raw) {
-  final cleaned = raw.replaceAll(RegExp(r'[^0-9.]'), '').trim();
-  if (cleaned.isEmpty) return 0;
-  final parts = cleaned.split('.');
-  final rupees = int.tryParse(parts[0].isEmpty ? '0' : parts[0]) ?? 0;
-  var paise = 0;
-  if (parts.length > 1) {
-    final fraction = '${parts[1]}00'.substring(0, 2);
-    paise = int.tryParse(fraction) ?? 0;
-  }
-  if (rupees <= 0 && paise <= 0) return 0;
-  return rupees * 100 + paise;
-}
-
-Future<void> showAddExpense(BuildContext context, WidgetRef ref) async {
-  final amount = TextEditingController();
-  final merchant = TextEditingController();
-  String category = 'other';
-  String? error;
-  try {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.xl,
-              AppSpacing.lg,
-              AppSpacing.xl,
-              MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxl,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+                ],
+              ),
+            const SizedBox(height: AppSpacing.lg),
+            Row(
               children: [
-                Text(
-                  'Add expense',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                TextField(
-                  controller: amount,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Amount',
-                    prefixText: '₹ ',
-                    errorText: error,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: merchant,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Merchant or description',
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                DropdownButtonFormField<String>(
-                  initialValue: category,
-                  decoration: const InputDecoration(labelText: 'Category'),
-                  items: defaultCategories
-                      .map(
-                        (item) => DropdownMenuItem(
-                          value: item.id,
-                          child: Text(item.name),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) =>
-                      setModalState(() => category = value ?? 'other'),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
+                Expanded(
                   child: PrimaryButton(
-                    label: 'Save expense',
+                    label: 'Edit',
+                    icon: Icons.edit_outlined,
                     onPressed: () {
-                      final parsed = _parseAmountToMinor(amount.text);
-                      if (parsed <= 0) {
-                        setModalState(
-                          () => error = 'Enter an amount greater than ₹0',
-                        );
-                        return;
-                      }
-                      ref.read(expenseControllerProvider).addManual(
-                            amountMinor: parsed,
-                            merchant: merchant.text.trim(),
-                            categoryId: category,
-                          );
                       Navigator.pop(context);
+                      showEditExpense(context, ref, expense);
                     },
                   ),
                 ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        _confirmDelete(context, ref, expense),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    label: const Text('Delete'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size.fromHeight(48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppRadii.card),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
+          ],
         ),
       ),
-    );
-  } finally {
-    amount.dispose();
-    merchant.dispose();
-  }
+    ),
+  );
 }
 
-class _ExportPage extends ConsumerWidget {
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Flexible(
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+Future<void> _confirmDelete(
+  BuildContext context,
+  WidgetRef ref,
+  Expense expense,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: AppColors.elevated,
+      title: const Text('Delete expense?'),
+      content: Text(
+        '${formatAmount(expense.amountMinor)} · ${merchantLabel(expense.merchant)} will be removed permanently.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true || !context.mounted) return;
+  await ref.read(expenseControllerProvider).deleteExpense(expense.id);
+  if (!context.mounted) return;
+  Navigator.pop(context);
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Expense deleted.')),
+  );
+}
+
+class _ExportPage extends ConsumerStatefulWidget {
   const _ExportPage();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ExportPage> createState() => _ExportPageState();
+}
+
+class _ExportPageState extends ConsumerState<_ExportPage> {
+  ExportMode? _busy;
+
+  Future<void> _runExport(ExportMode mode) async {
+    final service = ref.read(exportServiceProvider);
+    if (_busy != null) return;
+    if (service == null) {
+      debugPrint('Luma export: no ExportService provided');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Export is unavailable right now.')),
+      );
+      return;
+    }
+    setState(() => _busy = mode);
+    try {
+      final result = await service.generate(mode);
+      // Refresh counts so "since last export" drops to zero.
+      await ref.read(expenseControllerProvider).load();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Exported ${result.count} ${result.count == 1 ? 'expense' : 'expenses'} — choose an app to share.',
+          ),
+        ),
+      );
+      try {
+        await service.share(result);
+      } catch (e) {
+        debugPrint('Luma export: share failed: $e');
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('File saved: ${result.file.path.split('/').last}. '
+                'Sharing failed — find it in the app temp folder.'),
+          ),
+        );
+      }
+    } on ExportException catch (e) {
+      debugPrint('Luma export: ${e.userMessage}');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.userMessage)),
+      );
+    } catch (e) {
+      debugPrint('Luma export: unexpected failure: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not create the Excel file.')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final controller = ref.watch(expenseControllerProvider);
-    final sinceLast = controller.expenses
-        .where((expense) => expense.lastExportedAt == null)
-        .toList();
+    final sinceLast = controller.unexported;
     final sinceTotal = sinceLast.fold(0, (sum, item) => sum + item.amountMinor);
     final fullTotal =
         controller.expenses.fold(0, (sum, item) => sum + item.amountMinor);
     final textTheme = Theme.of(context).textTheme;
-
-    void showPendingExportNotice() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'XLSX export lands next — persistence ships first.',
-          ),
-        ),
-      );
-    }
 
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 128),
@@ -823,8 +1189,11 @@ class _ExportPage extends ConsumerWidget {
           detail:
               '${sinceLast.length} new ${sinceLast.length == 1 ? 'expense' : 'expenses'} · ${formatAmount(sinceTotal)}',
           emphasized: true,
-          actionLabel: 'Generate XLSX',
-          onPressed: sinceLast.isEmpty ? null : showPendingExportNotice,
+          actionLabel:
+              _busy == ExportMode.incremental ? 'Generating…' : 'Generate XLSX',
+          onPressed: sinceLast.isEmpty || _busy != null
+              ? null
+              : () => _runExport(ExportMode.incremental),
         ),
         const SizedBox(height: AppSpacing.md),
         _ExportOption(
@@ -832,9 +1201,11 @@ class _ExportPage extends ConsumerWidget {
           subtitle: 'Export every recorded expense.',
           detail:
               '${controller.expenses.length} total ${controller.expenses.length == 1 ? 'expense' : 'expenses'} · ${formatAmount(fullTotal)}',
-          actionLabel: 'Generate XLSX',
-          onPressed:
-              controller.expenses.isEmpty ? null : showPendingExportNotice,
+          actionLabel:
+              _busy == ExportMode.full ? 'Generating…' : 'Generate XLSX',
+          onPressed: controller.expenses.isEmpty || _busy != null
+              ? null
+              : () => _runExport(ExportMode.full),
         ),
       ],
     );
