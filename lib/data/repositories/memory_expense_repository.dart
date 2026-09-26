@@ -58,6 +58,9 @@ class MemoryExpenseRepository implements ExpenseRepository {
   @override
   Future<void> delete(int id) async => _expenses.removeWhere((expense) => expense.id == id);
 
+  /// Test-only helper: drop all expenses including seeds.
+  void clearForTest() => _expenses.clear();
+
   @override
   Future<List<Expense>> queryUnexported() async => _expenses
       .where((expense) =>
