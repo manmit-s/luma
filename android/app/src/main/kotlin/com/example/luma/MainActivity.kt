@@ -22,6 +22,10 @@ class MainActivity : FlutterActivity() {
 					preferences.edit().remove(SmsInboxReceiver.QUEUE_KEY).apply()
 					result.success(messages)
 				}
+				"scanInboxSms" -> {
+					val limit = (call.argument<Int>("limit") ?: 50).coerceIn(1, 200)
+					result.success(scanInbox(limit))
+				}
 				// Diagnostics: how many receiver-queued SMS are still waiting.
 				// Non-destructive (does NOT drain) so Settings can display it.
 				"smsQueueSize" -> {
@@ -49,6 +53,32 @@ class MainActivity : FlutterActivity() {
 				else -> result.notImplemented()
 			}
 		}
+	}
+
+	private fun scanInbox(limit: Int): List<String> {
+		val messages = mutableListOf<String>()
+		try {
+			val cursor = contentResolver.query(
+				android.provider.Telephony.Sms.Inbox.CONTENT_URI,
+				arrayOf(android.provider.Telephony.Sms.Inbox.BODY),
+				null,
+				null,
+				"${android.provider.Telephony.Sms.Inbox.DATE} DESC"
+			)
+			cursor?.use {
+				val bodyIndex = it.getColumnIndex(android.provider.Telephony.Sms.Inbox.BODY)
+				while (it.moveToNext() && messages.size < limit) {
+					val body = it.getString(bodyIndex) ?: continue
+					if (SmsInboxReceiver.likelyTransaction(body)) {
+						messages.add(body)
+					}
+				}
+			}
+		} catch (_: SecurityException) {
+			// Permission not granted.
+		} catch (_: Exception) {
+		}
+		return messages
 	}
 
 	private fun openAutostartSettings(): Boolean {
