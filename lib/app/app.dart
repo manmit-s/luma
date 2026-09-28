@@ -7,11 +7,16 @@ import '../application/expense_controller.dart';
 import '../core/utils/format.dart';
 import '../domain/entities/category.dart';
 import '../domain/entities/expense.dart';
+import '../domain/services/sms_transaction_parser.dart';
 import '../services/export/export_service.dart';
 import '../services/notification/notification_service.dart';
 import '../services/permissions/sms_permission_service.dart';
 import '../services/sms/sms_ingest.dart'
-    show drainSmsQueue, openAutostartSettings, smsQueueSize;
+    show
+        drainSmsQueue,
+        openAutostartSettings,
+        scanInboxSms,
+        smsQueueSize;
 import 'providers.dart';
 import 'theme/app_theme.dart';
 import 'widgets/amount_display.dart';
@@ -23,26 +28,65 @@ import 'widgets/luma_nav_bar.dart';
 import 'widgets/onboarding_sheet.dart';
 import 'widgets/section_header.dart';
 import 'widgets/sms_permission_flow.dart';
+import 'widgets/splash_screen.dart';
 import 'widgets/summary_card.dart';
 
 final lumaNavigatorKey = GlobalKey<NavigatorState>();
 
-class LumaApp extends ConsumerStatefulWidget {
-  const LumaApp({super.key});
+class LumaApp extends StatefulWidget {
+  const LumaApp({super.key, this.skipSplash = false});
+
+  final bool skipSplash;
 
   @override
-  ConsumerState<LumaApp> createState() => _LumaAppState();
+  State<LumaApp> createState() => _LumaAppState();
 }
 
-class _LumaAppState extends ConsumerState<LumaApp>
+class _LumaAppState extends State<LumaApp> {
+  late bool _showSplash = !widget.skipSplash;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Luma',
+      navigatorKey: lumaNavigatorKey,
+      debugShowCheckedModeBanner: false,
+      theme: buildLumaTheme(),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 280),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: _showSplash
+            ? LumaSplashScreen(
+                key: const ValueKey('splash'),
+                onComplete: () {
+                  if (mounted) setState(() => _showSplash = false);
+                },
+              )
+            : const _MainShell(key: ValueKey('main_shell')),
+      ),
+    );
+  }
+}
+
+class _MainShell extends ConsumerStatefulWidget {
+  const _MainShell({super.key});
+
+  @override
+  ConsumerState<_MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<_MainShell>
     with WidgetsBindingObserver {
   LumaTab tab = LumaTab.home;
+  late final PageController _pageController;
   ExpenseController? _observedController;
   bool _draining = false;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: tab.index);
     WidgetsBinding.instance.addObserver(this);
     notificationService.onTap = _handleNotificationTap;
     _observedController = ref.read(expenseControllerProvider);
@@ -52,6 +96,7 @@ class _LumaAppState extends ConsumerState<LumaApp>
 
   @override
   void dispose() {
+    _pageController.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _observedController?.removeListener(_syncPendingSummary);
     super.dispose();
@@ -67,10 +112,24 @@ class _LumaAppState extends ConsumerState<LumaApp>
     unawaited(notificationService.syncPendingSummary(count));
   }
 
+  void _switchTab(LumaTab newTab) {
+    if (tab != newTab) {
+      setState(() => tab = newTab);
+    }
+    if (_pageController.hasClients &&
+        _pageController.page?.round() != newTab.index) {
+      _pageController.animateToPage(
+        newTab.index,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
   void _handleNotificationTap(String? payload) {
     if (payload == null || payload.isEmpty) return;
     if (payload == 'pending') {
-      setState(() => tab = LumaTab.home);
+      _switchTab(LumaTab.home);
       return;
     }
     final id = int.tryParse(payload);
@@ -80,10 +139,10 @@ class _LumaAppState extends ConsumerState<LumaApp>
     final controller = ref.read(expenseControllerProvider);
     final matches = controller.expenses.where((e) => e.id == id).toList();
     if (matches.isEmpty) {
-      setState(() => tab = LumaTab.home);
+      _switchTab(LumaTab.home);
       return;
     }
-    setState(() => tab = LumaTab.home);
+    _switchTab(LumaTab.home);
     final target = matches.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final ctx = lumaNavigatorKey.currentContext;
@@ -162,36 +221,37 @@ class _LumaAppState extends ConsumerState<LumaApp>
   @override
   Widget build(BuildContext context) {
     final pendingCount = ref.watch(expenseControllerProvider).pending.length;
-    return MaterialApp(
-      title: 'Luma',
-      navigatorKey: lumaNavigatorKey,
-      debugShowCheckedModeBanner: false,
-      theme: buildLumaTheme(),
-      home: Builder(
-        builder: (innerContext) => Scaffold(
-          extendBody: true,
-          body: SafeArea(
-            bottom: false,
-          child: switch (tab) {
-            LumaTab.home =>
-              _HomePage(onHistory: () => setState(() => tab = LumaTab.history)),
-            LumaTab.history => const _HistoryPage(),
-            LumaTab.export => const _ExportPage(),
-            LumaTab.settings => const _SettingsPage(),
+    return Scaffold(
+      extendBody: true,
+      body: SafeArea(
+        bottom: false,
+        child: PageView(
+          controller: _pageController,
+          physics: const BouncingScrollPhysics(),
+          onPageChanged: (index) {
+            final newTab = LumaTab.values[index];
+            if (tab != newTab) {
+              setState(() => tab = newTab);
+            }
           },
-          ),
-          bottomNavigationBar: SafeArea(
-            top: false,
-            minimum: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: LumaNavBar(
-                current: tab,
-                pendingCount: pendingCount,
-                onSelect: (value) => setState(() => tab = value),
-                onAdd: () => showAddExpense(innerContext, ref),
-              ),
-            ),
+          children: [
+            _HomePage(onHistory: () => _switchTab(LumaTab.history)),
+            const _HistoryPage(),
+            const _ExportPage(),
+            const _SettingsPage(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: LumaNavBar(
+            current: tab,
+            pendingCount: pendingCount,
+            onSelect: _switchTab,
+            onAdd: () => showAddExpense(context, ref),
           ),
         ),
       ),
@@ -209,9 +269,12 @@ class _HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<_HomePage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   SmsPermissionState? _smsState;
   String _userName = '';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -242,13 +305,46 @@ class _HomePageState extends ConsumerState<_HomePage>
     if (mounted) setState(() => _userName = name);
   }
 
-  String _greeting() {
+  Widget _buildGreeting(TextTheme textTheme) {
     final base = greetingFor(DateTime.now());
-    return _userName.isEmpty ? base : '$base, $_userName';
+    final baseStyle = textTheme.headlineSmall?.copyWith(
+      fontSize: 22,
+      fontWeight: FontWeight.w600,
+      color: AppColors.textPrimary,
+      letterSpacing: -0.3,
+    );
+
+    if (_userName.isEmpty) {
+      return Text(
+        base,
+        style: baseStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    return Text.rich(
+      TextSpan(
+        text: '$base, ',
+        style: baseStyle,
+        children: [
+          TextSpan(
+            text: _userName,
+            style: const TextStyle(
+              color: AppColors.peach,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = ref.watch(expenseControllerProvider);
     final pending = controller.pending;
     final recent = controller.expenses
@@ -283,10 +379,7 @@ class _HomePageState extends ConsumerState<_HomePage>
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        Text(
-          _greeting(),
-          style: textTheme.headlineSmall,
-        ),
+        _buildGreeting(textTheme),
         if (showSmsBanner) ...[
           const SizedBox(height: AppSpacing.lg),
           const SmsDisabledBanner(),
@@ -361,12 +454,17 @@ class _HistoryPage extends ConsumerStatefulWidget {
   ConsumerState<_HistoryPage> createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends ConsumerState<_HistoryPage> {
+class _HistoryPageState extends ConsumerState<_HistoryPage>
+    with AutomaticKeepAliveClientMixin {
   String query = '';
   String? selectedCategory;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = ref.watch(expenseControllerProvider);
     final textTheme = Theme.of(context).textTheme;
     final normalizedQuery = query.trim().toLowerCase();
@@ -513,13 +611,16 @@ class _SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<_SettingsPage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   bool dailyAudit = true;
   SmsPermissionState? _smsState;
   bool _checkingSms = true;
   bool _loadingAudit = true;
   String _userName = '';
   bool _loadingName = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -573,42 +674,51 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _editName() async {
-    final controller = TextEditingController(text: _userName);
-    try {
-      final saved = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.elevated,
-          title: const Text('Your name'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            textInputAction: TextInputAction.done,
-            maxLength: 24,
-            decoration: const InputDecoration(
-              hintText: 'What should Luma call you?',
-            ),
-            onSubmitted: (_) => Navigator.pop(context, true),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Save'),
-            ),
-          ],
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => _EditNameDialog(initialName: _userName),
+    );
+    if (name == null || !mounted) return;
+    await ref.read(appSettingsStoreProvider).setUserName(name);
+    if (mounted) setState(() => _userName = name);
+  }
+
+  Future<void> _confirmResetAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.elevated,
+        title: const Text('Reset all records?'),
+        content: const Text(
+          'This will permanently delete all expenses and pending items. This cannot be undone.',
         ),
-      );
-      if (saved != true || !mounted) return;
-      final name = controller.text.trim();
-      await ref.read(appSettingsStoreProvider).setUserName(name);
-      if (mounted) setState(() => _userName = name);
-    } finally {
-      controller.dispose();
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.textPrimary,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Reset Everything'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(expenseControllerProvider).clearAll();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('All records have been reset.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -645,6 +755,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final textTheme = Theme.of(context).textTheme;
     final smsOn = _smsState == SmsPermissionState.granted;
     return ListView(
@@ -710,6 +821,78 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             ),
           ),
         ),
+        const SizedBox(height: AppSpacing.lg),
+        Card(
+          color: AppColors.surface,
+          child: ListTile(
+            leading: const Icon(
+              Icons.delete_sweep_outlined,
+              color: AppColors.error,
+            ),
+            title: const Text(
+              'Reset all records',
+              style: TextStyle(color: AppColors.error),
+            ),
+            subtitle: const Text(
+              'Wipe all transactions and start completely fresh',
+            ),
+            onTap: _confirmResetAll,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _EditNameDialog extends StatefulWidget {
+  const _EditNameDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_EditNameDialog> createState() => _EditNameDialogState();
+}
+
+class _EditNameDialogState extends State<_EditNameDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.elevated,
+      title: const Text('Your name'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        maxLength: 24,
+        decoration: const InputDecoration(
+          hintText: 'What should Luma call you?',
+        ),
+        onSubmitted: (value) => Navigator.pop(context, value.trim()),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: const Text('Save'),
+        ),
       ],
     );
   }
@@ -731,6 +914,7 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
   int? _queued;
   bool _checkingQueue = false;
   bool _processing = false;
+  bool _scanning = false;
 
   @override
   void initState() {
@@ -769,12 +953,34 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
     }
   }
 
+  Future<void> _scanInbox() async {
+    setState(() => _scanning = true);
+    try {
+      final created = await scanInboxSms(ref);
+      await _refreshQueue();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            created > 0
+                ? 'Found & imported $created transactions from inbox.'
+                : 'No new transactions found in SMS inbox.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
   Future<void> _openBackgroundStart() async {
     final opened = await openAutostartSettings();
     if (!mounted) return;
     if (!opened) {
       showModalBottomSheet<void>(
         context: context,
+        showDragHandle: true,
+        useSafeArea: true,
         builder: (context) => const SafeArea(
           top: false,
           child: Padding(
@@ -804,6 +1010,27 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
         ),
       );
     }
+  }
+
+  void _testSms() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheetContext) => _TestSmsSheet(
+        onIngest: (expense) async {
+          Navigator.pop(sheetContext);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Ingested ₹${(expense.amountMinor / 100).toStringAsFixed(2)} as pending expense.',
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -856,9 +1083,31 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: OutlinedButton.icon(
+                    onPressed: _scanning ? null : _scanInbox,
+                    icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                    label: Text(
+                      _scanning ? 'Scanning…' : 'Scan Inbox',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _testSms,
+                    icon: const Icon(Icons.science_outlined, size: 18),
+                    label: const Text('Test SMS'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: OutlinedButton.icon(
                     onPressed: _openBackgroundStart,
                     icon: const Icon(Icons.battery_saver_outlined, size: 18),
-                    label: const Text('Background start'),
+                    label: const Text('Autostart'),
                   ),
                 ),
               ],
@@ -868,6 +1117,133 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
       ),
     );
   }
+}
+
+class _TestSmsSheet extends ConsumerStatefulWidget {
+  const _TestSmsSheet({required this.onIngest});
+  final void Function(Expense expense) onIngest;
+
+  @override
+  ConsumerState<_TestSmsSheet> createState() => _TestSmsSheetState();
+}
+
+class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
+  final _controller = TextEditingController();
+  ParsedTransaction? _parsed;
+  bool _tested = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _analyze() {
+    final text = _controller.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _parsed = SmsTransactionParser().parse(text);
+      _tested = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          16,
+          20,
+          MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Test SMS Parser',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Paste a bank SMS below to test how Luma parses it.',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Paid Rs. 250 to Starbucks on 28 Sep. UPI Ref 123456...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _analyze,
+                    child: const Text('Parse SMS'),
+                  ),
+                ),
+                if (_parsed != null && _parsed!.transactionType == TransactionType.debit) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () async {
+                        final controller = ref.read(expenseControllerProvider);
+                        final expense =
+                            await controller.processSms(_controller.text.trim());
+                        if (expense != null) {
+                          widget.onIngest(expense);
+                        }
+                      },
+                      child: const Text('Ingest into Luma'),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            if (_tested) ...[
+              const SizedBox(height: 16),
+              if (_parsed == null)
+                const Text(
+                  '❌ Parser did not recognize this as a debit transaction.',
+                  style: TextStyle(color: Colors.redAccent),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Amount: ₹${(_parsed!.amountMinor / 100).toStringAsFixed(2)}'),
+                      Text('Merchant: ${_parsed!.merchant ?? "None (tap to add)"}'),
+                      Text('Type: ${_parsed!.transactionType.name}'),
+                      Text('Ref: ${_parsed!.referenceNumber ?? "None"}'),
+                      Text('Confidence: ${(_parsed!.confidence * 100).toInt()}%'),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      );
 }
 
 /// Opens the right sheet for an expense: complete-flow for pending,
@@ -896,6 +1272,8 @@ Future<void> showExpenseDetail(
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
     builder: (context) => SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -1104,8 +1482,12 @@ class _ExportPage extends ConsumerStatefulWidget {
   ConsumerState<_ExportPage> createState() => _ExportPageState();
 }
 
-class _ExportPageState extends ConsumerState<_ExportPage> {
+class _ExportPageState extends ConsumerState<_ExportPage>
+    with AutomaticKeepAliveClientMixin {
   ExportMode? _busy;
+
+  @override
+  bool get wantKeepAlive => true;
 
   Future<void> _runExport(ExportMode mode) async {
     final service = ref.read(exportServiceProvider);
@@ -1162,6 +1544,7 @@ class _ExportPageState extends ConsumerState<_ExportPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final controller = ref.watch(expenseControllerProvider);
     final sinceLast = controller.unexported;
     final sinceTotal = sinceLast.fold(0, (sum, item) => sum + item.amountMinor);
