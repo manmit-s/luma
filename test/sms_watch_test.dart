@@ -11,7 +11,7 @@ import 'package:luma/main.dart';
 void main() {
   const smsChannel = MethodChannel('luma/sms');
   const queuedSms =
-      'Your A/C XX1234 debited by Rs.200.90 at Uber. UPI Ref 999888777';
+      'Your A/C XX1234 debited by Rs.200.90. UPI Ref 999888777';
 
   testWidgets('queued SMS becomes pending on launch, resume dedupes', (
     WidgetTester tester,
