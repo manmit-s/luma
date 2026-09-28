@@ -179,6 +179,11 @@ class DriftExpenseRepository implements ExpenseRepository {
   }
 
   @override
+  Future<void> clearAll() async {
+    await database.delete(database.expenses).go();
+  }
+
+  @override
   Future<List<domain.Expense>> queryUnexported() async {
     final rows = await (database.select(database.expenses)
           ..where((t) =>

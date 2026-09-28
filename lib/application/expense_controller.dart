@@ -92,6 +92,11 @@ class ExpenseController extends ChangeNotifier {
     await _refresh();
   }
 
+  Future<void> clearAll() async {
+    await _repository.clearAll();
+    await _refresh();
+  }
+
   Future<void> markExported(List<int> ids, DateTime exportedAt) async {
     await _repository.markExported(ids, exportedAt);
     await _refresh();

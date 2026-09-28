@@ -2,7 +2,7 @@ import '../../domain/entities/expense.dart';
 import '../../domain/repositories/expense_repository.dart';
 
 class MemoryExpenseRepository implements ExpenseRepository {
-  MemoryExpenseRepository() : _expenses = _seed();
+  MemoryExpenseRepository({bool seed = true}) : _expenses = seed ? _seed() : [];
 
   final List<Expense> _expenses;
 
@@ -57,6 +57,9 @@ class MemoryExpenseRepository implements ExpenseRepository {
 
   @override
   Future<void> delete(int id) async => _expenses.removeWhere((expense) => expense.id == id);
+
+  @override
+  Future<void> clearAll() async => _expenses.clear();
 
   /// Test-only helper: drop all expenses including seeds.
   void clearForTest() => _expenses.clear();
