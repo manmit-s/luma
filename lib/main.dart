@@ -41,7 +41,7 @@ Future<void> main() async {
       ),
     );
   } catch (_) {
-    final memoryRepo = MemoryExpenseRepository();
+    final memoryRepo = MemoryExpenseRepository(seed: false);
     final fallback = ExpenseController(
       repository: memoryRepo,
       learning: MerchantLearning(),
