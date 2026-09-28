@@ -6,9 +6,8 @@ import '../theme/app_theme.dart';
 
 enum LumaTab { home, history, export, settings }
 
-/// Premium floating pill dock: blur glass + pending badge + center Add FAB.
-///
-/// Single contained blur surface (dock only) — rest of app stays solid.
+/// Premium floating glassmorphic dock:
+/// Optical blur + translucent frosted gradient + light refraction border + ambient glow + center glowing FAB.
 class LumaNavBar extends StatelessWidget {
   const LumaNavBar({
     super.key,
@@ -25,20 +24,38 @@ class LumaNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             height: 72,
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.82),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: AppColors.border),
-              boxShadow: const [
+              // Frosted multi-stop glass surface with specular gradient
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color(0xFF221D30).withValues(alpha: 0.82),
+                  const Color(0xFF161222).withValues(alpha: 0.90),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(30),
+              // Frosted rim catching light
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.14),
+                width: 1.0,
+              ),
+              boxShadow: [
                 BoxShadow(
-                  color: Color(0x66000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
+                  color: Colors.black.withValues(alpha: 0.50),
+                  blurRadius: 28,
+                  offset: const Offset(0, 10),
+                ),
+                BoxShadow(
+                  color: AppColors.peach.withValues(alpha: 0.06),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
@@ -93,8 +110,6 @@ class LumaNavBar extends StatelessWidget {
           ),
         ),
       );
-
-  // No haptics by design — silent tab switching.
 }
 
 class _NavItem extends StatelessWidget {
@@ -124,35 +139,54 @@ class _NavItem extends StatelessWidget {
         child: Tooltip(
           message: label,
           child: InkWell(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(22),
             onTap: onTap,
             child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
+              constraints: const BoxConstraints(minWidth: 54, minHeight: 52),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                    horizontal: 8,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: selected ? AppColors.plum : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
+                    color: selected
+                        ? AppColors.plum.withValues(alpha: 0.70)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.peach.withValues(alpha: 0.35)
+                          : Colors.transparent,
+                      width: 1,
+                    ),
+                    boxShadow: selected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.peach.withValues(alpha: 0.12),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
                           AnimatedScale(
-                            scale: selected ? 1.05 : 1.0,
-                            duration: const Duration(milliseconds: 200),
+                            scale: selected ? 1.08 : 1.0,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOutCubic,
                             child: Icon(
                               selected ? selectedIcon : icon,
-                              size: 22,
+                              size: 21,
                               color: selected
                                   ? AppColors.peach
                                   : AppColors.textSecondary,
@@ -177,6 +211,12 @@ class _NavItem extends StatelessWidget {
                                     color: AppColors.peach,
                                     width: 1,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.peach.withValues(alpha: 0.3),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
@@ -198,11 +238,9 @@ class _NavItem extends StatelessWidget {
                         maxLines: 1,
                         softWrap: false,
                         style: TextStyle(
-                          // Fixed size in both states: growing 10 → 11 on
-                          // select widened the pill and overflowed labels
-                          // like "Settings" in the 5-slot dock.
                           fontSize: 10,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          letterSpacing: 0.1,
                           color: selected
                               ? AppColors.peach
                               : AppColors.textSecondary,
@@ -218,10 +256,17 @@ class _NavItem extends StatelessWidget {
       );
 }
 
-class _CenterFab extends StatelessWidget {
+class _CenterFab extends StatefulWidget {
   const _CenterFab({required this.onTap});
 
   final VoidCallback onTap;
+
+  @override
+  State<_CenterFab> createState() => _CenterFabState();
+}
+
+class _CenterFabState extends State<_CenterFab> {
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -229,21 +274,48 @@ class _CenterFab extends StatelessWidget {
         button: true,
         child: Tooltip(
           message: 'Add expense',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(26),
-            onTap: onTap,
-            child: Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                color: AppColors.peach,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.add_rounded,
-                size: 26,
-                color: AppColors.onCta,
+          child: GestureDetector(
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTapCancel: () => setState(() => _pressed = false),
+            onTap: widget.onTap,
+            child: AnimatedScale(
+              scale: _pressed ? 0.92 : 1.0,
+              duration: const Duration(milliseconds: 140),
+              curve: Curves.easeOutCubic,
+              child: Container(
+                width: 52,
+                height: 52,
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFFFB894),
+                      AppColors.peach,
+                      Color(0xFFE2744B),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.40),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.peach.withValues(alpha: 0.45),
+                      blurRadius: 18,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.add_rounded,
+                  size: 27,
+                  color: AppColors.onCta,
+                ),
               ),
             ),
           ),
