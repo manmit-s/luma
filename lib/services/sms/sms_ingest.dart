@@ -45,8 +45,12 @@ Future<int> drainSmsQueue(WidgetRef ref) async {
         await _smsChannel.invokeListMethod<String>('drainSmsQueue') ?? [];
     var created = 0;
     for (final message in queued) {
+      final existingCount = controller.expenses.length;
       final expense = await controller.processSms(message);
-      if (expense != null && expense.status == ExpenseStatus.pending) {
+      final wasNewlyCreated = controller.expenses.length > existingCount;
+      if (wasNewlyCreated &&
+          expense != null &&
+          expense.status == ExpenseStatus.pending) {
         await notificationService.showExpenseDetected(expense);
         created++;
       }
@@ -54,6 +58,36 @@ Future<int> drainSmsQueue(WidgetRef ref) async {
     return created;
   } on MissingPluginException {
     // Desktop and widget-test environments do not have the Android channel.
+    return 0;
+  }
+}
+
+/// Reads recent financial SMS directly from the phone's SMS inbox.
+///
+/// Requires SMS permission. Returns the number of newly created pending expenses.
+Future<int> scanInboxSms(WidgetRef ref, {int limit = 50}) async {
+  try {
+    final controller = ref.read(expenseControllerProvider);
+    final messages = await _smsChannel.invokeListMethod<String>(
+          'scanInboxSms',
+          {'limit': limit},
+        ) ??
+        [];
+    var created = 0;
+    for (final message in messages) {
+      final existingCount = controller.expenses.length;
+      final expense = await controller.processSms(message);
+      final wasNewlyCreated = controller.expenses.length > existingCount;
+      if (wasNewlyCreated &&
+          expense != null &&
+          expense.status == ExpenseStatus.pending) {
+        created++;
+      }
+    }
+    return created;
+  } on MissingPluginException {
+    return 0;
+  } catch (_) {
     return 0;
   }
 }
