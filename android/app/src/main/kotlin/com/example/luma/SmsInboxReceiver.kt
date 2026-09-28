@@ -16,7 +16,7 @@ class SmsInboxReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
-        val bodies = messages.mapNotNull { it.messageBody }.joinToString(" ").trim()
+        val bodies = messages.mapNotNull { it.messageBody }.joinToString("").trim()
         if (bodies.isEmpty() || !likelyTransaction(bodies)) return
 
         val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
@@ -52,8 +52,9 @@ class SmsInboxReceiver : BroadcastReceiver() {
             } else {
                 "New transaction detected — open Luma to categorize"
             }
+            val icon = context.applicationInfo.icon.takeIf { it != 0 } ?: android.R.drawable.ic_dialog_info
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(icon)
                 .setContentTitle("Luma")
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -68,23 +69,24 @@ class SmsInboxReceiver : BroadcastReceiver() {
         }
     }
 
-    private val bareAmount = Regex("""(debited|paid|spent|withdrawn)\s+by\s+[\d,]+\.\d{2}""")
-
-    private fun likelyTransaction(message: String): Boolean {
-        val lower = message.lowercase()
-        // SBI-style messages carry a bare amount ("debited by 1.00") with no
-        // Rs/INR/₹ marker — accept those only in strict "verb by N.NN" shape
-        // so phone numbers and ref numbers can't sneak through.
-        val hasAmount = lower.contains("rs") || lower.contains("inr") || lower.contains("₹") ||
-            bareAmount.containsMatchIn(lower)
-        val hasTransactionWord = listOf("debited", "debit", "spent", "paid", "payment", "upi", "withdrawn", "credited", "credit").any(lower::contains)
-        return hasAmount && hasTransactionWord
-    }
-
     companion object {
         const val PREFERENCES = "luma_sms_queue"
         const val QUEUE_KEY = "messages"
         const val CHANNEL_ID = "expense_alerts"
         const val SUMMARY_ID = 9000
+
+        private val bareAmount = Regex("""(debited|paid|spent|withdrawn|transferred)\s+(?:by|for|with)\s+[\d,]+(?:\.\d{1,2})?""")
+
+        fun likelyTransaction(message: String): Boolean {
+            val lower = message.lowercase()
+            val hasAmount = lower.contains("rs") || lower.contains("inr") || lower.contains("₹") ||
+                bareAmount.containsMatchIn(lower)
+            val hasTransactionWord = listOf(
+                "debited", "debit", "spent", "paid", "payment", "upi",
+                "withdrawn", "credited", "credit", "sent", "deducted",
+                "transferred", "transfer"
+            ).any(lower::contains)
+            return hasAmount && hasTransactionWord
+        }
     }
 }
