@@ -46,6 +46,8 @@ Future<void> showCompleteExpense(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
     builder: (_) => _CompleteExpenseSheet(expense: expense),
   );
 }
@@ -172,6 +174,8 @@ Future<void> showAddExpense(BuildContext context, WidgetRef ref) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
     builder: (_) => const _AddExpenseSheet(),
   );
 }
@@ -280,6 +284,8 @@ Future<void> showEditExpense(
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
     builder: (_) => _EditExpenseSheet(expense: expense),
   );
 }
