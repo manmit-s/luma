@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import 'app/app.dart';
 import 'app/providers.dart';
@@ -17,8 +21,9 @@ export 'app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LumaDatabase? db;
   try {
-    final db = LumaDatabase();
+    db = LumaDatabase();
     await seedLumaDatabase(db);
     final learning = DriftMerchantLearning(db);
     await learning.load();
@@ -27,20 +32,65 @@ Future<void> main() async {
       repository: repository,
       learning: learning,
     );
-    await controller.load();
-    final exportService = ExportService(repository, db);
+    final store = AppSettingsStore(db);
+    final initialBalance = await store.initialBalanceMinor();
+    controller.setInitialBalance(initialBalance);
+    final name = await store.userName();
+    final exportService = ExportService(repository, db, settingsStore: store);
     runApp(
       ProviderScope(
         overrides: [
           expenseControllerProvider.overrideWith((ref) => controller),
-          appSettingsStoreProvider
-              .overrideWith((ref) => AppSettingsStore(db)),
+          appSettingsStoreProvider.overrideWith((ref) => store),
           exportServiceProvider.overrideWith((ref) => exportService),
+          if (name.isNotEmpty) userNameProvider.overrideWith((ref) => name),
         ],
         child: const LumaApp(),
       ),
     );
-  } catch (_) {
+  } catch (e, st) {
+    debugPrint('Database initialization failed: $e\n$st');
+    // If opening the database failed due to corruption from previous runs,
+    // delete the corrupt file and recreate a clean SQLite database so persistence works.
+    try {
+      await db?.close();
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(p.join(dir.path, 'luma.sqlite'));
+      if (await file.exists()) {
+        await file.delete();
+      }
+      final cleanDb = LumaDatabase();
+      await seedLumaDatabase(cleanDb);
+      final learning = DriftMerchantLearning(cleanDb);
+      await learning.load();
+      final repository = DriftExpenseRepository(cleanDb);
+      final controller = ExpenseController(
+        repository: repository,
+        learning: learning,
+      );
+      await controller.load();
+      final store = AppSettingsStore(cleanDb);
+      final initialBalance = await store.initialBalanceMinor();
+      controller.setInitialBalance(initialBalance);
+      final name = await store.userName();
+      final exportService =
+          ExportService(repository, cleanDb, settingsStore: store);
+      runApp(
+        ProviderScope(
+          overrides: [
+            expenseControllerProvider.overrideWith((ref) => controller),
+            appSettingsStoreProvider.overrideWith((ref) => store),
+            exportServiceProvider.overrideWith((ref) => exportService),
+            if (name.isNotEmpty) userNameProvider.overrideWith((ref) => name),
+          ],
+          child: const LumaApp(),
+        ),
+      );
+      return;
+    } catch (recoveryError, recoverySt) {
+      debugPrint('Database recovery failed: $recoveryError\n$recoverySt');
+    }
+
     final memoryRepo = MemoryExpenseRepository(seed: false);
     final fallback = ExpenseController(
       repository: memoryRepo,
@@ -51,6 +101,8 @@ Future<void> main() async {
       ProviderScope(
         overrides: [
           expenseControllerProvider.overrideWith((ref) => fallback),
+          appSettingsStoreProvider
+              .overrideWith((ref) => AppSettingsStore(null)),
           // Same repo instance the controller holds, so marks stay in sync.
           exportServiceProvider
               .overrideWith((ref) => ExportService(memoryRepo, null)),
