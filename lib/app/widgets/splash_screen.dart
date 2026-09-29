@@ -60,17 +60,24 @@ class _LumaSplashScreenState extends State<LumaSplashScreen>
     _startFlow();
   }
 
+  bool _completed = false;
+
+  void _finish() {
+    if (_completed || !mounted) return;
+    _completed = true;
+    widget.onComplete();
+  }
+
   Future<void> _startFlow() async {
     _controller.forward();
     final isTest =
         WidgetsBinding.instance.runtimeType.toString().contains('Test');
     if (!isTest && widget.minimumDuration > Duration.zero) {
       await Future<void>.delayed(widget.minimumDuration);
+    } else {
+      await Future<void>.delayed(Duration.zero);
     }
-    if (!mounted) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) widget.onComplete();
-    });
+    _finish();
   }
 
   @override
@@ -80,33 +87,37 @@ class _LumaSplashScreenState extends State<LumaSplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => FadeTransition(
-              opacity: _fadeAnimation,
-              child: ScaleTransition(
-                scale: _scaleAnimation,
-                child: Text.rich(
-                  TextSpan(
-                    text: 'luma',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: _letterSpacingAnimation.value,
-                    ),
-                    children: const [
-                      TextSpan(
-                        text: '.',
-                        style: TextStyle(
-                          color: AppColors.peach,
-                          fontWeight: FontWeight.w800,
-                        ),
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _finish,
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) => FadeTransition(
+                opacity: _fadeAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'luma',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 38,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: _letterSpacingAnimation.value,
                       ),
-                    ],
+                      children: const [
+                        TextSpan(
+                          text: '.',
+                          style: TextStyle(
+                            color: AppColors.peach,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
