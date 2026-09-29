@@ -37,6 +37,28 @@ void main() {
       await db.close();
     });
 
+    test('user name persists when onboarding and daily audit settings change', () async {
+      final db = _memoryDb();
+      await seedLumaDatabase(db);
+      final store = AppSettingsStore(db);
+      await store.setUserName('Manmit');
+      expect(await store.userName(), 'Manmit');
+
+      // Toggling audit and onboarding must NOT clobber user name
+      await store.markOnboardingDone();
+      expect(await store.userName(), 'Manmit');
+      expect(await store.isOnboardingDone(), isTrue);
+
+      await store.setDailyAuditEnabled(false);
+      expect(await store.userName(), 'Manmit');
+      expect(await store.isDailyAuditEnabled(), isFalse);
+
+      await store.setDailyAuditEnabled(true);
+      expect(await store.userName(), 'Manmit');
+      expect(await store.isDailyAuditEnabled(), isTrue);
+      await db.close();
+    });
+
     test('save and load roundtrip survives reopen', () async {
       final db = _memoryDb();
       final repo = DriftExpenseRepository(db);
