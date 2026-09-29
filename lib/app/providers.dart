@@ -13,6 +13,8 @@ final appSettingsStoreProvider = Provider<AppSettingsStore>(
   (ref) => AppSettingsStore(null),
 );
 
+final userNameProvider = StateProvider<String>((ref) => '');
+
 final exportServiceProvider = Provider<ExportService?>((ref) => null);
 
 final dailyAuditServiceProvider = Provider<DailyAuditService>(
