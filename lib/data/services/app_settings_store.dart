@@ -7,10 +7,12 @@ import '../database/luma_database.dart';
 /// Null database (tests, fallback) behaves as "already onboarded" so widget
 /// tests never see the onboarding sheet.
 class AppSettingsStore {
-  AppSettingsStore(this._db);
+  AppSettingsStore(this._db, {bool memoryOnboardingDone = true})
+      : _memoryOnboardingDone = memoryOnboardingDone;
 
   final LumaDatabase? _db;
-  bool _memoryOnboardingDone = true;
+  bool _memoryOnboardingDone;
+  int _memoryInitialBalanceMinor = 0;
 
   Future<bool> isOnboardingDone() async {
     final db = _db;
@@ -19,9 +21,26 @@ class AppSettingsStore {
       final row = await (db.select(db.appSettings)
             ..where((t) => t.id.equals(1)))
           .getSingleOrNull();
-      return row?.onboardingDone ?? true;
+      return row?.onboardingDone ?? false;
     } catch (_) {
-      return true;
+      return false;
+    }
+  }
+
+  Future<void> _updateSettings(AppSettingsCompanion companion) async {
+    final db = _db;
+    if (db == null) return;
+    try {
+      final updated = await (db.update(db.appSettings)
+            ..where((t) => t.id.equals(1)))
+          .write(companion);
+      if (updated == 0) {
+        await db.into(db.appSettings).insert(
+              companion.copyWith(id: const Value(1)),
+            );
+      }
+    } catch (_) {
+      // Best effort
     }
   }
 
@@ -31,16 +50,7 @@ class AppSettingsStore {
       _memoryOnboardingDone = true;
       return;
     }
-    try {
-      await db.into(db.appSettings).insertOnConflictUpdate(
-            AppSettingsCompanion.insert(id: const Value(1)),
-          );
-      await (db.update(db.appSettings)..where((t) => t.id.equals(1))).write(
-        const AppSettingsCompanion(onboardingDone: Value(true)),
-      );
-    } catch (_) {
-      // Best effort: onboarding is UX, never crash for it.
-    }
+    await _updateSettings(const AppSettingsCompanion(onboardingDone: Value(true)));
   }
 
   Future<bool> isDailyAuditEnabled() async {
@@ -62,19 +72,9 @@ class AppSettingsStore {
       _memoryAuditEnabled = enabled;
       return;
     }
-    try {
-      await db.into(db.appSettings).insertOnConflictUpdate(
-            AppSettingsCompanion.insert(
-              id: const Value(1),
-              dailyAuditEnabled: Value(enabled),
-            ),
-          );
-      await (db.update(db.appSettings)..where((t) => t.id.equals(1))).write(
-        AppSettingsCompanion(dailyAuditEnabled: Value(enabled)),
-      );
-    } catch (_) {
-      // Best effort.
-    }
+    await _updateSettings(
+      AppSettingsCompanion(dailyAuditEnabled: Value(enabled)),
+    );
   }
 
   bool _memoryAuditEnabled = true;
@@ -101,16 +101,34 @@ class AppSettingsStore {
       _memoryUserName = trimmed;
       return;
     }
+    await _updateSettings(
+      AppSettingsCompanion(userName: Value(trimmed.isEmpty ? null : trimmed)),
+    );
+  }
+
+  /// Initial account balance snapshot (minor units, e.g. 100 = 1.00).
+  Future<int> initialBalanceMinor() async {
+    final db = _db;
+    if (db == null) return _memoryInitialBalanceMinor;
     try {
-      await db.into(db.appSettings).insertOnConflictUpdate(
-            AppSettingsCompanion.insert(id: const Value(1)),
-          );
-      await (db.update(db.appSettings)..where((t) => t.id.equals(1))).write(
-        AppSettingsCompanion(userName: Value(trimmed.isEmpty ? null : trimmed)),
-      );
+      final row = await (db.select(db.appSettings)
+            ..where((t) => t.id.equals(1)))
+          .getSingleOrNull();
+      return row?.initialBalanceMinor ?? 0;
     } catch (_) {
-      // Best effort.
+      return 0;
     }
+  }
+
+  Future<void> setInitialBalanceMinor(int minor) async {
+    final db = _db;
+    if (db == null) {
+      _memoryInitialBalanceMinor = minor;
+      return;
+    }
+    await _updateSettings(
+      AppSettingsCompanion(initialBalanceMinor: Value(minor)),
+    );
   }
 
   /// [hour], [minute] default to 21:00 (SPEC 42). Null-DB default matches.
