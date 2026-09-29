@@ -17,6 +17,7 @@ Future<void> seedLumaDatabase(LumaDatabase db) async {
               sortOrder: category.sortOrder,
               isDefault: const Value(true),
             ),
+            mode: InsertMode.insertOrIgnore,
           );
     }
   }
@@ -26,6 +27,7 @@ Future<void> seedLumaDatabase(LumaDatabase db) async {
   if (settings == null) {
     await db.into(db.appSettings).insert(
           AppSettingsCompanion.insert(id: const Value(1)),
+          mode: InsertMode.insertOrIgnore,
         );
   }
 }
