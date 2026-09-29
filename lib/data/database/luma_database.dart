@@ -4,6 +4,8 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:sqlite3/sqlite3.dart';
+import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 
 part 'luma_database.g.dart';
 
@@ -59,6 +61,7 @@ class AppSettings extends Table {
   IntColumn get auditMinute => integer().withDefault(const Constant(0))();
   BoolColumn get onboardingDone => boolean().withDefault(const Constant(false))();
   TextColumn get userName => text().nullable()();
+  IntColumn get initialBalanceMinor => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -81,18 +84,31 @@ class LumaDatabase extends _$LumaDatabase {
   LumaDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async => m.createAll(),
         onUpgrade: (m, from, to) async {
           if (from < 2) {
-            // Raw SQL: drift 2.26's addColumn has a raw-generic signature
-            // that rejects typed columns under current inference.
-            await m.database.customStatement(
-              'ALTER TABLE app_settings ADD COLUMN user_name TEXT NULL',
-            );
+            try {
+              // Raw SQL: drift 2.26's addColumn has a raw-generic signature
+              // that rejects typed columns under current inference.
+              await m.database.customStatement(
+                'ALTER TABLE app_settings ADD COLUMN user_name TEXT NULL',
+              );
+            } catch (_) {
+              // Best effort: column might already exist.
+            }
+          }
+          if (from < 3) {
+            try {
+              await m.database.customStatement(
+                'ALTER TABLE app_settings ADD COLUMN initial_balance_minor INTEGER NOT NULL DEFAULT 0',
+              );
+            } catch (_) {
+              // Best effort
+            }
           }
         },
       );
@@ -101,5 +117,14 @@ class LumaDatabase extends _$LumaDatabase {
 LazyDatabase _openConnection() => LazyDatabase(() async {
       final dir = await getApplicationDocumentsDirectory();
       final file = File(p.join(dir.path, 'luma.sqlite'));
-      return NativeDatabase.createInBackground(file);
+      if (Platform.isAndroid) {
+        try {
+          await applyWorkaroundToOpenSqlite3OnOldAndroidVersions();
+        } catch (_) {}
+        try {
+          final cachebase = (await getTemporaryDirectory()).path;
+          sqlite3.tempDirectory = cachebase;
+        } catch (_) {}
+      }
+      return NativeDatabase(file);
     });
