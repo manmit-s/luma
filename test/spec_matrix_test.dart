@@ -48,15 +48,22 @@ void main() {
       expect(parsed?.transactionType, TransactionType.debit);
     });
 
-    test('controller ignores credit SMS entirely', () async {
-      final controller = ExpenseController();
+    test('controller processes credit SMS and updates balance without inflating expenses', () async {
+      final repo = MemoryExpenseRepository(seed: false);
+      final controller = ExpenseController(repository: repo);
+      controller.setInitialBalance(100000); // ₹1,000.00
       await controller.load();
       final before = controller.expenses.length;
       final result = await controller.processSms(
         'Your A/C XX1234 credited with Rs.500.00. Ref 987654',
       );
-      expect(result, isNull);
-      expect(controller.expenses.length, before);
+      expect(result, isNotNull);
+      expect(result?.transactionType, TransactionType.credit);
+      expect(controller.expenses.length, before + 1);
+      // Balance increased by ₹500 (1000 + 500 = 1500)
+      expect(controller.currentBalanceMinor, 150000);
+      // Spending total is NOT inflated by credits
+      expect(controller.monthTotal, 0);
     });
   });
 
