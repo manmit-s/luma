@@ -34,10 +34,30 @@ class ExpenseController extends ChangeNotifier {
     }
   }
 
+  int _initialBalanceMinor = 0;
+  int get initialBalanceMinor => _initialBalanceMinor;
+
+  void setInitialBalance(int minor) {
+    _initialBalanceMinor = minor;
+    notifyListeners();
+  }
+
+  int get totalCreditsMinor => expenses
+      .where((expense) => expense.transactionType == TransactionType.credit)
+      .fold(0, (sum, expense) => sum + expense.amountMinor);
+
+  int get totalDebitsMinor => expenses
+      .where((expense) => expense.transactionType == TransactionType.debit)
+      .fold(0, (sum, expense) => sum + expense.amountMinor);
+
+  int get currentBalanceMinor =>
+      _initialBalanceMinor + totalCreditsMinor - totalDebitsMinor;
+
   int get monthTotal {
     final now = DateTime.now();
     return expenses
         .where((expense) =>
+            expense.transactionType == TransactionType.debit &&
             expense.timestamp.year == now.year &&
             expense.timestamp.month == now.month)
         .fold(0, (sum, expense) => sum + expense.amountMinor);
@@ -47,6 +67,7 @@ class ExpenseController extends ChangeNotifier {
     final now = DateTime.now();
     return expenses
         .where((expense) =>
+            expense.transactionType == TransactionType.debit &&
             expense.timestamp.year == now.year &&
             expense.timestamp.month == now.month &&
             expense.timestamp.day == now.day)
@@ -126,7 +147,7 @@ class ExpenseController extends ChangeNotifier {
   Future<Expense?> processSms(String message, {DateTime? receivedAt}) async {
     final parsed =
         SmsTransactionParser().parse(message, receivedAt: receivedAt);
-    if (parsed == null || parsed.transactionType != TransactionType.debit) {
+    if (parsed == null || parsed.transactionType == TransactionType.unknown) {
       return null;
     }
     final fingerprint = smsFingerprint(message);
