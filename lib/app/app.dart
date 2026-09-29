@@ -20,9 +20,11 @@ import '../services/sms/sms_ingest.dart'
 import 'providers.dart';
 import 'theme/app_theme.dart';
 import 'widgets/amount_display.dart';
+import 'widgets/balance_card.dart';
 import 'widgets/category_chip.dart';
 import 'widgets/expense_cards.dart';
 import 'widgets/expense_sheets.dart';
+import 'widgets/first_launch_flow.dart';
 import 'widgets/luma_buttons.dart';
 import 'widgets/luma_nav_bar.dart';
 import 'widgets/onboarding_sheet.dart';
@@ -33,17 +35,34 @@ import 'widgets/summary_card.dart';
 
 final lumaNavigatorKey = GlobalKey<NavigatorState>();
 
-class LumaApp extends StatefulWidget {
+class LumaApp extends ConsumerStatefulWidget {
   const LumaApp({super.key, this.skipSplash = false});
 
   final bool skipSplash;
 
   @override
-  State<LumaApp> createState() => _LumaAppState();
+  ConsumerState<LumaApp> createState() => _LumaAppState();
 }
 
-class _LumaAppState extends State<LumaApp> {
+class _LumaAppState extends ConsumerState<LumaApp> {
   late bool _showSplash = !widget.skipSplash;
+  bool _needsOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.skipSplash) {
+      _checkOnboardingFast();
+    }
+  }
+
+  Future<void> _checkOnboardingFast() async {
+    final store = ref.read(appSettingsStoreProvider);
+    final done = await store.isOnboardingDone();
+    if (mounted && !done) {
+      setState(() => _needsOnboarding = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +78,35 @@ class _LumaAppState extends State<LumaApp> {
         child: _showSplash
             ? LumaSplashScreen(
                 key: const ValueKey('splash'),
-                onComplete: () {
-                  if (mounted) setState(() => _showSplash = false);
+                onComplete: () async {
+                  final store = ref.read(appSettingsStoreProvider);
+                  final done = await store.isOnboardingDone();
+                  if (mounted) {
+                    setState(() {
+                      _needsOnboarding = !done;
+                      _showSplash = false;
+                    });
+                  }
                 },
               )
-            : const _MainShell(key: ValueKey('main_shell')),
+            : _needsOnboarding
+                ? FirstLaunchFlow(
+                    key: const ValueKey('first_launch_flow'),
+                    onComplete: (name, initialBalanceMinor) async {
+                      final store = ref.read(appSettingsStoreProvider);
+                      await store.setUserName(name);
+                      ref.read(userNameProvider.notifier).state = name;
+                      await store.setInitialBalanceMinor(initialBalanceMinor);
+                      ref
+                          .read(expenseControllerProvider)
+                          .setInitialBalance(initialBalanceMinor);
+                      await store.markOnboardingDone();
+                      if (mounted) {
+                        setState(() => _needsOnboarding = false);
+                      }
+                    },
+                  )
+                : const _MainShell(key: ValueKey('main_shell')),
       ),
     );
   }
@@ -153,6 +196,13 @@ class _MainShellState extends ConsumerState<_MainShell>
 
   Future<void> _loadInitialData() async {
     final controller = ref.read(expenseControllerProvider);
+    final store = ref.read(appSettingsStoreProvider);
+    final initialBalance = await store.initialBalanceMinor();
+    controller.setInitialBalance(initialBalance);
+    final savedName = await store.userName();
+    if (mounted && savedName.isNotEmpty) {
+      ref.read(userNameProvider.notifier).state = savedName;
+    }
     await notificationService.init(onTap: _handleNotificationTap);
     // Cold start: app opened from a notification tap.
     final coldPayload =
@@ -165,7 +215,6 @@ class _MainShellState extends ConsumerState<_MainShell>
       _handleNotificationTap(coldPayload);
     }
     await _ensureAuditScheduled();
-    await _maybeShowOnboarding();
   }
 
   /// Pulls SMS queued by the native receiver into pending expenses.
@@ -292,7 +341,10 @@ class _HomePageState extends ConsumerState<_HomePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _refreshSmsState();
+    if (state == AppLifecycleState.resumed) {
+      _refreshSmsState();
+      _refreshUserName();
+    }
   }
 
   Future<void> _refreshSmsState() async {
@@ -302,10 +354,13 @@ class _HomePageState extends ConsumerState<_HomePage>
 
   Future<void> _refreshUserName() async {
     final name = await ref.read(appSettingsStoreProvider).userName();
-    if (mounted) setState(() => _userName = name);
+    if (mounted) {
+      setState(() => _userName = name);
+      ref.read(userNameProvider.notifier).state = name;
+    }
   }
 
-  Widget _buildGreeting(TextTheme textTheme) {
+  Widget _buildGreeting(TextTheme textTheme, String name) {
     final base = greetingFor(DateTime.now());
     final baseStyle = textTheme.headlineSmall?.copyWith(
       fontSize: 22,
@@ -314,7 +369,7 @@ class _HomePageState extends ConsumerState<_HomePage>
       letterSpacing: -0.3,
     );
 
-    if (_userName.isEmpty) {
+    if (name.isEmpty) {
       return Text(
         base,
         style: baseStyle,
@@ -329,7 +384,7 @@ class _HomePageState extends ConsumerState<_HomePage>
         style: baseStyle,
         children: [
           TextSpan(
-            text: _userName,
+            text: name,
             style: const TextStyle(
               color: AppColors.peach,
               fontWeight: FontWeight.w600,
@@ -352,6 +407,8 @@ class _HomePageState extends ConsumerState<_HomePage>
         .take(4)
         .toList();
     final textTheme = Theme.of(context).textTheme;
+    final watchedName = ref.watch(userNameProvider);
+    final effectiveName = watchedName.isNotEmpty ? watchedName : _userName;
     final showSmsBanner = _smsState == SmsPermissionState.denied ||
         _smsState == SmsPermissionState.permanentlyDenied ||
         _smsState == SmsPermissionState.restricted;
@@ -379,12 +436,17 @@ class _HomePageState extends ConsumerState<_HomePage>
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        _buildGreeting(textTheme),
+        _buildGreeting(textTheme, effectiveName),
         if (showSmsBanner) ...[
           const SizedBox(height: AppSpacing.lg),
           const SmsDisabledBanner(),
         ],
         const SizedBox(height: AppSpacing.xxl),
+        BalanceCard(
+          currentBalanceMinor: controller.currentBalanceMinor,
+          initialBalanceMinor: controller.initialBalanceMinor,
+        ),
+        const SizedBox(height: AppSpacing.md),
         SummaryCard(
           monthTotal: controller.monthTotal,
           todayTotal: controller.todayTotal,
@@ -670,6 +732,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         _userName = name;
         _loadingName = false;
       });
+      ref.read(userNameProvider.notifier).state = name;
     }
   }
 
@@ -680,6 +743,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     );
     if (name == null || !mounted) return;
     await ref.read(appSettingsStoreProvider).setUserName(name);
+    ref.read(userNameProvider.notifier).state = name;
     if (mounted) setState(() => _userName = name);
   }
 
