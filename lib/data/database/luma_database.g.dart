@@ -1744,6 +1744,17 @@ class $AppSettingsTable extends AppSettings
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _initialBalanceMinorMeta =
+      const VerificationMeta('initialBalanceMinor');
+  @override
+  late final GeneratedColumn<int> initialBalanceMinor = GeneratedColumn<int>(
+    'initial_balance_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1752,6 +1763,7 @@ class $AppSettingsTable extends AppSettings
     auditMinute,
     onboardingDone,
     userName,
+    initialBalanceMinor,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1807,6 +1819,15 @@ class $AppSettingsTable extends AppSettings
         userName.isAcceptableOrUnknown(data['user_name']!, _userNameMeta),
       );
     }
+    if (data.containsKey('initial_balance_minor')) {
+      context.handle(
+        _initialBalanceMinorMeta,
+        initialBalanceMinor.isAcceptableOrUnknown(
+          data['initial_balance_minor']!,
+          _initialBalanceMinorMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -1840,6 +1861,10 @@ class $AppSettingsTable extends AppSettings
         DriftSqlType.string,
         data['${effectivePrefix}user_name'],
       ),
+      initialBalanceMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}initial_balance_minor'],
+      )!,
     );
   }
 
@@ -1856,6 +1881,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
   final int auditMinute;
   final bool onboardingDone;
   final String? userName;
+  final int initialBalanceMinor;
   const AppSetting({
     required this.id,
     required this.dailyAuditEnabled,
@@ -1863,6 +1889,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     required this.auditMinute,
     required this.onboardingDone,
     this.userName,
+    required this.initialBalanceMinor,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1875,6 +1902,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     if (!nullToAbsent || userName != null) {
       map['user_name'] = Variable<String>(userName);
     }
+    map['initial_balance_minor'] = Variable<int>(initialBalanceMinor);
     return map;
   }
 
@@ -1888,6 +1916,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       userName: userName == null && nullToAbsent
           ? const Value.absent()
           : Value(userName),
+      initialBalanceMinor: Value(initialBalanceMinor),
     );
   }
 
@@ -1903,6 +1932,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       auditMinute: serializer.fromJson<int>(json['auditMinute']),
       onboardingDone: serializer.fromJson<bool>(json['onboardingDone']),
       userName: serializer.fromJson<String?>(json['userName']),
+      initialBalanceMinor: serializer.fromJson<int>(
+        json['initialBalanceMinor'],
+      ),
     );
   }
   @override
@@ -1915,6 +1947,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
       'auditMinute': serializer.toJson<int>(auditMinute),
       'onboardingDone': serializer.toJson<bool>(onboardingDone),
       'userName': serializer.toJson<String?>(userName),
+      'initialBalanceMinor': serializer.toJson<int>(initialBalanceMinor),
     };
   }
 
@@ -1925,6 +1958,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     int? auditMinute,
     bool? onboardingDone,
     Value<String?> userName = const Value.absent(),
+    int? initialBalanceMinor,
   }) => AppSetting(
     id: id ?? this.id,
     dailyAuditEnabled: dailyAuditEnabled ?? this.dailyAuditEnabled,
@@ -1932,6 +1966,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     auditMinute: auditMinute ?? this.auditMinute,
     onboardingDone: onboardingDone ?? this.onboardingDone,
     userName: userName.present ? userName.value : this.userName,
+    initialBalanceMinor: initialBalanceMinor ?? this.initialBalanceMinor,
   );
   AppSetting copyWithCompanion(AppSettingsCompanion data) {
     return AppSetting(
@@ -1947,6 +1982,9 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ? data.onboardingDone.value
           : this.onboardingDone,
       userName: data.userName.present ? data.userName.value : this.userName,
+      initialBalanceMinor: data.initialBalanceMinor.present
+          ? data.initialBalanceMinor.value
+          : this.initialBalanceMinor,
     );
   }
 
@@ -1958,7 +1996,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           ..write('auditHour: $auditHour, ')
           ..write('auditMinute: $auditMinute, ')
           ..write('onboardingDone: $onboardingDone, ')
-          ..write('userName: $userName')
+          ..write('userName: $userName, ')
+          ..write('initialBalanceMinor: $initialBalanceMinor')
           ..write(')'))
         .toString();
   }
@@ -1971,6 +2010,7 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
     auditMinute,
     onboardingDone,
     userName,
+    initialBalanceMinor,
   );
   @override
   bool operator ==(Object other) =>
@@ -1981,7 +2021,8 @@ class AppSetting extends DataClass implements Insertable<AppSetting> {
           other.auditHour == this.auditHour &&
           other.auditMinute == this.auditMinute &&
           other.onboardingDone == this.onboardingDone &&
-          other.userName == this.userName);
+          other.userName == this.userName &&
+          other.initialBalanceMinor == this.initialBalanceMinor);
 }
 
 class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
@@ -1991,6 +2032,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
   final Value<int> auditMinute;
   final Value<bool> onboardingDone;
   final Value<String?> userName;
+  final Value<int> initialBalanceMinor;
   const AppSettingsCompanion({
     this.id = const Value.absent(),
     this.dailyAuditEnabled = const Value.absent(),
@@ -1998,6 +2040,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.auditMinute = const Value.absent(),
     this.onboardingDone = const Value.absent(),
     this.userName = const Value.absent(),
+    this.initialBalanceMinor = const Value.absent(),
   });
   AppSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -2006,6 +2049,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     this.auditMinute = const Value.absent(),
     this.onboardingDone = const Value.absent(),
     this.userName = const Value.absent(),
+    this.initialBalanceMinor = const Value.absent(),
   });
   static Insertable<AppSetting> custom({
     Expression<int>? id,
@@ -2014,6 +2058,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Expression<int>? auditMinute,
     Expression<bool>? onboardingDone,
     Expression<String>? userName,
+    Expression<int>? initialBalanceMinor,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2022,6 +2067,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       if (auditMinute != null) 'audit_minute': auditMinute,
       if (onboardingDone != null) 'onboarding_done': onboardingDone,
       if (userName != null) 'user_name': userName,
+      if (initialBalanceMinor != null)
+        'initial_balance_minor': initialBalanceMinor,
     });
   }
 
@@ -2032,6 +2079,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     Value<int>? auditMinute,
     Value<bool>? onboardingDone,
     Value<String?>? userName,
+    Value<int>? initialBalanceMinor,
   }) {
     return AppSettingsCompanion(
       id: id ?? this.id,
@@ -2040,6 +2088,7 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
       auditMinute: auditMinute ?? this.auditMinute,
       onboardingDone: onboardingDone ?? this.onboardingDone,
       userName: userName ?? this.userName,
+      initialBalanceMinor: initialBalanceMinor ?? this.initialBalanceMinor,
     );
   }
 
@@ -2064,6 +2113,9 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
     if (userName.present) {
       map['user_name'] = Variable<String>(userName.value);
     }
+    if (initialBalanceMinor.present) {
+      map['initial_balance_minor'] = Variable<int>(initialBalanceMinor.value);
+    }
     return map;
   }
 
@@ -2075,7 +2127,8 @@ class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
           ..write('auditHour: $auditHour, ')
           ..write('auditMinute: $auditMinute, ')
           ..write('onboardingDone: $onboardingDone, ')
-          ..write('userName: $userName')
+          ..write('userName: $userName, ')
+          ..write('initialBalanceMinor: $initialBalanceMinor')
           ..write(')'))
         .toString();
   }
@@ -3275,6 +3328,8 @@ typedef $$AppSettingsTableCreateCompanionBuilder =
       Value<int> auditHour,
       Value<int> auditMinute,
       Value<bool> onboardingDone,
+      Value<String?> userName,
+      Value<int> initialBalanceMinor,
     });
 typedef $$AppSettingsTableUpdateCompanionBuilder =
     AppSettingsCompanion Function({
@@ -3283,6 +3338,8 @@ typedef $$AppSettingsTableUpdateCompanionBuilder =
       Value<int> auditHour,
       Value<int> auditMinute,
       Value<bool> onboardingDone,
+      Value<String?> userName,
+      Value<int> initialBalanceMinor,
     });
 
 class $$AppSettingsTableFilterComposer
@@ -3316,6 +3373,16 @@ class $$AppSettingsTableFilterComposer
 
   ColumnFilters<bool> get onboardingDone => $composableBuilder(
     column: $table.onboardingDone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userName => $composableBuilder(
+    column: $table.userName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get initialBalanceMinor => $composableBuilder(
+    column: $table.initialBalanceMinor,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3353,6 +3420,16 @@ class $$AppSettingsTableOrderingComposer
     column: $table.onboardingDone,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get userName => $composableBuilder(
+    column: $table.userName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get initialBalanceMinor => $composableBuilder(
+    column: $table.initialBalanceMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppSettingsTableAnnotationComposer
@@ -3382,6 +3459,14 @@ class $$AppSettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get onboardingDone => $composableBuilder(
     column: $table.onboardingDone,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get userName =>
+      $composableBuilder(column: $table.userName, builder: (column) => column);
+
+  GeneratedColumn<int> get initialBalanceMinor => $composableBuilder(
+    column: $table.initialBalanceMinor,
     builder: (column) => column,
   );
 }
@@ -3422,12 +3507,16 @@ class $$AppSettingsTableTableManager
                 Value<int> auditHour = const Value.absent(),
                 Value<int> auditMinute = const Value.absent(),
                 Value<bool> onboardingDone = const Value.absent(),
+                Value<String?> userName = const Value.absent(),
+                Value<int> initialBalanceMinor = const Value.absent(),
               }) => AppSettingsCompanion(
                 id: id,
                 dailyAuditEnabled: dailyAuditEnabled,
                 auditHour: auditHour,
                 auditMinute: auditMinute,
                 onboardingDone: onboardingDone,
+                userName: userName,
+                initialBalanceMinor: initialBalanceMinor,
               ),
           createCompanionCallback:
               ({
@@ -3436,12 +3525,16 @@ class $$AppSettingsTableTableManager
                 Value<int> auditHour = const Value.absent(),
                 Value<int> auditMinute = const Value.absent(),
                 Value<bool> onboardingDone = const Value.absent(),
+                Value<String?> userName = const Value.absent(),
+                Value<int> initialBalanceMinor = const Value.absent(),
               }) => AppSettingsCompanion.insert(
                 id: id,
                 dailyAuditEnabled: dailyAuditEnabled,
                 auditHour: auditHour,
                 auditMinute: auditMinute,
                 onboardingDone: onboardingDone,
+                userName: userName,
+                initialBalanceMinor: initialBalanceMinor,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
