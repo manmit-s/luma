@@ -7,20 +7,22 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/utils/format.dart';
 import '../../data/database/luma_database.dart';
+import '../../data/services/app_settings_store.dart';
 import '../../domain/entities/expense.dart' as domain;
 import '../../domain/repositories/expense_repository.dart';
 
 enum ExportMode { full, incremental }
 
-/// Stable column order (SPEC 31). Never reorder without a reason.
+/// Stable column order for Luma account ledger export.
 const exportColumns = [
   'Date',
   'Time',
-  'Amount',
-  'Merchant',
+  'Description',
   'Category',
+  'Type',
+  'Amount',
+  'Balance',
   'Note',
-  'Transaction Type',
   'Reference Number',
 ];
 
@@ -60,14 +62,17 @@ class ExportService {
   ExportService(
     this._repository,
     this._db, {
+    AppSettingsStore? settingsStore,
     Future<Directory> Function()? outputDir,
     Future<File> Function(Directory dir, String filename, List<int> bytes)?
         writeFile,
-  })  : _outputDir = outputDir ?? getTemporaryDirectory,
+  })  : _settingsStore = settingsStore ?? AppSettingsStore(_db),
+        _outputDir = outputDir ?? getTemporaryDirectory,
         _writeFile = writeFile ?? _defaultWrite;
 
   final ExpenseRepository _repository;
   final LumaDatabase? _db;
+  final AppSettingsStore _settingsStore;
   final Future<Directory> Function() _outputDir;
   final Future<File> Function(Directory dir, String filename, List<int> bytes)
       _writeFile;
@@ -90,8 +95,11 @@ class ExportService {
 
   Future<ExportResult> generate(ExportMode mode, {DateTime? now}) async {
     final timestamp = now ?? DateTime.now();
+    final allExpenses = await _repository.getAll();
+    final initialBalanceMinor = await _settingsStore.initialBalanceMinor();
+
     final expenses = mode == ExportMode.full
-        ? await _repository.getAll()
+        ? allExpenses
         : await _repository.queryUnexported();
     final ordered = List<domain.Expense>.of(expenses)
       ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -104,19 +112,103 @@ class ExportService {
     final excel = Excel.createExcel();
     const sheetName = 'Expenses';
     excel.rename('Sheet1', sheetName);
+
+    // Summary Section at top of spreadsheet
+    int runningBalance;
+    if (mode == ExportMode.full) {
+      final totalCredits = ordered
+          .where((e) => e.transactionType == domain.TransactionType.credit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final totalDebits = ordered
+          .where((e) => e.transactionType == domain.TransactionType.debit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final currentBalance = initialBalanceMinor + totalCredits - totalDebits;
+
+      excel.appendRow(sheetName, [TextCellValue('LUMA EXPENSE SUMMARY')]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Initial Balance:'),
+        DoubleCellValue(initialBalanceMinor / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Total Credits:'),
+        DoubleCellValue(totalCredits / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Total Debits:'),
+        DoubleCellValue(totalDebits / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Current Balance:'),
+        DoubleCellValue(currentBalance / 100),
+      ]);
+      excel.appendRow(sheetName, [TextCellValue('')]);
+
+      runningBalance = initialBalanceMinor;
+    } else {
+      final unexportedIds = ordered.map((e) => e.id).toSet();
+      final priorExpenses =
+          allExpenses.where((e) => !unexportedIds.contains(e.id)).toList();
+      final priorCredits = priorExpenses
+          .where((e) => e.transactionType == domain.TransactionType.credit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final priorDebits = priorExpenses
+          .where((e) => e.transactionType == domain.TransactionType.debit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final openingBalance = initialBalanceMinor + priorCredits - priorDebits;
+
+      final newCredits = ordered
+          .where((e) => e.transactionType == domain.TransactionType.credit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final newDebits = ordered
+          .where((e) => e.transactionType == domain.TransactionType.debit)
+          .fold(0, (sum, e) => sum + e.amountMinor);
+      final closingBalance = openingBalance + newCredits - newDebits;
+
+      excel.appendRow(sheetName, [TextCellValue('LUMA EXPENSE SUMMARY')]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Opening Balance:'),
+        DoubleCellValue(openingBalance / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('New Credits:'),
+        DoubleCellValue(newCredits / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('New Debits:'),
+        DoubleCellValue(newDebits / 100),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Closing Balance:'),
+        DoubleCellValue(closingBalance / 100),
+      ]);
+      excel.appendRow(sheetName, [TextCellValue('')]);
+
+      runningBalance = openingBalance;
+    }
+
+    // Ledger table headers
     excel.appendRow(
       sheetName,
       exportColumns.map(TextCellValue.new).toList(),
     );
+
+    // Chronological transactions with running balance
     for (final expense in ordered) {
+      if (expense.transactionType == domain.TransactionType.credit) {
+        runningBalance += expense.amountMinor;
+      } else {
+        runningBalance -= expense.amountMinor;
+      }
+
       excel.appendRow(sheetName, [
         TextCellValue(_dateOf(expense.timestamp)),
         TextCellValue(_timeOf(expense.timestamp)),
-        DoubleCellValue(expense.amountMinor / 100),
         TextCellValue(expense.merchant ?? ''),
         TextCellValue(categoryName(expense.categoryId)),
-        TextCellValue(expense.note),
         TextCellValue(_txLabel(expense.transactionType)),
+        DoubleCellValue(expense.amountMinor / 100),
+        DoubleCellValue(runningBalance / 100),
+        TextCellValue(expense.note),
         TextCellValue(expense.referenceNumber ?? ''),
       ]);
     }
