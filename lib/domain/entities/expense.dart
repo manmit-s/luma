@@ -49,6 +49,7 @@ class Expense {
     String? categoryId,
     String? note,
     DateTime? timestamp,
+    TransactionType? transactionType,
     ExpenseStatus? status,
     DateTime? updatedAt,
   }) => Expense(
@@ -58,7 +59,7 @@ class Expense {
     categoryId: categoryId ?? this.categoryId,
     note: note ?? this.note,
     timestamp: timestamp ?? this.timestamp,
-    transactionType: transactionType,
+    transactionType: transactionType ?? this.transactionType,
     status: status ?? this.status,
     referenceNumber: referenceNumber,
     smsFingerprint: smsFingerprint,
