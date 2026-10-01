@@ -84,9 +84,14 @@ class NotificationService {
     if (!_ready) return;
     try {
       final merchant = (expense.merchant ?? '').trim();
-      final body = merchant.isEmpty
-          ? '${formatAmount(expense.amountMinor)} spent — tap to categorize'
-          : '${formatAmount(expense.amountMinor)} spent at $merchant — tap to categorize';
+      final isCredit = expense.transactionType == TransactionType.credit;
+      final body = isCredit
+          ? (merchant.isEmpty
+              ? '${formatAmount(expense.amountMinor)} received — tap to review'
+              : '${formatAmount(expense.amountMinor)} received from $merchant — tap to review')
+          : (merchant.isEmpty
+              ? '${formatAmount(expense.amountMinor)} spent — tap to categorize'
+              : '${formatAmount(expense.amountMinor)} spent at $merchant — tap to categorize');
       await _plugin.show(
         id: expense.id,
         title: 'Luma',
