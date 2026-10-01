@@ -17,11 +17,11 @@ class SmsTransactionParser {
     caseSensitive: false,
   );
 
-  // SBI-style bare amounts with no currency marker ("debited by 1.00", "debited by 500").
-  // Requires debit verb + preposition (by/for/with) so phone numbers and reference
+  // SBI-style bare amounts with no currency marker ("debited by 1.00", "debited by 500", "credited by 2.00").
+  // Requires debit/credit verb + preposition (by/for/with) so phone numbers and reference
   // numbers are never matched.
   static final _bareAmountPattern = RegExp(
-    r'(?:debited|spent|paid|withdrawn|transferred)\s+(?:by|for|with)\s+([0-9,]+(?:\.\d{1,2})?)',
+    r'(?:debited|credited|spent|paid|withdrawn|transferred|deposited)\s+(?:by|for|with)\s+([0-9,]+(?:\.\d{1,2})?)',
     caseSensitive: false,
   );
 
@@ -34,15 +34,68 @@ class SmsTransactionParser {
     ),
   ];
 
-  static final _debitWords = RegExp(
-    r'\b(debited|debit|spent|paid|payment|upi|withdrawn|trf|transfer|transferred|sent|deducted|purchase)\b',
+  // Explicit account credit indicators
+  static final _creditActionPattern = RegExp(
+    r'(?:'
+    r'[- ]credited\s+(?:by|with|to|in)?\b|'
+    r'\bcredited\b|'
+    r'\bamount\s+credited\b|'
+    r'\b(?:a\/c|acct|account)\s+(?:is\s+|has\s+been\s+)?credited\b|'
+    r'\b(?:is|has\s+been|was)\s+credited\b|'
+    r'\b(?:transfer(?:red)?|trf)\s+from\b|'
+    r'\breceived\s+(?:by|from|in|for|rs\.?|inr|₹)?\b|'
+    r'\bamount\s+received\b|'
+    r'\b(?:deposited|deposit)\b|'
+    r'\b(?:refund(?:ed)?|cashback)\b|'
+    r'\bcredit\b(?!\s+(?:card|limit|line|score|balance))'
+    r')',
     caseSensitive: false,
   );
 
-  static final _creditWords = RegExp(
-    r'\b(credited|credit|received|refund|cashback)\b',
+  // Explicit account debit indicators
+  static final _debitActionPattern = RegExp(
+    r'(?:'
+    r'[- ]debited\s+(?:by|with|from)?\b|'
+    r'\bdebited\b|'
+    r'\bamount\s+debited\b|'
+    r'\b(?:a\/c|acct|account)\s+(?:is\s+|has\s+been\s+)?debited\b|'
+    r'\b(?:is|has\s+been|was)\s+debited\b|'
+    r'\b(?:withdrawn|withdrawal|deducted)\b|'
+    r'\b(?:spent|sent)\b|'
+    r'\b(?:transfer(?:red)?|trf)\s+to\b|'
+    r'\b(?:paid\s+to|paid\s+at|paid\s+for|sent\s+to)\b|'
+    r'\b(?:paid|purchase)\b|'
+    r'\bdebit\b(?!\s+card)'
+    r')',
     caseSensitive: false,
   );
+
+  static final _datePattern = RegExp(
+    r'\b(\d{1,2})[-/ ]?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[-/ ]?(\d{2,4})\b',
+    caseSensitive: false,
+  );
+
+  static DateTime? _parseDate(String message) {
+    final match = _datePattern.firstMatch(message);
+    if (match == null) return null;
+    final day = int.tryParse(match.group(1)!);
+    final monthStr = match.group(2)!.toLowerCase();
+    final yearStr = match.group(3)!;
+    if (day == null || day < 1 || day > 31) return null;
+
+    const months = {
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+    };
+    final month = months[monthStr];
+    if (month == null) return null;
+
+    var year = int.tryParse(yearStr);
+    if (year == null) return null;
+    if (year < 100) year += 2000;
+
+    return DateTime(year, month, day);
+  }
 
   // Payee / Merchant patterns:
   // 1. "Info: BIL*NETFLIX" or "Info: VPS*Swiggy*Bangalore" or "Info: Zomato"
@@ -69,9 +122,15 @@ class SmsTransactionParser {
     caseSensitive: false,
   );
 
-  // 5. "to VPA <vpa>" or "to <payee>" e.g. "to VPA swiggy@icici", "to Starbucks", "trf to JAGANNATH SAMAL"
+  // 5. "transfer from <Merchant>" / "from <Merchant>" / "trf from <Merchant>" / "received from <Merchant>"
+  static final _fromPayeePattern = RegExp(
+    r"(?:\btransfer(?:red)?\s+from\b|\btrf\s+from\b|\breceived\s+from\b|\bfrom\b)\s+(?:vpa\s+)?([A-Za-z0-9 .&\u2019'@-]{2,50}?)(?=\s+(?:to\b|refno\b|ref\b|upi\b|on\b|date\b|dated\b|via\b|using\b|avl\b|avail\b|bal\b|\.|\(|$))",
+    caseSensitive: false,
+  );
+
+  // 6. "to VPA <vpa>" or "to <payee>" e.g. "to VPA swiggy@icici", "to Starbucks", "trf to JAGANNATH SAMAL"
   static final _toPayeePattern = RegExp(
-    r"(?:\btrf\s+to\b|\btransfer(?:red)?\s+to\b|\bpaid\s+to\b|\bcredited\s+to\b|\bdebited\s+to\b|\bsent\s+to\b|\bto\b)\s+(?:vpa\s+)?([A-Za-z0-9 .&\u2019'@-]{2,50}?)(?=\s+(?:refno\b|ref\b|upi\b|on\b|date\b|dated\b|via\b|using\b|avl\b|avail\b|bal\b|\.|\(|$))",
+    r"(?:\btrf\s+to\b|\btransfer(?:red)?\s+to\b|\bpaid\s+to\b|\bcredited\s+to\b|\bdebited\s+to\b|\bsent\s+to\b|\bto\b)\s+(?:vpa\s+)?([A-Za-z0-9 .&\u2019'@-]{2,50}?)(?=\s+(?:from\b|refno\b|ref\b|upi\b|on\b|date\b|dated\b|via\b|using\b|avl\b|avail\b|bal\b|\.|\(|$))",
     caseSensitive: false,
   );
 
@@ -81,17 +140,39 @@ class SmsTransactionParser {
         _amountPattern.firstMatch(normalized) ?? _bareAmountPattern.firstMatch(normalized);
     if (amountMatch == null) return null;
 
-    final transactionType =
-        _creditWords.hasMatch(normalized) && !_debitWords.hasMatch(normalized)
-            ? TransactionType.credit
-            : _debitWords.hasMatch(normalized)
-                ? TransactionType.debit
-                : TransactionType.unknown;
-    if (transactionType == TransactionType.unknown) return null;
-
     final rawAmount = amountMatch.group(1)!.replaceAll(',', '');
     final amount = double.tryParse(rawAmount);
     if (amount == null || amount <= 0) return null;
+
+    final hasCredit = _creditActionPattern.hasMatch(normalized);
+    final hasDebit = _debitActionPattern.hasMatch(normalized);
+
+    final TransactionType transactionType;
+    if (hasCredit && !hasDebit) {
+      transactionType = TransactionType.credit;
+    } else if (hasDebit && !hasCredit) {
+      transactionType = TransactionType.debit;
+    } else if (hasCredit && hasDebit) {
+      // Both matched: prioritize explicit account-level verb
+      final accountCredit = RegExp(
+        r'[- ]credited\b|\bcredited\s+(?:by|with|to|in)?\b|\bamount\s+credited\b|\b(?:a\/c|acct|account)\s+(?:is\s+|has\s+been\s+)?credited\b',
+        caseSensitive: false,
+      ).hasMatch(normalized);
+      final accountDebit = RegExp(
+        r'[- ]debited\b|\bdebited\s+(?:by|with|from)?\b|\bamount\s+debited\b|\b(?:a\/c|acct|account)\s+(?:is\s+|has\s+been\s+)?debited\b',
+        caseSensitive: false,
+      ).hasMatch(normalized);
+
+      if (accountCredit && !accountDebit) {
+        transactionType = TransactionType.credit;
+      } else if (accountDebit && !accountCredit) {
+        transactionType = TransactionType.debit;
+      } else {
+        transactionType = TransactionType.unknown;
+      }
+    } else {
+      transactionType = TransactionType.unknown;
+    }
 
     String? reference;
     for (final pattern in _referencePatterns) {
@@ -106,18 +187,20 @@ class SmsTransactionParser {
     final digitsStart =
         amountMatch.start + amountMatch.group(0)!.indexOf(digits);
 
+    final timestamp = receivedAt ?? _parseDate(normalized);
+
     return ParsedTransaction(
       amountMinor: (amount * 100).round(),
       transactionType: transactionType,
-      merchant: _merchant(normalized, digitsStart),
+      merchant: _merchant(normalized, digitsStart, transactionType: transactionType),
       referenceNumber: reference,
-      timestamp: receivedAt,
+      timestamp: timestamp,
       rawMessage: message,
       confidence: reference == null ? 0.75 : 0.9,
     );
   }
 
-  String? _merchant(String message, int amountStart) {
+  String? _merchant(String message, int amountStart, {TransactionType? transactionType}) {
     // 1. Try structured patterns after amount or anywhere in text
     // Info pattern: Info: BIL*NETFLIX
     final infoMatch = _infoPattern.firstMatch(message)?.group(1);
@@ -139,17 +222,32 @@ class SmsTransactionParser {
     final cleanedTowards = _cleanMerchant(towardsMatch);
     if (cleanedTowards != null) return cleanedTowards;
 
-    // "to <Merchant>" / "to VPA <vpa>" / "trf to <Name>"
-    final toMatch = _toPayeePattern.firstMatch(message)?.group(1);
-    final cleanedTo = _cleanMerchant(toMatch);
-    if (cleanedTo != null) return cleanedTo;
+    if (transactionType == TransactionType.credit) {
+      // For credits: check from first ("transfer from YouTube"), then to
+      final fromMatch = _fromPayeePattern.firstMatch(message)?.group(1);
+      final cleanedFrom = _cleanMerchant(fromMatch);
+      if (cleanedFrom != null) return cleanedFrom;
+
+      final toMatch = _toPayeePattern.firstMatch(message)?.group(1);
+      final cleanedTo = _cleanMerchant(toMatch);
+      if (cleanedTo != null) return cleanedTo;
+    } else {
+      // For debits / unknown: check to first ("to Ramesh Sharma"), then from
+      final toMatch = _toPayeePattern.firstMatch(message)?.group(1);
+      final cleanedTo = _cleanMerchant(toMatch);
+      if (cleanedTo != null) return cleanedTo;
+
+      final fromMatch = _fromPayeePattern.firstMatch(message)?.group(1);
+      final cleanedFrom = _cleanMerchant(fromMatch);
+      if (cleanedFrom != null) return cleanedFrom;
+    }
 
     // Fallback: prefix before amount ("Swiggy debited Rs 250...")
     final prefix = message
         .substring(0, amountStart)
         .replaceFirst(
           RegExp(
-            r'^.*(?:debited|debit|spent|paid|payment|upi|withdrawn|sent|deducted)\s+(?:by\s+|for\s+|with\s+)?',
+            r'^.*(?:debited|credited|debit|credit|spent|paid|payment|upi|withdrawn|sent|deducted)\s+(?:by\s+|for\s+|with\s+)?',
             caseSensitive: false,
           ),
           '',

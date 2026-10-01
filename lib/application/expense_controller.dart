@@ -153,7 +153,7 @@ class ExpenseController extends ChangeNotifier {
   Future<Expense?> processSms(String message, {DateTime? receivedAt}) async {
     final parsed =
         SmsTransactionParser().parse(message, receivedAt: receivedAt);
-    if (parsed == null || parsed.transactionType == TransactionType.unknown) {
+    if (parsed == null) {
       return null;
     }
     final fingerprint = smsFingerprint(message);

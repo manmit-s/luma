@@ -10,6 +10,7 @@ import '../../data/database/luma_database.dart';
 import '../../data/services/app_settings_store.dart';
 import '../../domain/entities/expense.dart' as domain;
 import '../../domain/repositories/expense_repository.dart';
+import '../../domain/repositories/subscription_repository.dart';
 
 enum ExportMode { full, incremental }
 
@@ -63,16 +64,19 @@ class ExportService {
     this._repository,
     this._db, {
     AppSettingsStore? settingsStore,
+    SubscriptionRepository? subscriptionRepository,
     Future<Directory> Function()? outputDir,
     Future<File> Function(Directory dir, String filename, List<int> bytes)?
         writeFile,
   })  : _settingsStore = settingsStore ?? AppSettingsStore(_db),
+        _subscriptionRepository = subscriptionRepository,
         _outputDir = outputDir ?? getTemporaryDirectory,
         _writeFile = writeFile ?? _defaultWrite;
 
   final ExpenseRepository _repository;
   final LumaDatabase? _db;
   final AppSettingsStore _settingsStore;
+  final SubscriptionRepository? _subscriptionRepository;
   final Future<Directory> Function() _outputDir;
   final Future<File> Function(Directory dir, String filename, List<int> bytes)
       _writeFile;
@@ -211,6 +215,42 @@ class ExportService {
         TextCellValue(expense.note),
         TextCellValue(expense.referenceNumber ?? ''),
       ]);
+    }
+
+    if (_subscriptionRepository != null) {
+      final subs = await _subscriptionRepository.getAll();
+      if (subs.isNotEmpty) {
+        const subSheet = 'Subscriptions';
+        excel[subSheet];
+        excel.appendRow(subSheet, [
+          TextCellValue('Name'),
+          TextCellValue('Amount'),
+          TextCellValue('Billing Cycle'),
+          TextCellValue('Payment Method'),
+          TextCellValue('Status'),
+          TextCellValue('Start Date'),
+          TextCellValue('Next Renewal'),
+          TextCellValue('Trial End'),
+          TextCellValue('Cancellation Reminder'),
+        ]);
+        for (final sub in subs) {
+          excel.appendRow(subSheet, [
+            TextCellValue(sub.name),
+            DoubleCellValue(sub.amountMinor / 100),
+            TextCellValue(sub.billingCycle.label),
+            TextCellValue(sub.paymentMethod.label),
+            TextCellValue(sub.status.label),
+            TextCellValue(formatDayLabel(sub.startDate)),
+            TextCellValue(formatDayLabel(sub.nextRenewalDate)),
+            TextCellValue(sub.trialEndDate != null
+                ? formatDayLabel(sub.trialEndDate!)
+                : '-'),
+            TextCellValue(sub.cancellationReminderEnabled
+                ? '${sub.cancellationReminderDaysBefore} days before'
+                : 'Disabled'),
+          ]);
+        }
+      }
     }
 
     final bytes = excel.save();

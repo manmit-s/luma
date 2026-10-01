@@ -95,38 +95,73 @@ class PendingExpenseCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: AppColors.elevated,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          side: const BorderSide(color: AppColors.peach, width: 0.6),
+  Widget build(BuildContext context) {
+    final isCredit = expense.transactionType == TransactionType.credit;
+    return Material(
+      color: AppColors.elevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        side: BorderSide(
+          color: isCredit ? AppColors.success : AppColors.peach,
+          width: 0.6,
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          onTap: onTap,
-          child: Padding(
-            padding: AppSpacing.cardPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: AmountDisplay(
-                        expense.amountMinor,
-                        fontSize: 24,
-                      ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        onTap: onTap,
+        child: Padding(
+          padding: AppSpacing.cardPadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        AmountDisplay(
+                          expense.amountMinor,
+                          fontSize: 24,
+                          color: isCredit ? AppColors.success : null,
+                        ),
+                        if (isCredit) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1B3828),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: AppColors.success,
+                                width: 0.8,
+                              ),
+                            ),
+                            child: const Text(
+                              'Credit',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    OutlinedButton.icon(
-                      onPressed: onTap,
-                      icon: const Icon(Icons.check_rounded, size: 16),
-                      label: const Text('Confirm'),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  OutlinedButton.icon(
+                    onPressed: onTap,
+                    icon: const Icon(Icons.check_rounded, size: 16),
+                    label: const Text('Confirm'),
+                  ),
+                ],
+              ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   merchantLabel(expense.merchant),
@@ -167,4 +202,5 @@ class PendingExpenseCard extends StatelessWidget {
           ),
         ),
       );
+  }
 }

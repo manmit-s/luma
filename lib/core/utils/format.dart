@@ -36,6 +36,10 @@ String formatTime(DateTime value) {
   return '${value.day} ${_months[value.month - 1]}, $hour12:$mm $suffix';
 }
 
+String formatDate(DateTime value) {
+  return '${value.day} ${_months[value.month - 1]} ${value.year}';
+}
+
 String formatDayLabel(DateTime value, {DateTime? now}) {
   final today = now ?? DateTime.now();
   final a = DateTime(today.year, today.month, today.day);

@@ -31,6 +31,7 @@ import 'widgets/onboarding_sheet.dart';
 import 'widgets/section_header.dart';
 import 'widgets/sms_permission_flow.dart';
 import 'widgets/splash_screen.dart';
+import 'widgets/subscription_views.dart';
 import 'widgets/summary_card.dart';
 
 final lumaNavigatorKey = GlobalKey<NavigatorState>();
@@ -215,6 +216,7 @@ class _MainShellState extends ConsumerState<_MainShell>
       _handleNotificationTap(coldPayload);
     }
     await _ensureAuditScheduled();
+    await _maybeShowOnboarding();
   }
 
   /// Pulls SMS queued by the native receiver into pending expenses.
@@ -475,6 +477,7 @@ class _HomePageState extends ConsumerState<_HomePage>
               ),
             ),
           ),
+        const UpcomingSubscriptionsSection(),
         const SizedBox(height: AppSpacing.xxl),
         SectionHeader(
           title: 'Recent expenses',
@@ -845,112 +848,457 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     await _refreshSmsState();
   }
 
+  Future<void> _showDailyAuditSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          color: AppColors.peach,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Daily audit',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Luma can send a gentle evening reminder to review your day’s transactions and keep your balance accurate.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.elevated,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Evening reminder',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  dailyAudit ? 'Every day at 9:00 PM' : 'Disabled',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: dailyAudit ? AppColors.peach : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: dailyAudit,
+                            onChanged: _loadingAudit
+                                ? null
+                                : (val) async {
+                                    setSheetState(() => dailyAudit = val);
+                                    await _setAudit(val);
+                                  },
+                            activeThumbColor: AppColors.peach,
+                            activeTrackColor: AppColors.plum,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showPrivacySheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.peach,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Private by design',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Everything stays on this device.\n\n'
+                  '• SMS messages are parsed locally on your phone using on-device regex rules.\n'
+                  '• No financial data, account numbers, or balances are ever uploaded to any cloud server.\n'
+                  '• Exports are generated directly onto your device storage and shared only when you choose.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: PrimaryButton(
+                    label: 'Got it',
+                    onPressed: () => Navigator.pop(sheetContext),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final textTheme = Theme.of(context).textTheme;
     final smsOn = _smsState == SmsPermissionState.granted;
+    final activeSubs = ref
+        .watch(subscriptionControllerProvider)
+        .subscriptions
+        .where((s) => s.status.isOngoing)
+        .length;
+
     return ListView(
-      padding: AppSpacing.screenPadding.copyWith(bottom: 128),
+      padding: AppSpacing.screenPadding.copyWith(bottom: 140),
       children: [
-        Text('Settings', style: textTheme.headlineSmall),
-        const SizedBox(height: 6),
+        Text(
+          'Settings',
+          style: textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
         Text(
           'Keep Luma working quietly in the background',
-          style: textTheme.bodyMedium,
+          style: textTheme.bodyMedium?.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
-        const SizedBox(height: AppSpacing.xxxl),
-        Card(
-          color: AppColors.surface,
-          child: Column(
-            children: [
-              SwitchListTile(
+        const SizedBox(height: 14),
+        const _SettingsSectionHeader('AUTOMATION'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.sms_outlined,
+              title: 'SMS detection',
+              subtitle: smsOn ? 'Watching transaction SMS' : _smsSubtitle,
+              trailing: Switch(
                 value: smsOn,
                 onChanged: (_) => _onSmsTap(),
-                title: const Text('SMS detection'),
-                subtitle: Text(_smsSubtitle),
+                activeThumbColor: AppColors.peach,
+                activeTrackColor: AppColors.plum,
               ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              SwitchListTile(
-                value: dailyAudit,
-                onChanged: _loadingAudit ? null : _setAudit,
-                title: const Text('Daily audit'),
-                subtitle: const Text('Every day at 9:00 PM'),
-              ),
-            ],
-          ),
+              onTap: _onSmsTap,
+            ),
+            const _SettingsRowDivider(),
+            _SettingsRow(
+              icon: Icons.schedule_rounded,
+              title: 'Daily audit',
+              subtitle: dailyAudit ? 'Every day at 9:00 PM' : 'Off',
+              onTap: _showDailyAuditSheet,
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        const _SmsDiagnosticsCard(),
-        const SizedBox(height: AppSpacing.lg),
-        Card(
-          color: AppColors.surface,
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.person_outline_rounded),
-                title: const Text('Your name'),
-                subtitle: Text(
-                  _loadingName
-                      ? 'Loading…'
-                      : _userName.isEmpty
-                          ? 'Not set — tap to add'
-                          : _userName,
+        const _SettingsSectionHeader('PERSONAL'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.person_outline_rounded,
+              title: 'Your name',
+              subtitle: _loadingName
+                  ? 'Loading…'
+                  : _userName.isEmpty
+                      ? 'Not set — tap to add'
+                      : _userName,
+              onTap: _editName,
+            ),
+            const _SettingsRowDivider(),
+            _SettingsRow(
+              icon: Icons.account_balance_wallet_outlined,
+              title: 'Starting balance',
+              subtitle: _loadingBalance
+                  ? 'Loading…'
+                  : formatAmount(_initialBalanceMinor),
+              onTap: _editInitialBalance,
+            ),
+            const _SettingsRowDivider(),
+            _SettingsRow(
+              icon: Icons.repeat_rounded,
+              title: 'Subscriptions',
+              subtitle: '$activeSubs active',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SubscriptionsPage(),
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
-                ),
-                onTap: _editName,
               ),
-              const Divider(height: 1, indent: 16, endIndent: 16),
-              ListTile(
-                leading: const Icon(Icons.account_balance_wallet_outlined),
-                title: const Text('Starting balance'),
-                subtitle: Text(
-                  _loadingBalance
-                      ? 'Loading…'
-                      : formatAmount(_initialBalanceMinor),
+            ),
+          ],
+        ),
+        const _SettingsSectionHeader('PRIVACY'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.shield_outlined,
+              title: 'Private by design',
+              subtitle: 'Everything stays on this device',
+              onTap: _showPrivacySheet,
+            ),
+          ],
+        ),
+        const _SettingsSectionHeader('ADVANCED'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.bug_report_outlined,
+              title: 'SMS diagnostics',
+              subtitle: 'Troubleshoot SMS detection and processing',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SmsDiagnosticsPage(),
                 ),
-                trailing: const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary,
-                ),
-                onTap: _editInitialBalance,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        Card(
-          color: AppColors.surface,
-          child: ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined),
-            title: const Text('Private by design'),
-            subtitle: const Text(
-              'Everything stays on this device. Exports are shared only when you choose to.',
+        const _SettingsSectionHeader('DANGER ZONE'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.delete_outline_rounded,
+              iconColor: AppColors.error,
+              title: 'Reset all records',
+              titleColor: AppColors.error,
+              subtitle: 'Wipe all transactions and start completely fresh',
+              trailing: const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: AppColors.error,
+              ),
+              onTap: _confirmResetAll,
             ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        Card(
-          color: AppColors.surface,
-          child: ListTile(
-            leading: const Icon(
-              Icons.delete_sweep_outlined,
-              color: AppColors.error,
-            ),
-            title: const Text(
-              'Reset all records',
-              style: TextStyle(color: AppColors.error),
-            ),
-            subtitle: const Text(
-              'Wipe all transactions and start completely fresh',
-            ),
-            onTap: _confirmResetAll,
-          ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _SettingsSectionHeader extends StatelessWidget {
+  const _SettingsSectionHeader(this.title);
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+          color: AppColors.textSecondary.withAlpha(180),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSectionCard extends StatelessWidget {
+  const _SettingsSectionCard({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.border.withAlpha(160),
+          width: 1,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: children,
+      ),
+    );
+  }
+}
+
+class _SettingsRowDivider extends StatelessWidget {
+  const _SettingsRowDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      color: AppColors.border,
+      indent: 54,
+      endIndent: 16,
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.trailing,
+    this.onTap,
+    this.iconColor,
+    this.titleColor,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  final Color? iconColor;
+  final Color? titleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 22,
+                color: iconColor ?? AppColors.textSecondary,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: titleColor ?? AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              trailing ??
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1113,15 +1461,17 @@ class _EditBalanceDialogState extends State<_EditBalanceDialog> {
 ///
 /// Each row maps to one stage of the watch chain, so a missed transaction
 /// can be localized without a computer.
-class _SmsDiagnosticsCard extends ConsumerStatefulWidget {
-  const _SmsDiagnosticsCard();
+/// Dedicated SMS diagnostics screen for troubleshooting SMS detection,
+/// native queue inspection, inbox scanning, and background permissions.
+class SmsDiagnosticsPage extends ConsumerStatefulWidget {
+  const SmsDiagnosticsPage({super.key});
 
   @override
-  ConsumerState<_SmsDiagnosticsCard> createState() =>
-      _SmsDiagnosticsCardState();
+  ConsumerState<SmsDiagnosticsPage> createState() =>
+      _SmsDiagnosticsPageState();
 }
 
-class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
+class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
   int? _queued;
   bool _checkingQueue = false;
   bool _processing = false;
@@ -1217,16 +1567,16 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: 8,
-                children: [2, 3, 4, 5, 10].map((num) {
-                  final isSelected = selectedPreset == num;
+                children: [2, 3, 4, 5, 10].map((preset) {
+                  final isSelected = selectedPreset == preset;
                   return ChoiceChip(
-                    label: Text('$num SMS'),
+                    label: Text('$preset SMS'),
                     selected: isSelected,
                     onSelected: (selected) {
                       if (selected) {
                         setDialogState(() {
-                          selectedPreset = num;
-                          countController.text = '$num';
+                          selectedPreset = preset;
+                          countController.text = '$preset';
                         });
                       }
                     },
@@ -1316,27 +1666,6 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
     }
   }
 
-  void _testSms() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (sheetContext) => _TestSmsSheet(
-        onIngest: (expense) async {
-          Navigator.pop(sheetContext);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Ingested ₹${(expense.amountMinor / 100).toStringAsFixed(2)} as pending expense.',
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final queueLabel = _checkingQueue
@@ -1346,82 +1675,174 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
             : _queued == 0
                 ? 'Empty — receiver caught up'
                 : '$_queued waiting — tap Process now';
-    return Card(
-      color: AppColors.surface,
-      child: Padding(
-        padding: AppSpacing.cardPadding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'SMS diagnostics',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                IconButton(
-                  onPressed: _checkingQueue ? null : _refreshQueue,
-                  icon: const Icon(Icons.refresh_rounded, size: 20),
-                  tooltip: 'Refresh',
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Phone queue: $queueLabel',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _processing ? null : _processNow,
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: Text(
-                      _processing ? 'Working…' : 'Process now',
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _scanning ? null : _scanInbox,
-                    icon: const Icon(Icons.mark_email_read_outlined, size: 18),
-                    label: Text(
-                      _scanning ? 'Scanning…' : 'Scan Inbox',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _scanning ? null : _showSelectedScanDialog,
-                    icon: const Icon(Icons.filter_list_rounded, size: 18),
-                    label: const Text('Scan recent'),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _openBackgroundStart,
-                    icon: const Icon(Icons.battery_saver_outlined, size: 18),
-                    label: const Text('Autostart'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'SMS diagnostics',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: _checkingQueue ? null : _refreshQueue,
+            icon: const Icon(Icons.refresh_rounded, size: 22, color: AppColors.textPrimary),
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: AppSpacing.screenPadding.copyWith(bottom: 40),
+        children: [
+          const Text(
+            'Troubleshoot SMS detection, drain the native Android queue, or scan your inbox for missed transactions.',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _SettingsSectionHeader('PHONE QUEUE'),
+          _SettingsSectionCard(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.inbox_outlined, color: AppColors.peach, size: 20),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Queue Status',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      queueLabel,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _processing ? null : _processNow,
+                            icon: const Icon(Icons.download_rounded, size: 18),
+                            label: Text(_processing ? 'Working…' : 'Process now'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: _scanning ? null : _scanInbox,
+                            icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                            label: Text(_scanning ? 'Scanning…' : 'Scan Inbox'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _SettingsSectionHeader('SELECTIVE SCANNING'),
+          _SettingsSectionCard(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Scan Recent Transactions',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Specify how many latest transaction SMS messages to scan and import into Needs Attention.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.3),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _scanning ? null : _showSelectedScanDialog,
+                        icon: const Icon(Icons.filter_list_rounded, size: 18),
+                        label: const Text('Scan recent'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _SettingsSectionHeader('BACKGROUND PERMISSIONS'),
+          _SettingsSectionCard(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Autostart & Battery Optimization',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Ensure your phone manufacturer does not block Luma from running SMS background receivers.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.3),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _openBackgroundStart,
+                        icon: const Icon(Icons.battery_saver_outlined, size: 18),
+                        label: const Text('Autostart'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
+
 
 class _TestSmsSheet extends ConsumerStatefulWidget {
   const _TestSmsSheet({required this.onIngest});
