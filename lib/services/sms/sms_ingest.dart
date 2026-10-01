@@ -3,9 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../domain/entities/expense.dart';
+import '../../domain/services/sms_transaction_parser.dart';
 import '../notification/notification_service.dart';
 
 const _smsChannel = MethodChannel('luma/sms');
+
+/// Result of scanning SMS inbox.
+class SmsScanResult {
+  const SmsScanResult({
+    required this.validParsed,
+    required this.newlyCreated,
+  });
+
+  final int validParsed;
+  final int newlyCreated;
+}
 
 /// Reads (without draining) how many receiver-queued SMS are still waiting.
 /// Null off-device (tests/desktop) where the channel doesn't exist.
@@ -64,30 +76,57 @@ Future<int> drainSmsQueue(WidgetRef ref) async {
 
 /// Reads recent financial SMS directly from the phone's SMS inbox.
 ///
-/// Requires SMS permission. Returns the number of newly created pending expenses.
-Future<int> scanInboxSms(WidgetRef ref, {int limit = 50}) async {
+/// If [targetCount] is provided, scanning evaluates candidate SMS in reverse
+/// chronological order (newest first) and stops once [targetCount] valid
+/// debit/credit transaction SMS have been processed.
+///
+/// Requires SMS permission. Returns an [SmsScanResult] with count of valid
+/// parsed transactions and newly created pending expenses.
+Future<SmsScanResult> scanInboxSms(
+  WidgetRef ref, {
+  int limit = 50,
+  int? targetCount,
+}) async {
   try {
     final controller = ref.read(expenseControllerProvider);
+    final parser = SmsTransactionParser();
+    final queryLimit = targetCount != null
+        ? (targetCount * 4).clamp(20, 200)
+        : limit;
     final messages = await _smsChannel.invokeListMethod<String>(
           'scanInboxSms',
-          {'limit': limit},
+          {'limit': queryLimit},
         ) ??
         [];
-    var created = 0;
+    var newlyCreated = 0;
+    var validParsed = 0;
     for (final message in messages) {
+      if (targetCount != null && validParsed >= targetCount) {
+        break;
+      }
+      final parsed = parser.parse(message);
+      if (parsed == null ||
+          parsed.transactionType == TransactionType.unknown) {
+        continue;
+      }
+      validParsed++;
       final existingCount = controller.expenses.length;
       final expense = await controller.processSms(message);
       final wasNewlyCreated = controller.expenses.length > existingCount;
       if (wasNewlyCreated &&
           expense != null &&
           expense.status == ExpenseStatus.pending) {
-        created++;
+        newlyCreated++;
       }
     }
-    return created;
+    return SmsScanResult(
+      validParsed: validParsed,
+      newlyCreated: newlyCreated,
+    );
   } on MissingPluginException {
-    return 0;
+    return const SmsScanResult(validParsed: 0, newlyCreated: 0);
   } catch (_) {
-    return 0;
+    return const SmsScanResult(validParsed: 0, newlyCreated: 0);
   }
 }
+
