@@ -115,8 +115,7 @@ Future<SmsScanResult> scanInboxSms(
         break;
       }
       final parsed = parser.parse(message);
-      if (parsed == null ||
-          parsed.transactionType == TransactionType.unknown) {
+      if (parsed == null) {
         continue;
       }
       validParsed++;
