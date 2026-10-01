@@ -7,7 +7,7 @@ import '../../domain/entities/expense.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
-import 'category_chip.dart';
+import 'expense_cards.dart' show categoryIcon;
 import 'luma_buttons.dart';
 
 int parseAmountToMinor(String raw) {
@@ -38,6 +38,194 @@ EdgeInsets _sheetPadding(BuildContext context) => EdgeInsets.fromLTRB(
       MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxl,
     );
 
+/// Sleek segmented selector for toggling between Debit (Expense) and Credit (Income).
+class _TransactionTypeSelector extends StatelessWidget {
+  const _TransactionTypeSelector({
+    required this.selectedType,
+    required this.onChanged,
+  });
+
+  final TransactionType selectedType;
+  final ValueChanged<TransactionType> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDebit = selectedType == TransactionType.debit;
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(TransactionType.debit),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                decoration: BoxDecoration(
+                  color: isDebit ? const Color(0xFF3E1C27) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppRadii.compact),
+                  border: isDebit
+                      ? Border.all(color: AppColors.peach, width: 1.2)
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.arrow_outward_rounded,
+                      size: 16,
+                      color: isDebit ? AppColors.peach : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Debit (Expense)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isDebit ? FontWeight.w600 : FontWeight.w500,
+                        color: isDebit
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => onChanged(TransactionType.credit),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                decoration: BoxDecoration(
+                  color: !isDebit ? const Color(0xFF1B3828) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(AppRadii.compact),
+                  border: !isDebit
+                      ? Border.all(color: AppColors.success, width: 1.2)
+                      : null,
+                ),
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.arrow_downward_rounded,
+                      size: 16,
+                      color:
+                          !isDebit ? AppColors.success : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Credit (Income)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            !isDebit ? FontWeight.w600 : FontWeight.w500,
+                        color: !isDebit
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Horizontal swipable category cards with vector icon and label.
+class _CategoryCardSelector extends StatelessWidget {
+  const _CategoryCardSelector({
+    required this.selectedCategoryId,
+    required this.onSelected,
+  });
+
+  final String selectedCategoryId;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 86,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: defaultCategories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (context, index) {
+          final item = defaultCategories[index];
+          final isSelected = selectedCategoryId == item.id;
+          return GestureDetector(
+            onTap: () => onSelected(item.id),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 80,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.plum : AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadii.card),
+                border: Border.all(
+                  color: isSelected ? AppColors.peach : AppColors.border,
+                  width: isSelected ? 1.5 : 1.0,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.peach.withValues(alpha: 0.2)
+                          : AppColors.surfaceLow,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      categoryIcon(item.id),
+                      size: 20,
+                      color: isSelected
+                          ? AppColors.peach
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected
+                          ? AppColors.textPrimary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 Future<void> showCompleteExpense(
   BuildContext context,
   WidgetRef ref,
@@ -66,18 +254,55 @@ class _CompleteExpenseSheetState
     extends ConsumerState<_CompleteExpenseSheet> {
   late String category;
   late TextEditingController note;
+  late TransactionType transactionType;
 
   @override
   void initState() {
     super.initState();
     category = widget.expense.categoryId ?? '';
     note = TextEditingController(text: widget.expense.note);
+    transactionType = widget.expense.transactionType;
   }
 
   @override
   void dispose() {
     note.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.elevated,
+        title: const Text('Delete expense?'),
+        content: Text(
+          '${merchantLabel(widget.expense.merchant)} (${formatAmount(widget.expense.amountMinor)}) will be removed from Needs Attention.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await ref
+          .read(expenseControllerProvider)
+          .deleteExpense(widget.expense.id);
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expense deleted.')),
+        );
+      }
+    }
   }
 
   @override
@@ -89,9 +314,20 @@ class _CompleteExpenseSheetState
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Complete expense',
-                style: Theme.of(context).textTheme.titleLarge,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Complete expense',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        color: AppColors.error),
+                    tooltip: 'Delete expense',
+                    onPressed: () => _confirmDelete(context),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.md),
               AmountDisplay(widget.expense.amountMinor, fontSize: 36),
@@ -107,22 +343,33 @@ class _CompleteExpenseSheetState
                   fontSize: 13,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxl),
-              const Text('What was this for?'),
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: defaultCategories
-                    .map(
-                      (item) => CategoryChip(
-                        label: item.name,
-                        selected: category == item.id,
-                        onSelected: (_) =>
-                            setState(() => category = item.id),
-                      ),
-                    )
-                    .toList(),
+              const SizedBox(height: AppSpacing.lg),
+              const Text(
+                'Transaction type',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _TransactionTypeSelector(
+                selectedType: transactionType,
+                onChanged: (val) => setState(() => transactionType = val),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              const Text(
+                'What was this for?',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _CategoryCardSelector(
+                selectedCategoryId: category,
+                onSelected: (val) => setState(() => category = val),
               ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
@@ -138,7 +385,9 @@ class _CompleteExpenseSheetState
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  label: 'Save expense',
+                  label: transactionType == TransactionType.debit
+                      ? 'Save expense'
+                      : 'Save credit',
                   onPressed: category.isEmpty
                       ? null
                       : () {
@@ -148,6 +397,7 @@ class _CompleteExpenseSheetState
                                 widget.expense,
                                 categoryId: category,
                                 note: note.text.trim(),
+                                transactionType: transactionType,
                               );
                           Navigator.pop(context);
                         },
@@ -164,6 +414,22 @@ class _CompleteExpenseSheetState
                     ),
                   ),
                 ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => _confirmDelete(context),
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: AppColors.error, size: 18),
+                  label: const Text(
+                    'Delete this expense',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -190,13 +456,16 @@ class _AddExpenseSheet extends ConsumerStatefulWidget {
 class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   final amount = TextEditingController();
   final merchant = TextEditingController();
+  final note = TextEditingController();
   String category = 'other';
+  TransactionType transactionType = TransactionType.debit;
   String? error;
 
   @override
   void dispose() {
     amount.dispose();
     merchant.dispose();
+    note.dispose();
     super.dispose();
   }
 
@@ -210,10 +479,17 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Add expense',
+                transactionType == TransactionType.debit
+                    ? 'Add expense'
+                    : 'Add credit / income',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
+              _TransactionTypeSelector(
+                selectedType: transactionType,
+                onChanged: (val) => setState(() => transactionType = val),
+              ),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: amount,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -229,30 +505,43 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
               TextField(
                 controller: merchant,
                 textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Merchant or description',
+                decoration: InputDecoration(
+                  labelText: transactionType == TransactionType.debit
+                      ? 'Merchant or description'
+                      : 'Source or description (e.g. Salary, Refund)',
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              DropdownButtonFormField<String>(
-                initialValue: category,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: defaultCategories
-                    .map(
-                      (item) => DropdownMenuItem(
-                        value: item.id,
-                        child: Text(item.name),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) =>
-                    setState(() => category = value ?? 'other'),
+              const SizedBox(height: AppSpacing.md),
+              const Text(
+                'Category',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _CategoryCardSelector(
+                selectedCategoryId: category,
+                onSelected: (val) => setState(() => category = val),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextField(
+                controller: note,
+                maxLines: 2,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  hintText: 'Add a note (optional)',
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  label: 'Save expense',
+                  label: transactionType == TransactionType.debit
+                      ? 'Save expense'
+                      : 'Save credit',
                   onPressed: () {
                     final parsed = parseAmountToMinor(amount.text);
                     if (parsed <= 0) {
@@ -265,6 +554,8 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                           amountMinor: parsed,
                           merchant: merchant.text.trim(),
                           categoryId: category,
+                          note: note.text.trim(),
+                          transactionType: transactionType,
                         );
                     Navigator.pop(context);
                   },
@@ -304,6 +595,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
   late TextEditingController merchant;
   late TextEditingController note;
   late String category;
+  late TransactionType transactionType;
   String? error;
 
   @override
@@ -314,6 +606,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
     merchant = TextEditingController(text: widget.expense.merchant ?? '');
     note = TextEditingController(text: widget.expense.note);
     category = widget.expense.categoryId ?? 'other';
+    transactionType = widget.expense.transactionType;
   }
 
   @override
@@ -322,6 +615,41 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
     merchant.dispose();
     note.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.elevated,
+        title: const Text('Delete expense?'),
+        content: Text(
+          '${merchantLabel(widget.expense.merchant)} (${formatAmount(widget.expense.amountMinor)}) will be removed permanently.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      await ref
+          .read(expenseControllerProvider)
+          .deleteExpense(widget.expense.id);
+      if (context.mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expense deleted.')),
+        );
+      }
+    }
   }
 
   @override
@@ -333,11 +661,27 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Edit expense',
-                style: Theme.of(context).textTheme.titleLarge,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Edit expense',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded,
+                        color: AppColors.error),
+                    tooltip: 'Delete expense',
+                    onPressed: () => _confirmDelete(context),
+                  ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
+              _TransactionTypeSelector(
+                selectedType: transactionType,
+                onChanged: (val) => setState(() => transactionType = val),
+              ),
+              const SizedBox(height: AppSpacing.md),
               TextField(
                 controller: amount,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -358,21 +702,18 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Text('Category'),
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: defaultCategories
-                    .map(
-                      (item) => CategoryChip(
-                        label: item.name,
-                        selected: category == item.id,
-                        onSelected: (_) =>
-                            setState(() => category = item.id),
-                      ),
-                    )
-                    .toList(),
+              const Text(
+                'Category',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _CategoryCardSelector(
+                selectedCategoryId: category,
+                onSelected: (val) => setState(() => category = val),
               ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
@@ -406,7 +747,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                       categoryId: category,
                       note: note.text.trim(),
                       timestamp: expense.timestamp,
-                      transactionType: expense.transactionType,
+                      transactionType: transactionType,
                       status: expense.status,
                       referenceNumber: expense.referenceNumber,
                       smsFingerprint: expense.smsFingerprint,
@@ -421,6 +762,22 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                         .updateExpense(updated);
                     if (context.mounted) Navigator.pop(context);
                   },
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => _confirmDelete(context),
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: AppColors.error, size: 18),
+                  label: const Text(
+                    'Delete this expense',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
             ],
