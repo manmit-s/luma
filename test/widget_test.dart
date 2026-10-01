@@ -147,6 +147,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SMS diagnostics'), findsOneWidget);
+    await tester.tap(find.text('SMS diagnostics'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Scan recent'), findsOneWidget);
 
     await tester.tap(find.text('Scan recent'));
