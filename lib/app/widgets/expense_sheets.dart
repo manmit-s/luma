@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/utils/format.dart';
 import '../../domain/entities/category.dart';
 import '../../domain/entities/expense.dart';
+import '../../domain/entities/subscription.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
@@ -226,6 +227,171 @@ class _CategoryCardSelector extends StatelessWidget {
   }
 }
 
+/// Compact progressive disclosure control for recurring subscriptions.
+class _RecurringSubscriptionOption extends StatelessWidget {
+  const _RecurringSubscriptionOption({
+    required this.enabled,
+    required this.onChanged,
+    required this.billingCycle,
+    required this.onBillingCycleChanged,
+    required this.paymentMethod,
+    required this.onPaymentMethodChanged,
+    required this.nextRenewalDate,
+    required this.onPickDate,
+  });
+
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+  final BillingCycle billingCycle;
+  final ValueChanged<BillingCycle> onBillingCycleChanged;
+  final PaymentMethod paymentMethod;
+  final ValueChanged<PaymentMethod> onPaymentMethodChanged;
+  final DateTime nextRenewalDate;
+  final VoidCallback onPickDate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLow,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(
+          color: enabled
+              ? AppColors.peach.withValues(alpha: 0.5)
+              : AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: enabled,
+            onChanged: onChanged,
+            title: const Text(
+              'Set up recurring subscription',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Track upcoming renewals and auto-match future debits',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+          ),
+          if (enabled) ...[
+            const Divider(height: 1),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Billing cycle',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              children: [
+                BillingCycle.monthly,
+                BillingCycle.yearly,
+              ].map((cycle) {
+                final isSelected = billingCycle == cycle;
+                return ChoiceChip(
+                  label: Text(cycle.label),
+                  selected: isSelected,
+                  selectedColor: AppColors.plum,
+                  labelStyle: TextStyle(
+                    fontSize: 12,
+                    color: isSelected
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                  onSelected: (val) {
+                    if (val) onBillingCycleChanged(cycle);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            const Text(
+              'Payment method',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      backgroundColor: paymentMethod == PaymentMethod.autopay
+                          ? AppColors.plum
+                          : Colors.transparent,
+                      side: BorderSide(
+                        color: paymentMethod == PaymentMethod.autopay
+                            ? AppColors.peach
+                            : AppColors.border,
+                      ),
+                    ),
+                    onPressed: () =>
+                        onPaymentMethodChanged(PaymentMethod.autopay),
+                    child: const Text('Autopay',
+                        style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      backgroundColor: paymentMethod == PaymentMethod.manual
+                          ? AppColors.plum
+                          : Colors.transparent,
+                      side: BorderSide(
+                        color: paymentMethod == PaymentMethod.manual
+                            ? AppColors.peach
+                            : AppColors.border,
+                      ),
+                    ),
+                    onPressed: () =>
+                        onPaymentMethodChanged(PaymentMethod.manual),
+                    child: const Text('Manual',
+                        style: TextStyle(fontSize: 12)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Next renewal date',
+                  style: TextStyle(fontSize: 12)),
+              subtitle: Text(
+                formatDate(nextRenewalDate),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.peach,
+                ),
+              ),
+              trailing: const Icon(Icons.calendar_today_rounded, size: 16),
+              onTap: onPickDate,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 Future<void> showCompleteExpense(
   BuildContext context,
   WidgetRef ref,
@@ -255,6 +421,10 @@ class _CompleteExpenseSheetState
   late String category;
   late TextEditingController note;
   late TransactionType transactionType;
+  bool isRecurringSubscription = false;
+  BillingCycle billingCycle = BillingCycle.monthly;
+  PaymentMethod paymentMethod = PaymentMethod.autopay;
+  late DateTime nextRenewalDate;
 
   @override
   void initState() {
@@ -262,6 +432,7 @@ class _CompleteExpenseSheetState
     category = widget.expense.categoryId ?? '';
     note = TextEditingController(text: widget.expense.note);
     transactionType = widget.expense.transactionType;
+    nextRenewalDate = DateTime.now().add(const Duration(days: 30));
   }
 
   @override
@@ -371,6 +542,33 @@ class _CompleteExpenseSheetState
                 selectedCategoryId: category,
                 onSelected: (val) => setState(() => category = val),
               ),
+              if (category == 'subscriptions') ...[
+                const SizedBox(height: AppSpacing.sm),
+                _RecurringSubscriptionOption(
+                  enabled: isRecurringSubscription,
+                  onChanged: (val) =>
+                      setState(() => isRecurringSubscription = val),
+                  billingCycle: billingCycle,
+                  onBillingCycleChanged: (val) =>
+                      setState(() => billingCycle = val),
+                  paymentMethod: paymentMethod,
+                  onPaymentMethodChanged: (val) =>
+                      setState(() => paymentMethod = val),
+                  nextRenewalDate: nextRenewalDate,
+                  onPickDate: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: nextRenewalDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (picked != null) {
+                      setState(() => nextRenewalDate = picked);
+                    }
+                  },
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -390,8 +588,8 @@ class _CompleteExpenseSheetState
                       : 'Save credit',
                   onPressed: category.isEmpty
                       ? null
-                      : () {
-                          ref
+                      : () async {
+                          await ref
                               .read(expenseControllerProvider)
                               .complete(
                                 widget.expense,
@@ -399,7 +597,21 @@ class _CompleteExpenseSheetState
                                 note: note.text.trim(),
                                 transactionType: transactionType,
                               );
-                          Navigator.pop(context);
+                          if (category == 'subscriptions' &&
+                              isRecurringSubscription) {
+                            await ref
+                                .read(subscriptionControllerProvider)
+                                .createSubscription(
+                                  name: merchantLabel(widget.expense.merchant),
+                                  merchantPattern: widget.expense.merchant,
+                                  amountMinor: widget.expense.amountMinor,
+                                  billingCycle: billingCycle,
+                                  paymentMethod: paymentMethod,
+                                  startDate: widget.expense.timestamp,
+                                  nextRenewalDate: nextRenewalDate,
+                                );
+                          }
+                          if (context.mounted) Navigator.pop(context);
                         },
                 ),
               ),
@@ -460,6 +672,10 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   String category = 'other';
   TransactionType transactionType = TransactionType.debit;
   String? error;
+  bool isRecurringSubscription = false;
+  BillingCycle billingCycle = BillingCycle.monthly;
+  PaymentMethod paymentMethod = PaymentMethod.autopay;
+  DateTime nextRenewalDate = DateTime.now().add(const Duration(days: 30));
 
   @override
   void dispose() {
@@ -525,6 +741,33 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                 selectedCategoryId: category,
                 onSelected: (val) => setState(() => category = val),
               ),
+              if (category == 'subscriptions') ...[
+                const SizedBox(height: AppSpacing.sm),
+                _RecurringSubscriptionOption(
+                  enabled: isRecurringSubscription,
+                  onChanged: (val) =>
+                      setState(() => isRecurringSubscription = val),
+                  billingCycle: billingCycle,
+                  onBillingCycleChanged: (val) =>
+                      setState(() => billingCycle = val),
+                  paymentMethod: paymentMethod,
+                  onPaymentMethodChanged: (val) =>
+                      setState(() => paymentMethod = val),
+                  nextRenewalDate: nextRenewalDate,
+                  onPickDate: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: nextRenewalDate,
+                      firstDate:
+                          DateTime.now().subtract(const Duration(days: 365)),
+                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                    );
+                    if (picked != null) {
+                      setState(() => nextRenewalDate = picked);
+                    }
+                  },
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -542,7 +785,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                   label: transactionType == TransactionType.debit
                       ? 'Save expense'
                       : 'Save credit',
-                  onPressed: () {
+                  onPressed: () async {
                     final parsed = parseAmountToMinor(amount.text);
                     if (parsed <= 0) {
                       setState(
@@ -550,14 +793,32 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                       );
                       return;
                     }
-                    ref.read(expenseControllerProvider).addManual(
+                    await ref.read(expenseControllerProvider).addManual(
                           amountMinor: parsed,
                           merchant: merchant.text.trim(),
                           categoryId: category,
                           note: note.text.trim(),
                           transactionType: transactionType,
                         );
-                    Navigator.pop(context);
+                    if (category == 'subscriptions' &&
+                        isRecurringSubscription) {
+                      await ref
+                          .read(subscriptionControllerProvider)
+                          .createSubscription(
+                            name: merchant.text.trim().isNotEmpty
+                                ? merchant.text.trim()
+                                : 'Subscription',
+                            merchantPattern: merchant.text.trim().isNotEmpty
+                                ? merchant.text.trim()
+                                : null,
+                            amountMinor: parsed,
+                            billingCycle: billingCycle,
+                            paymentMethod: paymentMethod,
+                            startDate: DateTime.now(),
+                            nextRenewalDate: nextRenewalDate,
+                          );
+                    }
+                    if (context.mounted) Navigator.pop(context);
                   },
                 ),
               ),
