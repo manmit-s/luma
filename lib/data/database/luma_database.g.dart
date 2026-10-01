@@ -2476,6 +2476,1560 @@ class ExportRecordsCompanion extends UpdateCompanion<ExportRecord> {
   }
 }
 
+class $SubscriptionsTable extends Subscriptions
+    with TableInfo<$SubscriptionsTable, Subscription> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SubscriptionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _merchantPatternMeta = const VerificationMeta(
+    'merchantPattern',
+  );
+  @override
+  late final GeneratedColumn<String> merchantPattern = GeneratedColumn<String>(
+    'merchant_pattern',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _amountMinorMeta = const VerificationMeta(
+    'amountMinor',
+  );
+  @override
+  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
+    'amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _billingCycleMeta = const VerificationMeta(
+    'billingCycle',
+  );
+  @override
+  late final GeneratedColumn<int> billingCycle = GeneratedColumn<int>(
+    'billing_cycle',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _paymentMethodMeta = const VerificationMeta(
+    'paymentMethod',
+  );
+  @override
+  late final GeneratedColumn<int> paymentMethod = GeneratedColumn<int>(
+    'payment_method',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<int> status = GeneratedColumn<int>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nextRenewalDateMeta = const VerificationMeta(
+    'nextRenewalDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextRenewalDate =
+      GeneratedColumn<DateTime>(
+        'next_renewal_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _trialEndDateMeta = const VerificationMeta(
+    'trialEndDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> trialEndDate = GeneratedColumn<DateTime>(
+    'trial_end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _cancellationReminderEnabledMeta =
+      const VerificationMeta('cancellationReminderEnabled');
+  @override
+  late final GeneratedColumn<bool> cancellationReminderEnabled =
+      GeneratedColumn<bool>(
+        'cancellation_reminder_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("cancellation_reminder_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _cancellationReminderDaysBeforeMeta =
+      const VerificationMeta('cancellationReminderDaysBefore');
+  @override
+  late final GeneratedColumn<int> cancellationReminderDaysBefore =
+      GeneratedColumn<int>(
+        'cancellation_reminder_days_before',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(3),
+      );
+  static const VerificationMeta _paymentReminderEnabledMeta =
+      const VerificationMeta('paymentReminderEnabled');
+  @override
+  late final GeneratedColumn<bool> paymentReminderEnabled =
+      GeneratedColumn<bool>(
+        'payment_reminder_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("payment_reminder_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _paymentReminderDaysBeforeMeta =
+      const VerificationMeta('paymentReminderDaysBefore');
+  @override
+  late final GeneratedColumn<int> paymentReminderDaysBefore =
+      GeneratedColumn<int>(
+        'payment_reminder_days_before',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(1),
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    merchantPattern,
+    amountMinor,
+    billingCycle,
+    paymentMethod,
+    status,
+    startDate,
+    nextRenewalDate,
+    trialEndDate,
+    endDate,
+    cancellationReminderEnabled,
+    cancellationReminderDaysBefore,
+    paymentReminderEnabled,
+    paymentReminderDaysBefore,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'subscriptions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Subscription> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('merchant_pattern')) {
+      context.handle(
+        _merchantPatternMeta,
+        merchantPattern.isAcceptableOrUnknown(
+          data['merchant_pattern']!,
+          _merchantPatternMeta,
+        ),
+      );
+    }
+    if (data.containsKey('amount_minor')) {
+      context.handle(
+        _amountMinorMeta,
+        amountMinor.isAcceptableOrUnknown(
+          data['amount_minor']!,
+          _amountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMinorMeta);
+    }
+    if (data.containsKey('billing_cycle')) {
+      context.handle(
+        _billingCycleMeta,
+        billingCycle.isAcceptableOrUnknown(
+          data['billing_cycle']!,
+          _billingCycleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_method')) {
+      context.handle(
+        _paymentMethodMeta,
+        paymentMethod.isAcceptableOrUnknown(
+          data['payment_method']!,
+          _paymentMethodMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('next_renewal_date')) {
+      context.handle(
+        _nextRenewalDateMeta,
+        nextRenewalDate.isAcceptableOrUnknown(
+          data['next_renewal_date']!,
+          _nextRenewalDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_nextRenewalDateMeta);
+    }
+    if (data.containsKey('trial_end_date')) {
+      context.handle(
+        _trialEndDateMeta,
+        trialEndDate.isAcceptableOrUnknown(
+          data['trial_end_date']!,
+          _trialEndDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    }
+    if (data.containsKey('cancellation_reminder_enabled')) {
+      context.handle(
+        _cancellationReminderEnabledMeta,
+        cancellationReminderEnabled.isAcceptableOrUnknown(
+          data['cancellation_reminder_enabled']!,
+          _cancellationReminderEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cancellation_reminder_days_before')) {
+      context.handle(
+        _cancellationReminderDaysBeforeMeta,
+        cancellationReminderDaysBefore.isAcceptableOrUnknown(
+          data['cancellation_reminder_days_before']!,
+          _cancellationReminderDaysBeforeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_reminder_enabled')) {
+      context.handle(
+        _paymentReminderEnabledMeta,
+        paymentReminderEnabled.isAcceptableOrUnknown(
+          data['payment_reminder_enabled']!,
+          _paymentReminderEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payment_reminder_days_before')) {
+      context.handle(
+        _paymentReminderDaysBeforeMeta,
+        paymentReminderDaysBefore.isAcceptableOrUnknown(
+          data['payment_reminder_days_before']!,
+          _paymentReminderDaysBeforeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Subscription map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Subscription(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      merchantPattern: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}merchant_pattern'],
+      ),
+      amountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_minor'],
+      )!,
+      billingCycle: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billing_cycle'],
+      )!,
+      paymentMethod: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_method'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}status'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      nextRenewalDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_renewal_date'],
+      )!,
+      trialEndDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}trial_end_date'],
+      ),
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      ),
+      cancellationReminderEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}cancellation_reminder_enabled'],
+      )!,
+      cancellationReminderDaysBefore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cancellation_reminder_days_before'],
+      )!,
+      paymentReminderEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}payment_reminder_enabled'],
+      )!,
+      paymentReminderDaysBefore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_reminder_days_before'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SubscriptionsTable createAlias(String alias) {
+    return $SubscriptionsTable(attachedDatabase, alias);
+  }
+}
+
+class Subscription extends DataClass implements Insertable<Subscription> {
+  final int id;
+  final String name;
+  final String? merchantPattern;
+  final int amountMinor;
+  final int billingCycle;
+  final int paymentMethod;
+  final int status;
+  final DateTime startDate;
+  final DateTime nextRenewalDate;
+  final DateTime? trialEndDate;
+  final DateTime? endDate;
+  final bool cancellationReminderEnabled;
+  final int cancellationReminderDaysBefore;
+  final bool paymentReminderEnabled;
+  final int paymentReminderDaysBefore;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Subscription({
+    required this.id,
+    required this.name,
+    this.merchantPattern,
+    required this.amountMinor,
+    required this.billingCycle,
+    required this.paymentMethod,
+    required this.status,
+    required this.startDate,
+    required this.nextRenewalDate,
+    this.trialEndDate,
+    this.endDate,
+    required this.cancellationReminderEnabled,
+    required this.cancellationReminderDaysBefore,
+    required this.paymentReminderEnabled,
+    required this.paymentReminderDaysBefore,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || merchantPattern != null) {
+      map['merchant_pattern'] = Variable<String>(merchantPattern);
+    }
+    map['amount_minor'] = Variable<int>(amountMinor);
+    map['billing_cycle'] = Variable<int>(billingCycle);
+    map['payment_method'] = Variable<int>(paymentMethod);
+    map['status'] = Variable<int>(status);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['next_renewal_date'] = Variable<DateTime>(nextRenewalDate);
+    if (!nullToAbsent || trialEndDate != null) {
+      map['trial_end_date'] = Variable<DateTime>(trialEndDate);
+    }
+    if (!nullToAbsent || endDate != null) {
+      map['end_date'] = Variable<DateTime>(endDate);
+    }
+    map['cancellation_reminder_enabled'] = Variable<bool>(
+      cancellationReminderEnabled,
+    );
+    map['cancellation_reminder_days_before'] = Variable<int>(
+      cancellationReminderDaysBefore,
+    );
+    map['payment_reminder_enabled'] = Variable<bool>(paymentReminderEnabled);
+    map['payment_reminder_days_before'] = Variable<int>(
+      paymentReminderDaysBefore,
+    );
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  SubscriptionsCompanion toCompanion(bool nullToAbsent) {
+    return SubscriptionsCompanion(
+      id: Value(id),
+      name: Value(name),
+      merchantPattern: merchantPattern == null && nullToAbsent
+          ? const Value.absent()
+          : Value(merchantPattern),
+      amountMinor: Value(amountMinor),
+      billingCycle: Value(billingCycle),
+      paymentMethod: Value(paymentMethod),
+      status: Value(status),
+      startDate: Value(startDate),
+      nextRenewalDate: Value(nextRenewalDate),
+      trialEndDate: trialEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(trialEndDate),
+      endDate: endDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endDate),
+      cancellationReminderEnabled: Value(cancellationReminderEnabled),
+      cancellationReminderDaysBefore: Value(cancellationReminderDaysBefore),
+      paymentReminderEnabled: Value(paymentReminderEnabled),
+      paymentReminderDaysBefore: Value(paymentReminderDaysBefore),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Subscription.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Subscription(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      merchantPattern: serializer.fromJson<String?>(json['merchantPattern']),
+      amountMinor: serializer.fromJson<int>(json['amountMinor']),
+      billingCycle: serializer.fromJson<int>(json['billingCycle']),
+      paymentMethod: serializer.fromJson<int>(json['paymentMethod']),
+      status: serializer.fromJson<int>(json['status']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      nextRenewalDate: serializer.fromJson<DateTime>(json['nextRenewalDate']),
+      trialEndDate: serializer.fromJson<DateTime?>(json['trialEndDate']),
+      endDate: serializer.fromJson<DateTime?>(json['endDate']),
+      cancellationReminderEnabled: serializer.fromJson<bool>(
+        json['cancellationReminderEnabled'],
+      ),
+      cancellationReminderDaysBefore: serializer.fromJson<int>(
+        json['cancellationReminderDaysBefore'],
+      ),
+      paymentReminderEnabled: serializer.fromJson<bool>(
+        json['paymentReminderEnabled'],
+      ),
+      paymentReminderDaysBefore: serializer.fromJson<int>(
+        json['paymentReminderDaysBefore'],
+      ),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'merchantPattern': serializer.toJson<String?>(merchantPattern),
+      'amountMinor': serializer.toJson<int>(amountMinor),
+      'billingCycle': serializer.toJson<int>(billingCycle),
+      'paymentMethod': serializer.toJson<int>(paymentMethod),
+      'status': serializer.toJson<int>(status),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'nextRenewalDate': serializer.toJson<DateTime>(nextRenewalDate),
+      'trialEndDate': serializer.toJson<DateTime?>(trialEndDate),
+      'endDate': serializer.toJson<DateTime?>(endDate),
+      'cancellationReminderEnabled': serializer.toJson<bool>(
+        cancellationReminderEnabled,
+      ),
+      'cancellationReminderDaysBefore': serializer.toJson<int>(
+        cancellationReminderDaysBefore,
+      ),
+      'paymentReminderEnabled': serializer.toJson<bool>(paymentReminderEnabled),
+      'paymentReminderDaysBefore': serializer.toJson<int>(
+        paymentReminderDaysBefore,
+      ),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Subscription copyWith({
+    int? id,
+    String? name,
+    Value<String?> merchantPattern = const Value.absent(),
+    int? amountMinor,
+    int? billingCycle,
+    int? paymentMethod,
+    int? status,
+    DateTime? startDate,
+    DateTime? nextRenewalDate,
+    Value<DateTime?> trialEndDate = const Value.absent(),
+    Value<DateTime?> endDate = const Value.absent(),
+    bool? cancellationReminderEnabled,
+    int? cancellationReminderDaysBefore,
+    bool? paymentReminderEnabled,
+    int? paymentReminderDaysBefore,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Subscription(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    merchantPattern: merchantPattern.present
+        ? merchantPattern.value
+        : this.merchantPattern,
+    amountMinor: amountMinor ?? this.amountMinor,
+    billingCycle: billingCycle ?? this.billingCycle,
+    paymentMethod: paymentMethod ?? this.paymentMethod,
+    status: status ?? this.status,
+    startDate: startDate ?? this.startDate,
+    nextRenewalDate: nextRenewalDate ?? this.nextRenewalDate,
+    trialEndDate: trialEndDate.present ? trialEndDate.value : this.trialEndDate,
+    endDate: endDate.present ? endDate.value : this.endDate,
+    cancellationReminderEnabled:
+        cancellationReminderEnabled ?? this.cancellationReminderEnabled,
+    cancellationReminderDaysBefore:
+        cancellationReminderDaysBefore ?? this.cancellationReminderDaysBefore,
+    paymentReminderEnabled:
+        paymentReminderEnabled ?? this.paymentReminderEnabled,
+    paymentReminderDaysBefore:
+        paymentReminderDaysBefore ?? this.paymentReminderDaysBefore,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Subscription copyWithCompanion(SubscriptionsCompanion data) {
+    return Subscription(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      merchantPattern: data.merchantPattern.present
+          ? data.merchantPattern.value
+          : this.merchantPattern,
+      amountMinor: data.amountMinor.present
+          ? data.amountMinor.value
+          : this.amountMinor,
+      billingCycle: data.billingCycle.present
+          ? data.billingCycle.value
+          : this.billingCycle,
+      paymentMethod: data.paymentMethod.present
+          ? data.paymentMethod.value
+          : this.paymentMethod,
+      status: data.status.present ? data.status.value : this.status,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      nextRenewalDate: data.nextRenewalDate.present
+          ? data.nextRenewalDate.value
+          : this.nextRenewalDate,
+      trialEndDate: data.trialEndDate.present
+          ? data.trialEndDate.value
+          : this.trialEndDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      cancellationReminderEnabled: data.cancellationReminderEnabled.present
+          ? data.cancellationReminderEnabled.value
+          : this.cancellationReminderEnabled,
+      cancellationReminderDaysBefore:
+          data.cancellationReminderDaysBefore.present
+          ? data.cancellationReminderDaysBefore.value
+          : this.cancellationReminderDaysBefore,
+      paymentReminderEnabled: data.paymentReminderEnabled.present
+          ? data.paymentReminderEnabled.value
+          : this.paymentReminderEnabled,
+      paymentReminderDaysBefore: data.paymentReminderDaysBefore.present
+          ? data.paymentReminderDaysBefore.value
+          : this.paymentReminderDaysBefore,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Subscription(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('merchantPattern: $merchantPattern, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('billingCycle: $billingCycle, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('status: $status, ')
+          ..write('startDate: $startDate, ')
+          ..write('nextRenewalDate: $nextRenewalDate, ')
+          ..write('trialEndDate: $trialEndDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('cancellationReminderEnabled: $cancellationReminderEnabled, ')
+          ..write(
+            'cancellationReminderDaysBefore: $cancellationReminderDaysBefore, ',
+          )
+          ..write('paymentReminderEnabled: $paymentReminderEnabled, ')
+          ..write('paymentReminderDaysBefore: $paymentReminderDaysBefore, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    merchantPattern,
+    amountMinor,
+    billingCycle,
+    paymentMethod,
+    status,
+    startDate,
+    nextRenewalDate,
+    trialEndDate,
+    endDate,
+    cancellationReminderEnabled,
+    cancellationReminderDaysBefore,
+    paymentReminderEnabled,
+    paymentReminderDaysBefore,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Subscription &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.merchantPattern == this.merchantPattern &&
+          other.amountMinor == this.amountMinor &&
+          other.billingCycle == this.billingCycle &&
+          other.paymentMethod == this.paymentMethod &&
+          other.status == this.status &&
+          other.startDate == this.startDate &&
+          other.nextRenewalDate == this.nextRenewalDate &&
+          other.trialEndDate == this.trialEndDate &&
+          other.endDate == this.endDate &&
+          other.cancellationReminderEnabled ==
+              this.cancellationReminderEnabled &&
+          other.cancellationReminderDaysBefore ==
+              this.cancellationReminderDaysBefore &&
+          other.paymentReminderEnabled == this.paymentReminderEnabled &&
+          other.paymentReminderDaysBefore == this.paymentReminderDaysBefore &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SubscriptionsCompanion extends UpdateCompanion<Subscription> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<String?> merchantPattern;
+  final Value<int> amountMinor;
+  final Value<int> billingCycle;
+  final Value<int> paymentMethod;
+  final Value<int> status;
+  final Value<DateTime> startDate;
+  final Value<DateTime> nextRenewalDate;
+  final Value<DateTime?> trialEndDate;
+  final Value<DateTime?> endDate;
+  final Value<bool> cancellationReminderEnabled;
+  final Value<int> cancellationReminderDaysBefore;
+  final Value<bool> paymentReminderEnabled;
+  final Value<int> paymentReminderDaysBefore;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const SubscriptionsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.merchantPattern = const Value.absent(),
+    this.amountMinor = const Value.absent(),
+    this.billingCycle = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.status = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.nextRenewalDate = const Value.absent(),
+    this.trialEndDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.cancellationReminderEnabled = const Value.absent(),
+    this.cancellationReminderDaysBefore = const Value.absent(),
+    this.paymentReminderEnabled = const Value.absent(),
+    this.paymentReminderDaysBefore = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  SubscriptionsCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.merchantPattern = const Value.absent(),
+    required int amountMinor,
+    this.billingCycle = const Value.absent(),
+    this.paymentMethod = const Value.absent(),
+    this.status = const Value.absent(),
+    required DateTime startDate,
+    required DateTime nextRenewalDate,
+    this.trialEndDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.cancellationReminderEnabled = const Value.absent(),
+    this.cancellationReminderDaysBefore = const Value.absent(),
+    this.paymentReminderEnabled = const Value.absent(),
+    this.paymentReminderDaysBefore = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : name = Value(name),
+       amountMinor = Value(amountMinor),
+       startDate = Value(startDate),
+       nextRenewalDate = Value(nextRenewalDate),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Subscription> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<String>? merchantPattern,
+    Expression<int>? amountMinor,
+    Expression<int>? billingCycle,
+    Expression<int>? paymentMethod,
+    Expression<int>? status,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? nextRenewalDate,
+    Expression<DateTime>? trialEndDate,
+    Expression<DateTime>? endDate,
+    Expression<bool>? cancellationReminderEnabled,
+    Expression<int>? cancellationReminderDaysBefore,
+    Expression<bool>? paymentReminderEnabled,
+    Expression<int>? paymentReminderDaysBefore,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (merchantPattern != null) 'merchant_pattern': merchantPattern,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (billingCycle != null) 'billing_cycle': billingCycle,
+      if (paymentMethod != null) 'payment_method': paymentMethod,
+      if (status != null) 'status': status,
+      if (startDate != null) 'start_date': startDate,
+      if (nextRenewalDate != null) 'next_renewal_date': nextRenewalDate,
+      if (trialEndDate != null) 'trial_end_date': trialEndDate,
+      if (endDate != null) 'end_date': endDate,
+      if (cancellationReminderEnabled != null)
+        'cancellation_reminder_enabled': cancellationReminderEnabled,
+      if (cancellationReminderDaysBefore != null)
+        'cancellation_reminder_days_before': cancellationReminderDaysBefore,
+      if (paymentReminderEnabled != null)
+        'payment_reminder_enabled': paymentReminderEnabled,
+      if (paymentReminderDaysBefore != null)
+        'payment_reminder_days_before': paymentReminderDaysBefore,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  SubscriptionsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<String?>? merchantPattern,
+    Value<int>? amountMinor,
+    Value<int>? billingCycle,
+    Value<int>? paymentMethod,
+    Value<int>? status,
+    Value<DateTime>? startDate,
+    Value<DateTime>? nextRenewalDate,
+    Value<DateTime?>? trialEndDate,
+    Value<DateTime?>? endDate,
+    Value<bool>? cancellationReminderEnabled,
+    Value<int>? cancellationReminderDaysBefore,
+    Value<bool>? paymentReminderEnabled,
+    Value<int>? paymentReminderDaysBefore,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return SubscriptionsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      merchantPattern: merchantPattern ?? this.merchantPattern,
+      amountMinor: amountMinor ?? this.amountMinor,
+      billingCycle: billingCycle ?? this.billingCycle,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      status: status ?? this.status,
+      startDate: startDate ?? this.startDate,
+      nextRenewalDate: nextRenewalDate ?? this.nextRenewalDate,
+      trialEndDate: trialEndDate ?? this.trialEndDate,
+      endDate: endDate ?? this.endDate,
+      cancellationReminderEnabled:
+          cancellationReminderEnabled ?? this.cancellationReminderEnabled,
+      cancellationReminderDaysBefore:
+          cancellationReminderDaysBefore ?? this.cancellationReminderDaysBefore,
+      paymentReminderEnabled:
+          paymentReminderEnabled ?? this.paymentReminderEnabled,
+      paymentReminderDaysBefore:
+          paymentReminderDaysBefore ?? this.paymentReminderDaysBefore,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (merchantPattern.present) {
+      map['merchant_pattern'] = Variable<String>(merchantPattern.value);
+    }
+    if (amountMinor.present) {
+      map['amount_minor'] = Variable<int>(amountMinor.value);
+    }
+    if (billingCycle.present) {
+      map['billing_cycle'] = Variable<int>(billingCycle.value);
+    }
+    if (paymentMethod.present) {
+      map['payment_method'] = Variable<int>(paymentMethod.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (nextRenewalDate.present) {
+      map['next_renewal_date'] = Variable<DateTime>(nextRenewalDate.value);
+    }
+    if (trialEndDate.present) {
+      map['trial_end_date'] = Variable<DateTime>(trialEndDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (cancellationReminderEnabled.present) {
+      map['cancellation_reminder_enabled'] = Variable<bool>(
+        cancellationReminderEnabled.value,
+      );
+    }
+    if (cancellationReminderDaysBefore.present) {
+      map['cancellation_reminder_days_before'] = Variable<int>(
+        cancellationReminderDaysBefore.value,
+      );
+    }
+    if (paymentReminderEnabled.present) {
+      map['payment_reminder_enabled'] = Variable<bool>(
+        paymentReminderEnabled.value,
+      );
+    }
+    if (paymentReminderDaysBefore.present) {
+      map['payment_reminder_days_before'] = Variable<int>(
+        paymentReminderDaysBefore.value,
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SubscriptionsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('merchantPattern: $merchantPattern, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('billingCycle: $billingCycle, ')
+          ..write('paymentMethod: $paymentMethod, ')
+          ..write('status: $status, ')
+          ..write('startDate: $startDate, ')
+          ..write('nextRenewalDate: $nextRenewalDate, ')
+          ..write('trialEndDate: $trialEndDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('cancellationReminderEnabled: $cancellationReminderEnabled, ')
+          ..write(
+            'cancellationReminderDaysBefore: $cancellationReminderDaysBefore, ',
+          )
+          ..write('paymentReminderEnabled: $paymentReminderEnabled, ')
+          ..write('paymentReminderDaysBefore: $paymentReminderDaysBefore, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ExpectedPaymentsTable extends ExpectedPayments
+    with TableInfo<$ExpectedPaymentsTable, ExpectedPayment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpectedPaymentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _subscriptionIdMeta = const VerificationMeta(
+    'subscriptionId',
+  );
+  @override
+  late final GeneratedColumn<int> subscriptionId = GeneratedColumn<int>(
+    'subscription_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES subscriptions (id)',
+    ),
+  );
+  static const VerificationMeta _expectedDateMeta = const VerificationMeta(
+    'expectedDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expectedDate = GeneratedColumn<DateTime>(
+    'expected_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expectedAmountMinorMeta =
+      const VerificationMeta('expectedAmountMinor');
+  @override
+  late final GeneratedColumn<int> expectedAmountMinor = GeneratedColumn<int>(
+    'expected_amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<int> status = GeneratedColumn<int>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _matchedExpenseIdMeta = const VerificationMeta(
+    'matchedExpenseId',
+  );
+  @override
+  late final GeneratedColumn<int> matchedExpenseId = GeneratedColumn<int>(
+    'matched_expense_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES expenses (id)',
+    ),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    subscriptionId,
+    expectedDate,
+    expectedAmountMinor,
+    status,
+    matchedExpenseId,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expected_payments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExpectedPayment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('subscription_id')) {
+      context.handle(
+        _subscriptionIdMeta,
+        subscriptionId.isAcceptableOrUnknown(
+          data['subscription_id']!,
+          _subscriptionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_subscriptionIdMeta);
+    }
+    if (data.containsKey('expected_date')) {
+      context.handle(
+        _expectedDateMeta,
+        expectedDate.isAcceptableOrUnknown(
+          data['expected_date']!,
+          _expectedDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_expectedDateMeta);
+    }
+    if (data.containsKey('expected_amount_minor')) {
+      context.handle(
+        _expectedAmountMinorMeta,
+        expectedAmountMinor.isAcceptableOrUnknown(
+          data['expected_amount_minor']!,
+          _expectedAmountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_expectedAmountMinorMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
+    if (data.containsKey('matched_expense_id')) {
+      context.handle(
+        _matchedExpenseIdMeta,
+        matchedExpenseId.isAcceptableOrUnknown(
+          data['matched_expense_id']!,
+          _matchedExpenseIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExpectedPayment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExpectedPayment(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      subscriptionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}subscription_id'],
+      )!,
+      expectedDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expected_date'],
+      )!,
+      expectedAmountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}expected_amount_minor'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}status'],
+      )!,
+      matchedExpenseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}matched_expense_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExpectedPaymentsTable createAlias(String alias) {
+    return $ExpectedPaymentsTable(attachedDatabase, alias);
+  }
+}
+
+class ExpectedPayment extends DataClass implements Insertable<ExpectedPayment> {
+  final int id;
+  final int subscriptionId;
+  final DateTime expectedDate;
+  final int expectedAmountMinor;
+  final int status;
+  final int? matchedExpenseId;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ExpectedPayment({
+    required this.id,
+    required this.subscriptionId,
+    required this.expectedDate,
+    required this.expectedAmountMinor,
+    required this.status,
+    this.matchedExpenseId,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['subscription_id'] = Variable<int>(subscriptionId);
+    map['expected_date'] = Variable<DateTime>(expectedDate);
+    map['expected_amount_minor'] = Variable<int>(expectedAmountMinor);
+    map['status'] = Variable<int>(status);
+    if (!nullToAbsent || matchedExpenseId != null) {
+      map['matched_expense_id'] = Variable<int>(matchedExpenseId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExpectedPaymentsCompanion toCompanion(bool nullToAbsent) {
+    return ExpectedPaymentsCompanion(
+      id: Value(id),
+      subscriptionId: Value(subscriptionId),
+      expectedDate: Value(expectedDate),
+      expectedAmountMinor: Value(expectedAmountMinor),
+      status: Value(status),
+      matchedExpenseId: matchedExpenseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(matchedExpenseId),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExpectedPayment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExpectedPayment(
+      id: serializer.fromJson<int>(json['id']),
+      subscriptionId: serializer.fromJson<int>(json['subscriptionId']),
+      expectedDate: serializer.fromJson<DateTime>(json['expectedDate']),
+      expectedAmountMinor: serializer.fromJson<int>(
+        json['expectedAmountMinor'],
+      ),
+      status: serializer.fromJson<int>(json['status']),
+      matchedExpenseId: serializer.fromJson<int?>(json['matchedExpenseId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'subscriptionId': serializer.toJson<int>(subscriptionId),
+      'expectedDate': serializer.toJson<DateTime>(expectedDate),
+      'expectedAmountMinor': serializer.toJson<int>(expectedAmountMinor),
+      'status': serializer.toJson<int>(status),
+      'matchedExpenseId': serializer.toJson<int?>(matchedExpenseId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExpectedPayment copyWith({
+    int? id,
+    int? subscriptionId,
+    DateTime? expectedDate,
+    int? expectedAmountMinor,
+    int? status,
+    Value<int?> matchedExpenseId = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ExpectedPayment(
+    id: id ?? this.id,
+    subscriptionId: subscriptionId ?? this.subscriptionId,
+    expectedDate: expectedDate ?? this.expectedDate,
+    expectedAmountMinor: expectedAmountMinor ?? this.expectedAmountMinor,
+    status: status ?? this.status,
+    matchedExpenseId: matchedExpenseId.present
+        ? matchedExpenseId.value
+        : this.matchedExpenseId,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExpectedPayment copyWithCompanion(ExpectedPaymentsCompanion data) {
+    return ExpectedPayment(
+      id: data.id.present ? data.id.value : this.id,
+      subscriptionId: data.subscriptionId.present
+          ? data.subscriptionId.value
+          : this.subscriptionId,
+      expectedDate: data.expectedDate.present
+          ? data.expectedDate.value
+          : this.expectedDate,
+      expectedAmountMinor: data.expectedAmountMinor.present
+          ? data.expectedAmountMinor.value
+          : this.expectedAmountMinor,
+      status: data.status.present ? data.status.value : this.status,
+      matchedExpenseId: data.matchedExpenseId.present
+          ? data.matchedExpenseId.value
+          : this.matchedExpenseId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpectedPayment(')
+          ..write('id: $id, ')
+          ..write('subscriptionId: $subscriptionId, ')
+          ..write('expectedDate: $expectedDate, ')
+          ..write('expectedAmountMinor: $expectedAmountMinor, ')
+          ..write('status: $status, ')
+          ..write('matchedExpenseId: $matchedExpenseId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    subscriptionId,
+    expectedDate,
+    expectedAmountMinor,
+    status,
+    matchedExpenseId,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExpectedPayment &&
+          other.id == this.id &&
+          other.subscriptionId == this.subscriptionId &&
+          other.expectedDate == this.expectedDate &&
+          other.expectedAmountMinor == this.expectedAmountMinor &&
+          other.status == this.status &&
+          other.matchedExpenseId == this.matchedExpenseId &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExpectedPaymentsCompanion extends UpdateCompanion<ExpectedPayment> {
+  final Value<int> id;
+  final Value<int> subscriptionId;
+  final Value<DateTime> expectedDate;
+  final Value<int> expectedAmountMinor;
+  final Value<int> status;
+  final Value<int?> matchedExpenseId;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  const ExpectedPaymentsCompanion({
+    this.id = const Value.absent(),
+    this.subscriptionId = const Value.absent(),
+    this.expectedDate = const Value.absent(),
+    this.expectedAmountMinor = const Value.absent(),
+    this.status = const Value.absent(),
+    this.matchedExpenseId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  ExpectedPaymentsCompanion.insert({
+    this.id = const Value.absent(),
+    required int subscriptionId,
+    required DateTime expectedDate,
+    required int expectedAmountMinor,
+    this.status = const Value.absent(),
+    this.matchedExpenseId = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+  }) : subscriptionId = Value(subscriptionId),
+       expectedDate = Value(expectedDate),
+       expectedAmountMinor = Value(expectedAmountMinor),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ExpectedPayment> custom({
+    Expression<int>? id,
+    Expression<int>? subscriptionId,
+    Expression<DateTime>? expectedDate,
+    Expression<int>? expectedAmountMinor,
+    Expression<int>? status,
+    Expression<int>? matchedExpenseId,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (subscriptionId != null) 'subscription_id': subscriptionId,
+      if (expectedDate != null) 'expected_date': expectedDate,
+      if (expectedAmountMinor != null)
+        'expected_amount_minor': expectedAmountMinor,
+      if (status != null) 'status': status,
+      if (matchedExpenseId != null) 'matched_expense_id': matchedExpenseId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  ExpectedPaymentsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? subscriptionId,
+    Value<DateTime>? expectedDate,
+    Value<int>? expectedAmountMinor,
+    Value<int>? status,
+    Value<int?>? matchedExpenseId,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+  }) {
+    return ExpectedPaymentsCompanion(
+      id: id ?? this.id,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
+      expectedDate: expectedDate ?? this.expectedDate,
+      expectedAmountMinor: expectedAmountMinor ?? this.expectedAmountMinor,
+      status: status ?? this.status,
+      matchedExpenseId: matchedExpenseId ?? this.matchedExpenseId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (subscriptionId.present) {
+      map['subscription_id'] = Variable<int>(subscriptionId.value);
+    }
+    if (expectedDate.present) {
+      map['expected_date'] = Variable<DateTime>(expectedDate.value);
+    }
+    if (expectedAmountMinor.present) {
+      map['expected_amount_minor'] = Variable<int>(expectedAmountMinor.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
+    if (matchedExpenseId.present) {
+      map['matched_expense_id'] = Variable<int>(matchedExpenseId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpectedPaymentsCompanion(')
+          ..write('id: $id, ')
+          ..write('subscriptionId: $subscriptionId, ')
+          ..write('expectedDate: $expectedDate, ')
+          ..write('expectedAmountMinor: $expectedAmountMinor, ')
+          ..write('status: $status, ')
+          ..write('matchedExpenseId: $matchedExpenseId, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$LumaDatabase extends GeneratedDatabase {
   _$LumaDatabase(QueryExecutor e) : super(e);
   $LumaDatabaseManager get managers => $LumaDatabaseManager(this);
@@ -2486,6 +4040,10 @@ abstract class _$LumaDatabase extends GeneratedDatabase {
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $ExportRecordsTable exportRecords = $ExportRecordsTable(this);
+  late final $SubscriptionsTable subscriptions = $SubscriptionsTable(this);
+  late final $ExpectedPaymentsTable expectedPayments = $ExpectedPaymentsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2496,6 +4054,8 @@ abstract class _$LumaDatabase extends GeneratedDatabase {
     categories,
     appSettings,
     exportRecords,
+    subscriptions,
+    expectedPayments,
   ];
 }
 
@@ -2535,6 +4095,35 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<DateTime?> lastExportedAt,
     });
+
+final class $$ExpensesTableReferences
+    extends BaseReferences<_$LumaDatabase, $ExpensesTable, Expense> {
+  $$ExpensesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$ExpectedPaymentsTable, List<ExpectedPayment>>
+  _expectedPaymentsRefsTable(_$LumaDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.expectedPayments,
+        aliasName: $_aliasNameGenerator(
+          db.expenses.id,
+          db.expectedPayments.matchedExpenseId,
+        ),
+      );
+
+  $$ExpectedPaymentsTableProcessedTableManager get expectedPaymentsRefs {
+    final manager = $$ExpectedPaymentsTableTableManager(
+      $_db,
+      $_db.expectedPayments,
+    ).filter((f) => f.matchedExpenseId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _expectedPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$ExpensesTableFilterComposer
     extends Composer<_$LumaDatabase, $ExpensesTable> {
@@ -2619,6 +4208,31 @@ class $$ExpensesTableFilterComposer
     column: $table.lastExportedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> expectedPaymentsRefs(
+    Expression<bool> Function($$ExpectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$ExpectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expectedPayments,
+      getReferencedColumn: (t) => t.matchedExpenseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.expectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ExpensesTableOrderingComposer
@@ -2771,6 +4385,31 @@ class $$ExpensesTableAnnotationComposer
     column: $table.lastExportedAt,
     builder: (column) => column,
   );
+
+  Expression<T> expectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$ExpectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$ExpectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expectedPayments,
+      getReferencedColumn: (t) => t.matchedExpenseId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ExpensesTableTableManager
@@ -2784,9 +4423,9 @@ class $$ExpensesTableTableManager
           $$ExpensesTableAnnotationComposer,
           $$ExpensesTableCreateCompanionBuilder,
           $$ExpensesTableUpdateCompanionBuilder,
-          (Expense, BaseReferences<_$LumaDatabase, $ExpensesTable, Expense>),
+          (Expense, $$ExpensesTableReferences),
           Expense,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool expectedPaymentsRefs})
         > {
   $$ExpensesTableTableManager(_$LumaDatabase db, $ExpensesTable table)
     : super(
@@ -2868,9 +4507,46 @@ class $$ExpensesTableTableManager
                 lastExportedAt: lastExportedAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExpensesTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({expectedPaymentsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (expectedPaymentsRefs) db.expectedPayments,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (expectedPaymentsRefs)
+                    await $_getPrefetchedData<
+                      Expense,
+                      $ExpensesTable,
+                      ExpectedPayment
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ExpensesTableReferences
+                          ._expectedPaymentsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$ExpensesTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).expectedPaymentsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.matchedExpenseId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -2885,9 +4561,9 @@ typedef $$ExpensesTableProcessedTableManager =
       $$ExpensesTableAnnotationComposer,
       $$ExpensesTableCreateCompanionBuilder,
       $$ExpensesTableUpdateCompanionBuilder,
-      (Expense, BaseReferences<_$LumaDatabase, $ExpensesTable, Expense>),
+      (Expense, $$ExpensesTableReferences),
       Expense,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool expectedPaymentsRefs})
     >;
 typedef $$MerchantProfilesTableCreateCompanionBuilder =
     MerchantProfilesCompanion Function({
@@ -3755,6 +5431,1049 @@ typedef $$ExportRecordsTableProcessedTableManager =
       ExportRecord,
       PrefetchHooks Function()
     >;
+typedef $$SubscriptionsTableCreateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<String?> merchantPattern,
+      required int amountMinor,
+      Value<int> billingCycle,
+      Value<int> paymentMethod,
+      Value<int> status,
+      required DateTime startDate,
+      required DateTime nextRenewalDate,
+      Value<DateTime?> trialEndDate,
+      Value<DateTime?> endDate,
+      Value<bool> cancellationReminderEnabled,
+      Value<int> cancellationReminderDaysBefore,
+      Value<bool> paymentReminderEnabled,
+      Value<int> paymentReminderDaysBefore,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$SubscriptionsTableUpdateCompanionBuilder =
+    SubscriptionsCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<String?> merchantPattern,
+      Value<int> amountMinor,
+      Value<int> billingCycle,
+      Value<int> paymentMethod,
+      Value<int> status,
+      Value<DateTime> startDate,
+      Value<DateTime> nextRenewalDate,
+      Value<DateTime?> trialEndDate,
+      Value<DateTime?> endDate,
+      Value<bool> cancellationReminderEnabled,
+      Value<int> cancellationReminderDaysBefore,
+      Value<bool> paymentReminderEnabled,
+      Value<int> paymentReminderDaysBefore,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$SubscriptionsTableReferences
+    extends BaseReferences<_$LumaDatabase, $SubscriptionsTable, Subscription> {
+  $$SubscriptionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$ExpectedPaymentsTable, List<ExpectedPayment>>
+  _expectedPaymentsRefsTable(_$LumaDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.expectedPayments,
+        aliasName: $_aliasNameGenerator(
+          db.subscriptions.id,
+          db.expectedPayments.subscriptionId,
+        ),
+      );
+
+  $$ExpectedPaymentsTableProcessedTableManager get expectedPaymentsRefs {
+    final manager = $$ExpectedPaymentsTableTableManager(
+      $_db,
+      $_db.expectedPayments,
+    ).filter((f) => f.subscriptionId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _expectedPaymentsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$SubscriptionsTableFilterComposer
+    extends Composer<_$LumaDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get merchantPattern => $composableBuilder(
+    column: $table.merchantPattern,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billingCycle => $composableBuilder(
+    column: $table.billingCycle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextRenewalDate => $composableBuilder(
+    column: $table.nextRenewalDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get trialEndDate => $composableBuilder(
+    column: $table.trialEndDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get cancellationReminderEnabled => $composableBuilder(
+    column: $table.cancellationReminderEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cancellationReminderDaysBefore => $composableBuilder(
+    column: $table.cancellationReminderDaysBefore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get paymentReminderEnabled => $composableBuilder(
+    column: $table.paymentReminderEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentReminderDaysBefore => $composableBuilder(
+    column: $table.paymentReminderDaysBefore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> expectedPaymentsRefs(
+    Expression<bool> Function($$ExpectedPaymentsTableFilterComposer f) f,
+  ) {
+    final $$ExpectedPaymentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expectedPayments,
+      getReferencedColumn: (t) => t.subscriptionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpectedPaymentsTableFilterComposer(
+            $db: $db,
+            $table: $db.expectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SubscriptionsTableOrderingComposer
+    extends Composer<_$LumaDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get merchantPattern => $composableBuilder(
+    column: $table.merchantPattern,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billingCycle => $composableBuilder(
+    column: $table.billingCycle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextRenewalDate => $composableBuilder(
+    column: $table.nextRenewalDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get trialEndDate => $composableBuilder(
+    column: $table.trialEndDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get cancellationReminderEnabled => $composableBuilder(
+    column: $table.cancellationReminderEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cancellationReminderDaysBefore => $composableBuilder(
+    column: $table.cancellationReminderDaysBefore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get paymentReminderEnabled => $composableBuilder(
+    column: $table.paymentReminderEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get paymentReminderDaysBefore => $composableBuilder(
+    column: $table.paymentReminderDaysBefore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SubscriptionsTableAnnotationComposer
+    extends Composer<_$LumaDatabase, $SubscriptionsTable> {
+  $$SubscriptionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get merchantPattern => $composableBuilder(
+    column: $table.merchantPattern,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billingCycle => $composableBuilder(
+    column: $table.billingCycle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentMethod => $composableBuilder(
+    column: $table.paymentMethod,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextRenewalDate => $composableBuilder(
+    column: $table.nextRenewalDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get trialEndDate => $composableBuilder(
+    column: $table.trialEndDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get cancellationReminderEnabled => $composableBuilder(
+    column: $table.cancellationReminderEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get cancellationReminderDaysBefore => $composableBuilder(
+    column: $table.cancellationReminderDaysBefore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get paymentReminderEnabled => $composableBuilder(
+    column: $table.paymentReminderEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentReminderDaysBefore => $composableBuilder(
+    column: $table.paymentReminderDaysBefore,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> expectedPaymentsRefs<T extends Object>(
+    Expression<T> Function($$ExpectedPaymentsTableAnnotationComposer a) f,
+  ) {
+    final $$ExpectedPaymentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.expectedPayments,
+      getReferencedColumn: (t) => t.subscriptionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpectedPaymentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expectedPayments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$SubscriptionsTableTableManager
+    extends
+        RootTableManager<
+          _$LumaDatabase,
+          $SubscriptionsTable,
+          Subscription,
+          $$SubscriptionsTableFilterComposer,
+          $$SubscriptionsTableOrderingComposer,
+          $$SubscriptionsTableAnnotationComposer,
+          $$SubscriptionsTableCreateCompanionBuilder,
+          $$SubscriptionsTableUpdateCompanionBuilder,
+          (Subscription, $$SubscriptionsTableReferences),
+          Subscription,
+          PrefetchHooks Function({bool expectedPaymentsRefs})
+        > {
+  $$SubscriptionsTableTableManager(_$LumaDatabase db, $SubscriptionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SubscriptionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SubscriptionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SubscriptionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String?> merchantPattern = const Value.absent(),
+                Value<int> amountMinor = const Value.absent(),
+                Value<int> billingCycle = const Value.absent(),
+                Value<int> paymentMethod = const Value.absent(),
+                Value<int> status = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime> nextRenewalDate = const Value.absent(),
+                Value<DateTime?> trialEndDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> cancellationReminderEnabled = const Value.absent(),
+                Value<int> cancellationReminderDaysBefore =
+                    const Value.absent(),
+                Value<bool> paymentReminderEnabled = const Value.absent(),
+                Value<int> paymentReminderDaysBefore = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => SubscriptionsCompanion(
+                id: id,
+                name: name,
+                merchantPattern: merchantPattern,
+                amountMinor: amountMinor,
+                billingCycle: billingCycle,
+                paymentMethod: paymentMethod,
+                status: status,
+                startDate: startDate,
+                nextRenewalDate: nextRenewalDate,
+                trialEndDate: trialEndDate,
+                endDate: endDate,
+                cancellationReminderEnabled: cancellationReminderEnabled,
+                cancellationReminderDaysBefore: cancellationReminderDaysBefore,
+                paymentReminderEnabled: paymentReminderEnabled,
+                paymentReminderDaysBefore: paymentReminderDaysBefore,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<String?> merchantPattern = const Value.absent(),
+                required int amountMinor,
+                Value<int> billingCycle = const Value.absent(),
+                Value<int> paymentMethod = const Value.absent(),
+                Value<int> status = const Value.absent(),
+                required DateTime startDate,
+                required DateTime nextRenewalDate,
+                Value<DateTime?> trialEndDate = const Value.absent(),
+                Value<DateTime?> endDate = const Value.absent(),
+                Value<bool> cancellationReminderEnabled = const Value.absent(),
+                Value<int> cancellationReminderDaysBefore =
+                    const Value.absent(),
+                Value<bool> paymentReminderEnabled = const Value.absent(),
+                Value<int> paymentReminderDaysBefore = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => SubscriptionsCompanion.insert(
+                id: id,
+                name: name,
+                merchantPattern: merchantPattern,
+                amountMinor: amountMinor,
+                billingCycle: billingCycle,
+                paymentMethod: paymentMethod,
+                status: status,
+                startDate: startDate,
+                nextRenewalDate: nextRenewalDate,
+                trialEndDate: trialEndDate,
+                endDate: endDate,
+                cancellationReminderEnabled: cancellationReminderEnabled,
+                cancellationReminderDaysBefore: cancellationReminderDaysBefore,
+                paymentReminderEnabled: paymentReminderEnabled,
+                paymentReminderDaysBefore: paymentReminderDaysBefore,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$SubscriptionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({expectedPaymentsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (expectedPaymentsRefs) db.expectedPayments,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (expectedPaymentsRefs)
+                    await $_getPrefetchedData<
+                      Subscription,
+                      $SubscriptionsTable,
+                      ExpectedPayment
+                    >(
+                      currentTable: table,
+                      referencedTable: $$SubscriptionsTableReferences
+                          ._expectedPaymentsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$SubscriptionsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).expectedPaymentsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where(
+                            (e) => e.subscriptionId == item.id,
+                          ),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$SubscriptionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LumaDatabase,
+      $SubscriptionsTable,
+      Subscription,
+      $$SubscriptionsTableFilterComposer,
+      $$SubscriptionsTableOrderingComposer,
+      $$SubscriptionsTableAnnotationComposer,
+      $$SubscriptionsTableCreateCompanionBuilder,
+      $$SubscriptionsTableUpdateCompanionBuilder,
+      (Subscription, $$SubscriptionsTableReferences),
+      Subscription,
+      PrefetchHooks Function({bool expectedPaymentsRefs})
+    >;
+typedef $$ExpectedPaymentsTableCreateCompanionBuilder =
+    ExpectedPaymentsCompanion Function({
+      Value<int> id,
+      required int subscriptionId,
+      required DateTime expectedDate,
+      required int expectedAmountMinor,
+      Value<int> status,
+      Value<int?> matchedExpenseId,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+    });
+typedef $$ExpectedPaymentsTableUpdateCompanionBuilder =
+    ExpectedPaymentsCompanion Function({
+      Value<int> id,
+      Value<int> subscriptionId,
+      Value<DateTime> expectedDate,
+      Value<int> expectedAmountMinor,
+      Value<int> status,
+      Value<int?> matchedExpenseId,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+    });
+
+final class $$ExpectedPaymentsTableReferences
+    extends
+        BaseReferences<
+          _$LumaDatabase,
+          $ExpectedPaymentsTable,
+          ExpectedPayment
+        > {
+  $$ExpectedPaymentsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $SubscriptionsTable _subscriptionIdTable(_$LumaDatabase db) =>
+      db.subscriptions.createAlias(
+        $_aliasNameGenerator(
+          db.expectedPayments.subscriptionId,
+          db.subscriptions.id,
+        ),
+      );
+
+  $$SubscriptionsTableProcessedTableManager get subscriptionId {
+    final $_column = $_itemColumn<int>('subscription_id')!;
+
+    final manager = $$SubscriptionsTableTableManager(
+      $_db,
+      $_db.subscriptions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_subscriptionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $ExpensesTable _matchedExpenseIdTable(_$LumaDatabase db) =>
+      db.expenses.createAlias(
+        $_aliasNameGenerator(
+          db.expectedPayments.matchedExpenseId,
+          db.expenses.id,
+        ),
+      );
+
+  $$ExpensesTableProcessedTableManager? get matchedExpenseId {
+    final $_column = $_itemColumn<int>('matched_expense_id');
+    if ($_column == null) return null;
+    final manager = $$ExpensesTableTableManager(
+      $_db,
+      $_db.expenses,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_matchedExpenseIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ExpectedPaymentsTableFilterComposer
+    extends Composer<_$LumaDatabase, $ExpectedPaymentsTable> {
+  $$ExpectedPaymentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expectedDate => $composableBuilder(
+    column: $table.expectedDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get expectedAmountMinor => $composableBuilder(
+    column: $table.expectedAmountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$SubscriptionsTableFilterComposer get subscriptionId {
+    final $$SubscriptionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriptionId,
+      referencedTable: $db.subscriptions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscriptionsTableFilterComposer(
+            $db: $db,
+            $table: $db.subscriptions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpensesTableFilterComposer get matchedExpenseId {
+    final $$ExpensesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchedExpenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableFilterComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpectedPaymentsTableOrderingComposer
+    extends Composer<_$LumaDatabase, $ExpectedPaymentsTable> {
+  $$ExpectedPaymentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expectedDate => $composableBuilder(
+    column: $table.expectedDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get expectedAmountMinor => $composableBuilder(
+    column: $table.expectedAmountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$SubscriptionsTableOrderingComposer get subscriptionId {
+    final $$SubscriptionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriptionId,
+      referencedTable: $db.subscriptions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscriptionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.subscriptions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpensesTableOrderingComposer get matchedExpenseId {
+    final $$ExpensesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchedExpenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableOrderingComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpectedPaymentsTableAnnotationComposer
+    extends Composer<_$LumaDatabase, $ExpectedPaymentsTable> {
+  $$ExpectedPaymentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expectedDate => $composableBuilder(
+    column: $table.expectedDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get expectedAmountMinor => $composableBuilder(
+    column: $table.expectedAmountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$SubscriptionsTableAnnotationComposer get subscriptionId {
+    final $$SubscriptionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.subscriptionId,
+      referencedTable: $db.subscriptions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$SubscriptionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.subscriptions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$ExpensesTableAnnotationComposer get matchedExpenseId {
+    final $$ExpensesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.matchedExpenseId,
+      referencedTable: $db.expenses,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExpensesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.expenses,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExpectedPaymentsTableTableManager
+    extends
+        RootTableManager<
+          _$LumaDatabase,
+          $ExpectedPaymentsTable,
+          ExpectedPayment,
+          $$ExpectedPaymentsTableFilterComposer,
+          $$ExpectedPaymentsTableOrderingComposer,
+          $$ExpectedPaymentsTableAnnotationComposer,
+          $$ExpectedPaymentsTableCreateCompanionBuilder,
+          $$ExpectedPaymentsTableUpdateCompanionBuilder,
+          (ExpectedPayment, $$ExpectedPaymentsTableReferences),
+          ExpectedPayment,
+          PrefetchHooks Function({bool subscriptionId, bool matchedExpenseId})
+        > {
+  $$ExpectedPaymentsTableTableManager(
+    _$LumaDatabase db,
+    $ExpectedPaymentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExpectedPaymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExpectedPaymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExpectedPaymentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> subscriptionId = const Value.absent(),
+                Value<DateTime> expectedDate = const Value.absent(),
+                Value<int> expectedAmountMinor = const Value.absent(),
+                Value<int> status = const Value.absent(),
+                Value<int?> matchedExpenseId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+              }) => ExpectedPaymentsCompanion(
+                id: id,
+                subscriptionId: subscriptionId,
+                expectedDate: expectedDate,
+                expectedAmountMinor: expectedAmountMinor,
+                status: status,
+                matchedExpenseId: matchedExpenseId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int subscriptionId,
+                required DateTime expectedDate,
+                required int expectedAmountMinor,
+                Value<int> status = const Value.absent(),
+                Value<int?> matchedExpenseId = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+              }) => ExpectedPaymentsCompanion.insert(
+                id: id,
+                subscriptionId: subscriptionId,
+                expectedDate: expectedDate,
+                expectedAmountMinor: expectedAmountMinor,
+                status: status,
+                matchedExpenseId: matchedExpenseId,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExpectedPaymentsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({subscriptionId = false, matchedExpenseId = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (subscriptionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.subscriptionId,
+                                    referencedTable:
+                                        $$ExpectedPaymentsTableReferences
+                                            ._subscriptionIdTable(db),
+                                    referencedColumn:
+                                        $$ExpectedPaymentsTableReferences
+                                            ._subscriptionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+                        if (matchedExpenseId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.matchedExpenseId,
+                                    referencedTable:
+                                        $$ExpectedPaymentsTableReferences
+                                            ._matchedExpenseIdTable(db),
+                                    referencedColumn:
+                                        $$ExpectedPaymentsTableReferences
+                                            ._matchedExpenseIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ExpectedPaymentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$LumaDatabase,
+      $ExpectedPaymentsTable,
+      ExpectedPayment,
+      $$ExpectedPaymentsTableFilterComposer,
+      $$ExpectedPaymentsTableOrderingComposer,
+      $$ExpectedPaymentsTableAnnotationComposer,
+      $$ExpectedPaymentsTableCreateCompanionBuilder,
+      $$ExpectedPaymentsTableUpdateCompanionBuilder,
+      (ExpectedPayment, $$ExpectedPaymentsTableReferences),
+      ExpectedPayment,
+      PrefetchHooks Function({bool subscriptionId, bool matchedExpenseId})
+    >;
 
 class $LumaDatabaseManager {
   final _$LumaDatabase _db;
@@ -3769,4 +6488,8 @@ class $LumaDatabaseManager {
       $$AppSettingsTableTableManager(_db, _db.appSettings);
   $$ExportRecordsTableTableManager get exportRecords =>
       $$ExportRecordsTableTableManager(_db, _db.exportRecords);
+  $$SubscriptionsTableTableManager get subscriptions =>
+      $$SubscriptionsTableTableManager(_db, _db.subscriptions);
+  $$ExpectedPaymentsTableTableManager get expectedPayments =>
+      $$ExpectedPaymentsTableTableManager(_db, _db.expectedPayments);
 }
