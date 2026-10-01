@@ -31,6 +31,7 @@ import 'widgets/onboarding_sheet.dart';
 import 'widgets/section_header.dart';
 import 'widgets/sms_permission_flow.dart';
 import 'widgets/splash_screen.dart';
+import 'widgets/subscription_views.dart';
 import 'widgets/summary_card.dart';
 
 final lumaNavigatorKey = GlobalKey<NavigatorState>();
@@ -215,6 +216,7 @@ class _MainShellState extends ConsumerState<_MainShell>
       _handleNotificationTap(coldPayload);
     }
     await _ensureAuditScheduled();
+    await _maybeShowOnboarding();
   }
 
   /// Pulls SMS queued by the native receiver into pending expenses.
@@ -475,6 +477,7 @@ class _HomePageState extends ConsumerState<_HomePage>
               ),
             ),
           ),
+        const UpcomingSubscriptionsSection(),
         const SizedBox(height: AppSpacing.xxl),
         SectionHeader(
           title: 'Recent expenses',
@@ -918,6 +921,24 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                 ),
                 onTap: _editInitialBalance,
               ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.repeat_rounded),
+                title: const Text('Subscriptions'),
+                subtitle: Text(
+                  '${ref.watch(subscriptionControllerProvider).subscriptions.where((s) => s.status.isOngoing).length} active',
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const SubscriptionsPage(),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1217,16 +1238,16 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
               const SizedBox(height: AppSpacing.md),
               Wrap(
                 spacing: 8,
-                children: [2, 3, 4, 5, 10].map((num) {
-                  final isSelected = selectedPreset == num;
+                children: [2, 3, 4, 5, 10].map((preset) {
+                  final isSelected = selectedPreset == preset;
                   return ChoiceChip(
-                    label: Text('$num SMS'),
+                    label: Text('$preset SMS'),
                     selected: isSelected,
                     onSelected: (selected) {
                       if (selected) {
                         setDialogState(() {
-                          selectedPreset = num;
-                          countController.text = '$num';
+                          selectedPreset = preset;
+                          countController.text = '$preset';
                         });
                       }
                     },
@@ -1314,27 +1335,6 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
         ),
       );
     }
-  }
-
-  void _testSms() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (sheetContext) => _TestSmsSheet(
-        onIngest: (expense) async {
-          Navigator.pop(sheetContext);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Ingested ₹${(expense.amountMinor / 100).toStringAsFixed(2)} as pending expense.',
-              ),
-            ),
-          );
-        },
-      ),
-    );
   }
 
   @override
