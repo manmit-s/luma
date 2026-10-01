@@ -75,8 +75,56 @@ class ExportRecords extends Table {
   IntColumn get count => integer()();
 }
 
+class Subscriptions extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  TextColumn get merchantPattern => text().nullable()();
+  IntColumn get amountMinor => integer()();
+  // 0 = monthly, 1 = yearly
+  IntColumn get billingCycle => integer().withDefault(const Constant(0))();
+  // 0 = autopay, 1 = manual
+  IntColumn get paymentMethod => integer().withDefault(const Constant(0))();
+  // 0 = active, 1 = trial, 2 = cancelled, 3 = expired
+  IntColumn get status => integer().withDefault(const Constant(0))();
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get nextRenewalDate => dateTime()();
+  DateTimeColumn get trialEndDate => dateTime().nullable()();
+  DateTimeColumn get endDate => dateTime().nullable()();
+  BoolColumn get cancellationReminderEnabled =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get cancellationReminderDaysBefore =>
+      integer().withDefault(const Constant(3))();
+  BoolColumn get paymentReminderEnabled =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get paymentReminderDaysBefore =>
+      integer().withDefault(const Constant(1))();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
+class ExpectedPayments extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get subscriptionId => integer().references(Subscriptions, #id)();
+  DateTimeColumn get expectedDate => dateTime()();
+  IntColumn get expectedAmountMinor => integer()();
+  // 0 = upcoming, 1 = matched, 2 = missed, 3 = cancelled
+  IntColumn get status => integer().withDefault(const Constant(0))();
+  IntColumn get matchedExpenseId =>
+      integer().nullable().references(Expenses, #id)();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
 @DriftDatabase(
-  tables: [Expenses, MerchantProfiles, Categories, AppSettings, ExportRecords],
+  tables: [
+    Expenses,
+    MerchantProfiles,
+    Categories,
+    AppSettings,
+    ExportRecords,
+    Subscriptions,
+    ExpectedPayments,
+  ],
 )
 class LumaDatabase extends _$LumaDatabase {
   LumaDatabase() : super(_openConnection());
@@ -84,7 +132,7 @@ class LumaDatabase extends _$LumaDatabase {
   LumaDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -108,6 +156,14 @@ class LumaDatabase extends _$LumaDatabase {
               );
             } catch (_) {
               // Best effort
+            }
+          }
+          if (from < 4) {
+            try {
+              await m.createTable(subscriptions);
+              await m.createTable(expectedPayments);
+            } catch (_) {
+              // Best effort if already created
             }
           }
         },
