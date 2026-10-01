@@ -15,6 +15,7 @@ class NotificationService {
 
   static const expenseChannelId = 'expense_alerts';
   static const dailyAuditChannelId = 'daily_audit';
+  static const subscriptionChannelId = 'subscription_reminders';
   static const pendingSummaryId = 9001;
 
   final FlutterLocalNotificationsPlugin _plugin;
@@ -43,10 +44,17 @@ class NotificationService {
         description: 'Daily pending-expense reminder',
         importance: Importance.defaultImportance,
       );
+      const subscriptionChannel = AndroidNotificationChannel(
+        subscriptionChannelId,
+        'Subscription reminders',
+        description: 'Renewal and payment reminders for subscriptions',
+        importance: Importance.high,
+      );
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       await androidPlugin?.createNotificationChannel(expenseChannel);
       await androidPlugin?.createNotificationChannel(auditChannel);
+      await androidPlugin?.createNotificationChannel(subscriptionChannel);
       await androidPlugin?.requestNotificationsPermission();
       _ready = true;
     } catch (_) {
@@ -127,6 +135,69 @@ class NotificationService {
     } catch (_) {
       // Best-effort only.
     }
+  }
+
+  Future<void> showSubscriptionMatched(String subscriptionName, int amountMinor) async {
+    if (!_ready) return;
+    try {
+      final id = DateTime.now().millisecondsSinceEpoch % 100000;
+      await _plugin.show(
+        id: id,
+        title: subscriptionName,
+        body: '${formatAmount(amountMinor)} charged · Subscription payment matched',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            expenseChannelId,
+            'Expense alerts',
+            channelDescription: 'Subscription payment matched',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    } catch (_) {
+      // Best-effort only.
+    }
+  }
+
+  Future<void> showSubscriptionReminder({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
+    if (!_ready) return;
+    try {
+      await _plugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            subscriptionChannelId,
+            'Subscription reminders',
+            channelDescription: 'Renewal and payment reminders for subscriptions',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+        ),
+      );
+    } catch (_) {
+      // Best-effort only.
+    }
+  }
+
+  Future<void> cancelNotification(int id) async {
+    if (!_ready) return;
+    try {
+      await _plugin.cancel(id: id);
+    } catch (_) {
+      // Best-effort only.
+    }
+  }
+
+  Future<void> cancelSubscriptionReminders(int subscriptionId) async {
+    await cancelNotification(subscriptionId * 10 + 1);
+    await cancelNotification(subscriptionId * 10 + 2);
   }
 
   Future<void> cancelAll() async {
