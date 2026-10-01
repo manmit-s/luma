@@ -88,10 +88,13 @@ class ExpenseController extends ChangeNotifier {
   }
 
   Future<void> complete(Expense expense,
-      {required String categoryId, String note = ''}) async {
+      {required String categoryId,
+      String note = '',
+      TransactionType? transactionType}) async {
     final updated = expense.copyWith(
         categoryId: categoryId,
         note: note,
+        transactionType: transactionType ?? expense.transactionType,
         status: ExpenseStatus.completed,
         updatedAt: DateTime.now());
     await _repository.save(updated);
@@ -126,16 +129,19 @@ class ExpenseController extends ChangeNotifier {
   Future<void> addManual(
       {required int amountMinor,
       required String merchant,
-      required String categoryId}) async {
+      required String categoryId,
+      String note = '',
+      TransactionType transactionType = TransactionType.debit}) async {
     final now = DateTime.now();
     final draft = Expense(
         id: 0,
         amountMinor: amountMinor,
         merchant: merchant.isEmpty ? null : merchant,
         categoryId: categoryId,
+        note: note,
         timestamp: now,
         status: ExpenseStatus.completed,
-        transactionType: TransactionType.debit,
+        transactionType: transactionType,
         source: ExpenseSource.manual,
         createdAt: now,
         updatedAt: now);
