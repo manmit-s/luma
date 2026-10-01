@@ -40,6 +40,12 @@ void main() {
       find.widgetWithText(TextField, 'Amount').first,
       '250',
     );
+    await tester.enterText(
+      find.byWidgetPredicate((w) =>
+          w is TextField &&
+          w.decoration?.hintText == 'Add a note (optional)'),
+      'Snacks with team',
+    );
     await tester.pump();
     await tester.tap(find.text('Save expense'));
     await tester.pumpAndSettle();
@@ -76,4 +82,87 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Complete expense'), findsNothing);
   });
+
+  testWidgets('manual transaction allows changing type to credit and category card selection', (
+    WidgetTester tester,
+  ) async {
+    await pumpApp(tester);
+    await openAddSheet(tester);
+
+    // Verify type selector is present
+    expect(find.text('Debit (Expense)'), findsOneWidget);
+    expect(find.text('Credit (Income)'), findsOneWidget);
+
+    // Switch to Credit
+    await tester.tap(find.text('Credit (Income)'));
+    await tester.pumpAndSettle();
+
+    // Verify button label reflects credit
+    expect(find.text('Save credit'), findsOneWidget);
+
+    // Enter amount
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Amount').first,
+      '5000',
+    );
+    await tester.pump();
+
+    // Select category card (e.g. 'Investments' or 'Salary' or 'Food')
+    await tester.tap(find.text('Food'));
+    await tester.pump();
+
+    await tester.tap(find.text('Save credit'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Save credit'), findsNothing);
+  });
+
+  testWidgets('completing parsed sms allows changing type to credit', (
+    WidgetTester tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Uber').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Complete expense'), findsOneWidget);
+
+    // Switch to Credit
+    await tester.tap(find.text('Credit (Income)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Save credit'), findsOneWidget);
+
+    // Select category
+    await tester.tap(find.text('Travel'));
+    await tester.pump();
+
+    await tester.tap(find.text('Save credit'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Complete expense'), findsNothing);
+  });
+
+  testWidgets('completing parsed sms allows deleting the expense', (
+    WidgetTester tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Uber').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Complete expense'), findsOneWidget);
+
+    // Tap delete affordance
+    await tester.tap(find.text('Delete this expense'));
+    await tester.pumpAndSettle();
+
+    // Confirm dialog appears
+    expect(find.text('Delete expense?'), findsOneWidget);
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Complete expense'), findsNothing);
+    expect(find.text('Uber'), findsNothing);
+  });
 }
+
+
