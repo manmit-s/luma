@@ -52,6 +52,7 @@ class _TransactionTypeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDebit = selectedType == TransactionType.debit;
+    final isCredit = selectedType == TransactionType.credit;
     return Container(
       height: 44,
       padding: const EdgeInsets.all(4),
@@ -108,9 +109,9 @@ class _TransactionTypeSelector extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
-                  color: !isDebit ? const Color(0xFF1B3828) : Colors.transparent,
+                  color: isCredit ? const Color(0xFF1B3828) : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppRadii.compact),
-                  border: !isDebit
+                  border: isCredit
                       ? Border.all(color: AppColors.success, width: 1.2)
                       : null,
                 ),
@@ -122,7 +123,7 @@ class _TransactionTypeSelector extends StatelessWidget {
                       Icons.arrow_downward_rounded,
                       size: 16,
                       color:
-                          !isDebit ? AppColors.success : AppColors.textSecondary,
+                          isCredit ? AppColors.success : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -130,8 +131,8 @@ class _TransactionTypeSelector extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight:
-                            !isDebit ? FontWeight.w600 : FontWeight.w500,
-                        color: !isDebit
+                            isCredit ? FontWeight.w600 : FontWeight.w500,
+                        color: isCredit
                             ? AppColors.textPrimary
                             : AppColors.textSecondary,
                       ),
@@ -165,7 +166,7 @@ class _CategoryCardSelector extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: defaultCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
+        separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
           final item = defaultCategories[index];
           final isSelected = selectedCategoryId == item.id;
@@ -583,10 +584,13 @@ class _CompleteExpenseSheetState
               SizedBox(
                 width: double.infinity,
                 child: PrimaryButton(
-                  label: transactionType == TransactionType.debit
-                      ? 'Save expense'
-                      : 'Save credit',
-                  onPressed: category.isEmpty
+                  label: transactionType == TransactionType.credit
+                      ? 'Save credit'
+                      : transactionType == TransactionType.debit
+                          ? 'Save expense'
+                          : 'Save transaction',
+                  onPressed: (category.isEmpty ||
+                          transactionType == TransactionType.unknown)
                       ? null
                       : () async {
                           await ref
@@ -598,7 +602,8 @@ class _CompleteExpenseSheetState
                                 transactionType: transactionType,
                               );
                           if (category == 'subscriptions' &&
-                              isRecurringSubscription) {
+                              isRecurringSubscription &&
+                              transactionType == TransactionType.debit) {
                             await ref
                                 .read(subscriptionControllerProvider)
                                 .createSubscription(
@@ -622,6 +627,17 @@ class _CompleteExpenseSheetState
                     'Pick a category to save.',
                     style: TextStyle(
                       color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              else if (transactionType == TransactionType.unknown)
+                const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    'Select Debit (Expense) or Credit (Income) to save.',
+                    style: TextStyle(
+                      color: AppColors.peach,
                       fontSize: 12,
                     ),
                   ),
