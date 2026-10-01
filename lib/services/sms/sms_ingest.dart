@@ -63,8 +63,18 @@ Future<int> drainSmsQueue(WidgetRef ref) async {
       if (wasNewlyCreated &&
           expense != null &&
           expense.status == ExpenseStatus.pending) {
-        await notificationService.showExpenseDetected(expense);
-        created++;
+        final subController = ref.read(subscriptionControllerProvider);
+        final match = await subController.matchAndReconcile(expense);
+        if (match.isHighConfidence && match.subscription != null) {
+          await controller.complete(
+            expense,
+            categoryId: 'subscriptions',
+            note: match.subscription!.name,
+          );
+        } else {
+          await notificationService.showExpenseDetected(expense);
+          created++;
+        }
       }
     }
     return created;
@@ -116,7 +126,17 @@ Future<SmsScanResult> scanInboxSms(
       if (wasNewlyCreated &&
           expense != null &&
           expense.status == ExpenseStatus.pending) {
-        newlyCreated++;
+        final subController = ref.read(subscriptionControllerProvider);
+        final match = await subController.matchAndReconcile(expense);
+        if (match.isHighConfidence && match.subscription != null) {
+          await controller.complete(
+            expense,
+            categoryId: 'subscriptions',
+            note: match.subscription!.name,
+          );
+        } else {
+          newlyCreated++;
+        }
       }
     }
     return SmsScanResult(
