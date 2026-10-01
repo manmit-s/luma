@@ -680,6 +680,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   bool _loadingAudit = true;
   String _userName = '';
   bool _loadingName = true;
+  int _initialBalanceMinor = 0;
+  bool _loadingBalance = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -691,6 +693,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     _refreshSmsState();
     _loadAuditState();
     _loadUserName();
+    _loadInitialBalance();
   }
 
   @override
@@ -736,6 +739,17 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     }
   }
 
+  Future<void> _loadInitialBalance() async {
+    final balance =
+        await ref.read(appSettingsStoreProvider).initialBalanceMinor();
+    if (mounted) {
+      setState(() {
+        _initialBalanceMinor = balance;
+        _loadingBalance = false;
+      });
+    }
+  }
+
   Future<void> _editName() async {
     final name = await showDialog<String>(
       context: context,
@@ -745,6 +759,20 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     await ref.read(appSettingsStoreProvider).setUserName(name);
     ref.read(userNameProvider.notifier).state = name;
     if (mounted) setState(() => _userName = name);
+  }
+
+  Future<void> _editInitialBalance() async {
+    final newBalanceMinor = await showDialog<int>(
+      context: context,
+      builder: (context) =>
+          _EditBalanceDialog(initialMinor: _initialBalanceMinor),
+    );
+    if (newBalanceMinor == null || !mounted) return;
+    await ref
+        .read(appSettingsStoreProvider)
+        .setInitialBalanceMinor(newBalanceMinor);
+    ref.read(expenseControllerProvider).setInitialBalance(newBalanceMinor);
+    if (mounted) setState(() => _initialBalanceMinor = newBalanceMinor);
   }
 
   Future<void> _confirmResetAll() async {
@@ -857,21 +885,40 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         const SizedBox(height: AppSpacing.lg),
         Card(
           color: AppColors.surface,
-          child: ListTile(
-            leading: const Icon(Icons.person_outline_rounded),
-            title: const Text('Your name'),
-            subtitle: Text(
-              _loadingName
-                  ? 'Loading…'
-                  : _userName.isEmpty
-                      ? 'Not set — tap to add'
-                      : _userName,
-            ),
-            trailing: const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textSecondary,
-            ),
-            onTap: _editName,
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person_outline_rounded),
+                title: const Text('Your name'),
+                subtitle: Text(
+                  _loadingName
+                      ? 'Loading…'
+                      : _userName.isEmpty
+                          ? 'Not set — tap to add'
+                          : _userName,
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                onTap: _editName,
+              ),
+              const Divider(height: 1, indent: 16, endIndent: 16),
+              ListTile(
+                leading: const Icon(Icons.account_balance_wallet_outlined),
+                title: const Text('Starting balance'),
+                subtitle: Text(
+                  _loadingBalance
+                      ? 'Loading…'
+                      : formatAmount(_initialBalanceMinor),
+                ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+                onTap: _editInitialBalance,
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -962,6 +1009,106 @@ class _EditNameDialogState extends State<_EditNameDialog> {
   }
 }
 
+class _EditBalanceDialog extends StatefulWidget {
+  const _EditBalanceDialog({required this.initialMinor});
+
+  final int initialMinor;
+
+  @override
+  State<_EditBalanceDialog> createState() => _EditBalanceDialogState();
+}
+
+class _EditBalanceDialogState extends State<_EditBalanceDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialRupees = widget.initialMinor / 100;
+    _controller = TextEditingController(
+      text: initialRupees == 0
+          ? '0'
+          : (initialRupees % 1 == 0
+              ? initialRupees.toInt().toString()
+              : initialRupees.toStringAsFixed(2)),
+    );
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  double? get _parsed {
+    final text = _controller.text.trim().replaceAll(',', '');
+    if (text.isEmpty) return null;
+    final val = double.tryParse(text);
+    if (val == null || val < 0 || val.isNaN || val.isInfinite) return null;
+    return val;
+  }
+
+  void _submit() {
+    final val = _parsed;
+    if (val != null) {
+      Navigator.pop(context, (val * 100).round());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: AppColors.elevated,
+      title: const Text('Starting balance'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Luma calculates your running balance and export summary from this starting amount.',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+            decoration: const InputDecoration(
+              prefixText: '₹ ',
+              prefixStyle: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppColors.peach,
+              ),
+              hintText: '0.00',
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _parsed != null ? _submit : null,
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
 /// Shows where an SMS can get stuck: permission → phone queue → parse.
 ///
 /// Each row maps to one stage of the watch chain, so a missed transaction
@@ -1017,24 +1164,117 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
     }
   }
 
-  Future<void> _scanInbox() async {
+  Future<void> _scanInbox({int? targetCount}) async {
     setState(() => _scanning = true);
     try {
-      final created = await scanInboxSms(ref);
+      final result = await scanInboxSms(ref, targetCount: targetCount);
       await _refreshQueue();
       if (!mounted) return;
+      final String message;
+      if (targetCount != null) {
+        if (result.validParsed > 0) {
+          message =
+              'Scanned ${result.validParsed} latest transaction SMS (${result.newlyCreated} added to Needs Attention).';
+        } else {
+          message = 'No matching transaction SMS found in inbox.';
+        }
+      } else {
+        if (result.newlyCreated > 0) {
+          message =
+              'Found & imported ${result.newlyCreated} transactions from inbox.';
+        } else {
+          message = 'No new transactions found in SMS inbox.';
+        }
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            created > 0
-                ? 'Found & imported $created transactions from inbox.'
-                : 'No new transactions found in SMS inbox.',
-          ),
-        ),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) setState(() => _scanning = false);
     }
+  }
+
+  void _showSelectedScanDialog() {
+    final countController = TextEditingController(text: '4');
+    var selectedPreset = 4;
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.elevated,
+          title: const Text('Scan Recent SMS'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Specify how many latest transaction SMS to scan from inbox and import into Needs Attention:',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Wrap(
+                spacing: 8,
+                children: [2, 3, 4, 5, 10].map((num) {
+                  final isSelected = selectedPreset == num;
+                  return ChoiceChip(
+                    label: Text('$num SMS'),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      if (selected) {
+                        setDialogState(() {
+                          selectedPreset = num;
+                          countController.text = '$num';
+                        });
+                      }
+                    },
+                    selectedColor: AppColors.peach.withAlpha(50),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? AppColors.peach
+                          : AppColors.textSecondary,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              TextField(
+                controller: countController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Number of recent SMS',
+                  hintText: 'e.g. 4',
+                ),
+                onChanged: (val) {
+                  final parsed = int.tryParse(val);
+                  setDialogState(() {
+                    selectedPreset = parsed ?? -1;
+                  });
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            PrimaryButton(
+              label: 'Scan recent',
+              onPressed: () {
+                final count = int.tryParse(countController.text.trim()) ?? 4;
+                Navigator.pop(dialogCtx);
+                _scanInbox(targetCount: count.clamp(1, 50));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _openBackgroundStart() async {
@@ -1161,9 +1401,9 @@ class _SmsDiagnosticsCardState extends ConsumerState<_SmsDiagnosticsCard> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: _testSms,
-                    icon: const Icon(Icons.science_outlined, size: 18),
-                    label: const Text('Test SMS'),
+                    onPressed: _scanning ? null : _showSelectedScanDialog,
+                    icon: const Icon(Icons.filter_list_rounded, size: 18),
+                    label: const Text('Scan recent'),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
