@@ -141,7 +141,7 @@ void main() {
     });
 
     test('Test 2: Amount mismatch surfaced; actual expense retains actual amount', () async {
-      final sub = await subController.createSubscription(
+      await subController.createSubscription(
         name: 'YouTube Premium',
         amountMinor: 12900,
         startDate: DateTime(2026, 10, 1),
