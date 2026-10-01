@@ -127,4 +127,45 @@ void main() {
       findsWidgets,
     );
   });
+
+  testWidgets('Settings allows selected SMS scanning with custom count dialog', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const ProviderScope(child: LumaApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(LumaNavBar),
+        matching: find.text('Settings'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('SMS diagnostics'), findsOneWidget);
+    expect(find.text('Scan recent'), findsOneWidget);
+
+    await tester.tap(find.text('Scan recent'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scan Recent SMS'), findsOneWidget);
+    expect(find.text('4 SMS'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextField, 'Number of recent SMS'),
+      findsOneWidget,
+    );
+
+    // Tap preset chip '2 SMS'
+    await tester.tap(find.text('2 SMS'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Scan Recent SMS'), findsNothing);
+  });
 }
+
