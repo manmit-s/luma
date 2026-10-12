@@ -19,6 +19,7 @@ class CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     if (onSelected == null) {
       return Container(
         padding: EdgeInsets.symmetric(
@@ -26,13 +27,13 @@ class CategoryChip extends StatelessWidget {
           vertical: compact ? AppSpacing.xs : 5,
         ),
         decoration: BoxDecoration(
-          color: AppColors.plum,
+          color: palette.secondaryAccent,
           borderRadius: BorderRadius.circular(AppRadii.control),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: AppColors.peach,
+            color: palette.primaryAccent,
             fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w600,
           ),
@@ -43,11 +44,11 @@ class CategoryChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: onSelected,
-      selectedColor: AppColors.plum,
-      backgroundColor: AppColors.surface,
-      side: const BorderSide(color: AppColors.border),
+      selectedColor: palette.secondaryAccent,
+      backgroundColor: palette.surface,
+      side: BorderSide(color: palette.border),
       labelStyle: TextStyle(
-        color: selected ? AppColors.peach : AppColors.textSecondary,
+        color: selected ? palette.primaryAccent : palette.textSecondary,
         fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
       ),
     );
@@ -61,19 +62,22 @@ class CountBadge extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: AppColors.plum,
-          borderRadius: BorderRadius.circular(AppRadii.control),
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: palette.secondaryAccent,
+        borderRadius: BorderRadius.circular(AppRadii.control),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: palette.primaryAccent,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
         ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: AppColors.peach,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
+      ),
+    );
+  }
 }
