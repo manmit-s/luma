@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../database/luma_database.dart';
 
@@ -7,12 +11,14 @@ import '../database/luma_database.dart';
 /// Null database (tests, fallback) behaves as "already onboarded" so widget
 /// tests never see the onboarding sheet.
 class AppSettingsStore {
-  AppSettingsStore(this._db, {bool memoryOnboardingDone = true})
-      : _memoryOnboardingDone = memoryOnboardingDone;
+  AppSettingsStore(this._db, {bool memoryOnboardingDone = true, String memoryThemeId = 'luma_original'})
+      : _memoryOnboardingDone = memoryOnboardingDone,
+        _memoryThemeId = memoryThemeId;
 
   final LumaDatabase? _db;
   bool _memoryOnboardingDone;
   int _memoryInitialBalanceMinor = 0;
+  String _memoryThemeId;
 
   Future<bool> isOnboardingDone() async {
     final db = _db;
@@ -129,6 +135,32 @@ class AppSettingsStore {
     await _updateSettings(
       AppSettingsCompanion(initialBalanceMinor: Value(minor)),
     );
+  }
+
+  /// Active theme identifier ('luma_original', 'rose_olive', etc.)
+  Future<String> themeId() async {
+    if (_db == null) return _memoryThemeId;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(p.join(dir.path, 'luma_theme.txt'));
+      if (await file.exists()) {
+        final content = (await file.readAsString()).trim();
+        if (content.isNotEmpty) return content;
+      }
+      return _memoryThemeId;
+    } catch (_) {
+      return _memoryThemeId;
+    }
+  }
+
+  Future<void> setThemeId(String id) async {
+    _memoryThemeId = id;
+    if (_db == null) return;
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File(p.join(dir.path, 'luma_theme.txt'));
+      await file.writeAsString(id, flush: true);
+    } catch (_) {}
   }
 
   /// [hour], [minute] default to 21:00 (SPEC 42). Null-DB default matches.
