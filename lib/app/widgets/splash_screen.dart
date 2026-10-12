@@ -87,11 +87,13 @@ class _LumaSplashScreenState extends State<LumaSplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _finish,
         child: Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: palette.background,
           body: Center(
             child: AnimatedBuilder(
               animation: _controller,
@@ -103,16 +105,16 @@ class _LumaSplashScreenState extends State<LumaSplashScreen>
                     TextSpan(
                       text: 'luma',
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: palette.textPrimary,
                         fontSize: 38,
                         fontWeight: FontWeight.w700,
                         letterSpacing: _letterSpacingAnimation.value,
                       ),
-                      children: const [
+                      children: [
                         TextSpan(
                           text: '.',
                           style: TextStyle(
-                            color: AppColors.peach,
+                            color: palette.primaryAccent,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -125,4 +127,5 @@ class _LumaSplashScreenState extends State<LumaSplashScreen>
           ),
         ),
       );
+  }
 }
