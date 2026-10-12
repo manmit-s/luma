@@ -18,7 +18,7 @@ class AmountDisplay extends StatelessWidget {
           fontSize: fontSize,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.5,
-          color: color ?? AppColors.textPrimary,
+          color: color ?? context.lumaPalette.textPrimary,
         ),
       );
 }

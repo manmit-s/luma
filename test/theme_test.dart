@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/app/app.dart';
+import 'package:luma/app/providers.dart';
 import 'package:luma/app/theme/app_theme.dart';
 import 'package:luma/data/services/app_settings_store.dart';
 
@@ -73,6 +74,29 @@ void main() {
       }
     });
 
+    test('All 4 palettes have valid semantic contrast tokens', () {
+      for (final themeId in LumaThemeId.values) {
+        final palette = LumaPalette.of(themeId);
+        expect(palette.navIndicatorBackground, isNotNull);
+        expect(palette.navIndicatorBorder, isNotNull);
+        expect(palette.chipSelectedBackground, isNotNull);
+        expect(palette.chipSelectedText, isNotNull);
+        expect(palette.chipUnselectedBackground, isNotNull);
+        expect(palette.chipUnselectedText, isNotNull);
+        expect(palette.chipUnselectedBorder, isNotNull);
+
+        // Ensure selected text contrast is not equal to selected background
+        expect(palette.chipSelectedText, isNot(equals(palette.chipSelectedBackground)));
+      }
+
+      // Check Luma Original regression baseline
+      final original = LumaPalette.of(LumaThemeId.lumaOriginal);
+      expect(original.navIndicatorBackground, const Color(0xB2542A52));
+      expect(original.navIndicatorBorder, const Color(0x59FFB39A));
+      expect(original.chipSelectedBackground, const Color(0xFF542A52));
+      expect(original.chipSelectedText, const Color(0xFFFFB39A));
+    });
+
     test('AppSettingsStore persists themeId and safely returns lumaOriginal by default', () async {
       final store = AppSettingsStore(null);
       final defaultTheme = await store.themeId();
@@ -108,28 +132,110 @@ void main() {
     // Verify APPEARANCE section is visible with all 4 themes
     expect(find.text('APPEARANCE'), findsOneWidget);
     expect(find.text('Luma Original'), findsOneWidget);
-    expect(find.text('Rose × Olive'), findsOneWidget);
-    expect(find.text('Lavender × Beige'), findsOneWidget);
-    expect(find.text('Sage × Cream'), findsOneWidget);
+    expect(find.text('Rosé Grove'), findsOneWidget);
+    expect(find.text('Lavender Latte'), findsOneWidget);
+    expect(find.text('Sage Soufflé'), findsOneWidget);
 
-    // Select Rose × Olive
-    await tester.tap(find.text('Rose × Olive'));
+    // Select Rosé Grove
+    await tester.tap(find.text('Rosé Grove'));
     await tester.pumpAndSettle();
 
     // Get the element and verify the theme applied on MaterialApp
     final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialApp.theme?.extension<LumaPalette>()?.id, LumaThemeId.roseOlive);
 
-    // Select Lavender × Beige
-    await tester.tap(find.text('Lavender × Beige'));
+    // Select Lavender Latte
+    await tester.tap(find.text('Lavender Latte'));
     await tester.pumpAndSettle();
 
     final materialAppLavender = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(materialAppLavender.theme?.extension<LumaPalette>()?.id, LumaThemeId.lavenderBeige);
 
+    // Select Sage Soufflé
+    await tester.tap(find.text('Sage Soufflé'));
+    await tester.pumpAndSettle();
+
+    final materialAppSage = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(materialAppSage.theme?.extension<LumaPalette>()?.id, LumaThemeId.sageCream);
+
     // Navigate back to Home and verify expenses are unaffected
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
     expect(find.text('Needs attention'), findsOneWidget);
+  });
+
+  testWidgets('Greeting and user name adapt to theme primaryAccent', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final store = AppSettingsStore(null);
+    await store.setUserName('Alex');
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appSettingsStoreProvider.overrideWith((ref) => store),
+        ],
+        child: const LumaApp(skipSplash: true),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // In Luma Original, Alex should be styled with Peach
+    final textFinder = find.textContaining('Alex');
+    expect(textFinder, findsOneWidget);
+    final initialText = tester.widget<Text>(textFinder);
+    final initialSpan = initialText.textSpan as TextSpan;
+    final initialNameSpan = initialSpan.children!.first as TextSpan;
+    expect(initialNameSpan.style?.color, const Color(0xFFFFB39A)); // Peach
+
+    // Switch to Sage Soufflé
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sage Soufflé'));
+    await tester.pumpAndSettle();
+
+    // Return to Home
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+
+    final sageText = tester.widget<Text>(textFinder);
+    final textSpan = sageText.textSpan as TextSpan;
+    final nameSpan = textSpan.children!.first as TextSpan;
+    expect(nameSpan.style?.color, const Color(0xFFA3B18A)); // Sage primaryAccent
+  });
+
+  testWidgets('History category filters reflect selected theme chip tokens', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const ProviderScope(child: LumaApp(skipSplash: true)));
+    await tester.pumpAndSettle();
+
+    // Go to Settings and select Lavender Latte
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lavender Latte'));
+    await tester.pumpAndSettle();
+
+    // Navigate to History
+    await tester.tap(find.text('History'));
+    await tester.pumpAndSettle();
+
+    // Verify filter chip exists and uses palette token
+    final allChipFinder = find.widgetWithText(FilterChip, 'All');
+    expect(allChipFinder, findsOneWidget);
+    final allChip = tester.widget<FilterChip>(allChipFinder);
+    final lavenderPalette = LumaPalette.of(LumaThemeId.lavenderBeige);
+    expect(allChip.selectedColor, lavenderPalette.chipSelectedBackground);
+    expect(allChip.backgroundColor, lavenderPalette.chipUnselectedBackground);
   });
 }

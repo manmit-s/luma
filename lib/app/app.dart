@@ -363,12 +363,13 @@ class _HomePageState extends ConsumerState<_HomePage>
     }
   }
 
-  Widget _buildGreeting(TextTheme textTheme, String name) {
+  Widget _buildGreeting(BuildContext context, TextTheme textTheme, String name) {
+    final palette = context.lumaPalette;
     final base = greetingFor(DateTime.now());
     final baseStyle = textTheme.headlineSmall?.copyWith(
       fontSize: 22,
       fontWeight: FontWeight.w600,
-      color: AppColors.textPrimary,
+      color: palette.textPrimary,
       letterSpacing: -0.3,
     );
 
@@ -388,8 +389,8 @@ class _HomePageState extends ConsumerState<_HomePage>
         children: [
           TextSpan(
             text: name,
-            style: const TextStyle(
-              color: AppColors.peach,
+            style: TextStyle(
+              color: palette.primaryAccent,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -419,18 +420,18 @@ class _HomePageState extends ConsumerState<_HomePage>
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 128),
       children: [
-        const Row(
+        Row(
           children: [
             Icon(
               Icons.lock_outline_rounded,
               size: 14,
-              color: AppColors.textSecondary,
+              color: context.lumaPalette.textSecondary,
             ),
-            SizedBox(width: 6),
+            const SizedBox(width: 6),
             Text(
               'SECURE · PRIVATE',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: context.lumaPalette.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: .8,
@@ -439,7 +440,7 @@ class _HomePageState extends ConsumerState<_HomePage>
           ],
         ),
         const SizedBox(height: AppSpacing.md),
-        _buildGreeting(textTheme, effectiveName),
+        _buildGreeting(context, textTheme, effectiveName),
         if (showSmsBanner) ...[
           const SizedBox(height: AppSpacing.lg),
           const SmsDisabledBanner(),
@@ -614,8 +615,8 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                         const EdgeInsets.only(bottom: AppSpacing.sm, left: 4),
                     child: Text(
                       formatDayLabel(group.$1),
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: context.lumaPalette.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.0,
@@ -652,21 +653,28 @@ class _SelectableFilterChip extends StatelessWidget {
   final ValueChanged<bool> onSelected;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.sm),
-        child: FilterChip(
-          label: Text(label),
-          selected: selected,
-          onSelected: onSelected,
-          selectedColor: AppColors.plum,
-          backgroundColor: AppColors.surface,
-          side: const BorderSide(color: AppColors.border),
-          labelStyle: TextStyle(
-            color: selected ? AppColors.peach : AppColors.textSecondary,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-          ),
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
+      child: FilterChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: onSelected,
+        selectedColor: palette.chipSelectedBackground,
+        backgroundColor: palette.chipUnselectedBackground,
+        side: BorderSide(
+          color: selected
+              ? palette.chipSelectedBackground
+              : palette.chipUnselectedBorder,
         ),
-      );
+        labelStyle: TextStyle(
+          color: selected ? palette.chipSelectedText : palette.chipUnselectedText,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+    );
+  }
 }
 
 class _SettingsPage extends ConsumerStatefulWidget {
@@ -780,10 +788,11 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _confirmResetAll() async {
+    final palette = context.lumaPalette;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.elevated,
+        backgroundColor: palette.elevated,
         title: const Text('Reset all records?'),
         content: const Text(
           'This will permanently delete all expenses and pending items. This cannot be undone.',
@@ -795,8 +804,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: AppColors.textPrimary,
+              backgroundColor: palette.error,
+              foregroundColor: palette.textPrimary,
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Reset Everything'),
@@ -850,9 +859,10 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _showDailyAuditSheet() async {
+    final palette = context.lumaPalette;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -871,7 +881,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: AppColors.border,
+                          color: palette.border,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -879,9 +889,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.schedule_rounded,
-                          color: AppColors.peach,
+                          color: palette.primaryAccent,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -894,11 +904,11 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                       ],
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Luma can send a gentle evening reminder to review your day’s transactions and keep your balance accurate.',
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: palette.textSecondary,
                         height: 1.4,
                       ),
                     ),
@@ -906,9 +916,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.elevated,
+                        color: palette.elevated,
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: palette.border),
                       ),
                       child: Row(
                         children: [
@@ -916,12 +926,12 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Evening reminder',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
-                                    color: AppColors.textPrimary,
+                                    color: palette.textPrimary,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -929,7 +939,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                   dailyAudit ? 'Every day at 9:00 PM' : 'Disabled',
                                   style: TextStyle(
                                     fontSize: 13,
-                                    color: dailyAudit ? AppColors.peach : AppColors.textSecondary,
+                                    color: dailyAudit ? palette.primaryAccent : palette.textSecondary,
                                   ),
                                 ),
                               ],
@@ -943,8 +953,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                     setSheetState(() => dailyAudit = val);
                                     await _setAudit(val);
                                   },
-                            activeThumbColor: AppColors.peach,
-                            activeTrackColor: AppColors.plum,
+                            activeThumbColor: palette.primaryAccent,
+                            activeTrackColor: palette.secondaryAccent,
                           ),
                         ],
                       ),
@@ -962,9 +972,10 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _showPrivacySheet() async {
+    final palette = context.lumaPalette;
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -981,7 +992,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: AppColors.border,
+                      color: palette.border,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -989,9 +1000,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.shield_outlined,
-                      color: AppColors.peach,
+                      color: palette.primaryAccent,
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -1004,14 +1015,14 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                   ],
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Everything stays on this device.\n\n'
                   '• SMS messages are parsed locally on your phone using on-device regex rules.\n'
                   '• No financial data, account numbers, or balances are ever uploaded to any cloud server.\n'
                   '• Exports are generated directly onto your device storage and shared only when you choose.',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: palette.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -1174,14 +1185,14 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
           children: [
             _SettingsRow(
               icon: Icons.delete_outline_rounded,
-              iconColor: AppColors.error,
+              iconColor: palette.error,
               title: 'Reset all records',
-              titleColor: AppColors.error,
+              titleColor: palette.error,
               subtitle: 'Wipe all transactions and start completely fresh',
-              trailing: const Icon(
+              trailing: Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
-                color: AppColors.error,
+                color: palette.error,
               ),
               onTap: _confirmResetAll,
             ),
@@ -1469,7 +1480,7 @@ class _EditNameDialogState extends State<_EditNameDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.elevated,
+      backgroundColor: context.lumaPalette.elevated,
       title: const Text('Your name'),
       content: TextField(
         controller: _controller,
@@ -1547,16 +1558,17 @@ class _EditBalanceDialogState extends State<_EditBalanceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return AlertDialog(
-      backgroundColor: AppColors.elevated,
+      backgroundColor: palette.elevated,
       title: const Text('Starting balance'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Luma calculates your running balance and export summary from this starting amount.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 13, color: palette.textSecondary),
           ),
           const SizedBox(height: AppSpacing.lg),
           TextField(
@@ -1564,17 +1576,17 @@ class _EditBalanceDialogState extends State<_EditBalanceDialog> {
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.done,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               prefixText: '₹ ',
               prefixStyle: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: AppColors.peach,
+                color: palette.primaryAccent,
               ),
               hintText: '0.00',
             ),
@@ -1954,7 +1966,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
         context: context,
         showDragHandle: true,
         useSafeArea: true,
-        builder: (context) => const SafeArea(
+        builder: (context) => SafeArea(
           top: false,
           child: Padding(
             padding: EdgeInsets.fromLTRB(20, 16, 20, 32),
@@ -1975,7 +1987,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                   'receivers by default. Open system Settings → Apps → Luma '
                   'and enable Autostart (or “Allow background activity” / '
                   '“Unrestricted” battery), then return here.',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: context.lumaPalette.textSecondary),
                 ),
               ],
             ),
@@ -1987,6 +1999,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     final queueLabel = _checkingQueue
         ? 'Checking…'
         : _queued == null
@@ -1996,18 +2009,18 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                 : '$_queued waiting — tap Process now';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: palette.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'SMS diagnostics',
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: palette.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -2015,7 +2028,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
         actions: [
           IconButton(
             onPressed: _checkingQueue ? null : _refreshQueue,
-            icon: const Icon(Icons.refresh_rounded, size: 22, color: AppColors.textPrimary),
+            icon: Icon(Icons.refresh_rounded, size: 22, color: palette.textPrimary),
             tooltip: 'Refresh',
           ),
         ],
@@ -2023,10 +2036,10 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
       body: ListView(
         padding: AppSpacing.screenPadding.copyWith(bottom: 40),
         children: [
-          const Text(
+          Text(
             'Troubleshoot SMS detection, drain the native Android queue, or scan your inbox for missed transactions.',
             style: TextStyle(
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
               fontSize: 13,
               height: 1.4,
             ),
@@ -2042,14 +2055,14 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.inbox_outlined, color: AppColors.peach, size: 20),
+                        Icon(Icons.inbox_outlined, color: palette.primaryAccent, size: 20),
                         const SizedBox(width: 10),
-                        const Text(
+                        Text(
                           'Queue Status',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: palette.textPrimary,
                           ),
                         ),
                       ],
@@ -2057,7 +2070,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                     const SizedBox(height: 8),
                     Text(
                       queueLabel,
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                      style: TextStyle(color: palette.textSecondary, fontSize: 13),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -2093,18 +2106,18 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Scan Recent Transactions',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
+                        color: palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Specify how many latest transaction SMS messages to scan and import into Needs Attention.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.3),
+                      style: TextStyle(color: palette.textSecondary, fontSize: 13, height: 1.3),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -2129,18 +2142,18 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Autostart & Battery Optimization',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textPrimary,
+                        color: palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Ensure your phone manufacturer does not block Luma from running SMS background receivers.',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.3),
+                      style: TextStyle(color: palette.textSecondary, fontSize: 13, height: 1.3),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -2192,7 +2205,9 @@ class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Padding(
         padding: EdgeInsets.fromLTRB(
           20,
           16,
@@ -2217,9 +2232,9 @@ class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Paste a bank SMS below to test how Luma parses it.',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: palette.textSecondary),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -2269,9 +2284,9 @@ class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: palette.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: palette.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2288,6 +2303,7 @@ class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
           ],
         ),
       );
+  }
 }
 
 /// Opens the right sheet for an expense: complete-flow for pending,
@@ -2318,7 +2334,9 @@ Future<void> showExpenseDetail(
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    builder: (context) => SafeArea(
+    builder: (context) {
+      final palette = context.lumaPalette;
+      return SafeArea(
       top: false,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
@@ -2357,8 +2375,8 @@ Future<void> showExpenseDetail(
             const SizedBox(height: AppSpacing.xs),
             Text(
               '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: palette.textSecondary,
                 fontSize: 13,
               ),
             ),
@@ -2368,9 +2386,9 @@ Future<void> showExpenseDetail(
                 width: double.infinity,
                 padding: AppSpacing.cardPadding,
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(AppRadii.card),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: palette.border),
                 ),
                 child: Text(expense.note.trim()),
               ),
@@ -2388,10 +2406,10 @@ Future<void> showExpenseDetail(
             if (expense.rawSms?.isNotEmpty ?? false)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                title: const Text(
+                title: Text(
                   'Raw SMS (debug)',
                   style: TextStyle(
-                    color: AppColors.textSecondary,
+                    color: palette.textSecondary,
                     fontSize: 13,
                   ),
                 ),
@@ -2400,14 +2418,14 @@ Future<void> showExpenseDetail(
                     width: double.infinity,
                     padding: AppSpacing.cardPadding,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: palette.surface,
                       borderRadius: BorderRadius.circular(AppRadii.card),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: palette.border),
                     ),
                     child: Text(
                       expense.rawSms!,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: palette.textSecondary,
                         fontSize: 12,
                       ),
                     ),
@@ -2435,8 +2453,8 @@ Future<void> showExpenseDetail(
                     icon: const Icon(Icons.delete_outline_rounded, size: 18),
                     label: const Text('Delete'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
+                      foregroundColor: palette.error,
+                      side: BorderSide(color: palette.error),
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
                         borderRadius:
@@ -2450,7 +2468,8 @@ Future<void> showExpenseDetail(
           ],
         ),
       ),
-    ),
+    );
+    },
   );
 }
 
@@ -2468,7 +2487,7 @@ class _DetailRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: context.lumaPalette.textSecondary),
             ),
             const SizedBox(width: AppSpacing.lg),
             Flexible(
@@ -2489,10 +2508,11 @@ Future<void> _confirmDelete(
   WidgetRef ref,
   Expense expense,
 ) async {
+  final palette = context.lumaPalette;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      backgroundColor: AppColors.elevated,
+      backgroundColor: palette.elevated,
       title: const Text('Delete expense?'),
       content: Text(
         '${formatAmount(expense.amountMinor)} · ${merchantLabel(expense.merchant)} will be removed permanently.',
@@ -2504,7 +2524,7 @@ Future<void> _confirmDelete(
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          style: TextButton.styleFrom(foregroundColor: palette.error),
           child: const Text('Delete'),
         ),
       ],
@@ -2676,10 +2696,10 @@ class _ExportOption extends StatelessWidget {
                     ),
                   ),
                   if (emphasized)
-                    const Text(
+                    Text(
                       'Recommended',
                       style: TextStyle(
-                        color: AppColors.peach,
+                        color: context.lumaPalette.primaryAccent,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),

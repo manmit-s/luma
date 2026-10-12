@@ -164,19 +164,22 @@ class _NavItem extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: selected
-                        ? palette.secondaryAccent.withValues(alpha: 0.70)
+                        ? palette.navIndicatorBackground
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: selected
-                          ? palette.primaryAccent.withValues(alpha: 0.35)
+                          ? palette.navIndicatorBorder
                           : Colors.transparent,
                       width: 1,
                     ),
                     boxShadow: selected
                         ? [
                             BoxShadow(
-                              color: palette.primaryAccent.withValues(alpha: 0.12),
+                              color: palette.primaryAccent.withValues(
+                                  alpha: palette.id == LumaThemeId.lumaOriginal
+                                      ? 0.12
+                                      : 0.08),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -215,7 +218,7 @@ class _NavItem extends StatelessWidget {
                                   horizontal: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: palette.secondaryAccent,
+                                  color: palette.chipSelectedBackground,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: palette.primaryAccent,
@@ -232,7 +235,7 @@ class _NavItem extends StatelessWidget {
                                 child: Text(
                                   badgeCount > 9 ? '9+' : '$badgeCount',
                                   style: TextStyle(
-                                    color: palette.primaryAccent,
+                                    color: palette.chipSelectedText,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     height: 1.2,
@@ -308,7 +311,7 @@ class _CenterFabState extends State<_CenterFab> {
                     colors: palette.id == LumaThemeId.lumaOriginal
                         ? const [
                             Color(0xFFFFB894),
-                            AppColors.peach,
+                            Color(0xFFFF9E79),
                             Color(0xFFE2744B),
                           ]
                         : [

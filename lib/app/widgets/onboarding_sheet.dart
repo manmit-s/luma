@@ -29,19 +29,24 @@ Future<bool> showOnboardingSheet(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: const BoxDecoration(
-                color: AppColors.plum,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.sms_outlined,
-                color: AppColors.peach,
-                size: 24,
-              ),
+            Builder(
+              builder: (context) {
+                final palette = context.lumaPalette;
+                return Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: palette.chipSelectedBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    Icons.sms_outlined,
+                    color: palette.chipSelectedText,
+                    size: 24,
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
@@ -56,24 +61,29 @@ Future<bool> showOnboardingSheet(
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Row(
-              children: [
-                Icon(
-                  Icons.lock_outline_rounded,
-                  size: 14,
-                  color: AppColors.textSecondary,
-                ),
-                SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    'Everything stays on this device. Nothing is uploaded.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
+            Builder(
+              builder: (context) {
+                final palette = context.lumaPalette;
+                return Row(
+                  children: [
+                    Icon(
+                      Icons.lock_outline_rounded,
+                      size: 14,
+                      color: palette.textSecondary,
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Everything stays on this device. Nothing is uploaded.',
+                        style: TextStyle(
+                          color: palette.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.xl),
             SizedBox(
@@ -191,33 +201,36 @@ class _Step extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(
-                color: AppColors.plum,
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                number,
-                style: const TextStyle(
-                  color: AppColors.peach,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: palette.chipSelectedBackground,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              number,
+              style: TextStyle(
+                color: palette.chipSelectedText,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-            ),
-          ],
-        ),
-      );
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
+          ),
+        ],
+      ),
+    );
+  }
 }

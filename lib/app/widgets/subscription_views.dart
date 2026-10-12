@@ -36,6 +36,7 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
     final subsById = {
       for (final s in subController.subscriptions) s.id: s,
     };
+    final palette = context.lumaPalette;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,12 +47,12 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Text(
+                Text(
                   'Upcoming renewals',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: palette.textPrimary,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -79,7 +80,7 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
           return Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: Material(
-              color: AppColors.surface,
+              color: palette.surface,
               borderRadius: BorderRadius.circular(AppRadii.card),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -100,12 +101,12 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: AppColors.plum.withValues(alpha: 0.3),
+                          color: palette.primaryAccent.withValues(alpha: 0.16),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.repeat_rounded,
-                          color: AppColors.peach,
+                          color: palette.primaryAccent,
                           size: 20,
                         ),
                       ),
@@ -116,10 +117,10 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
                           children: [
                             Text(
                               name,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                                color: palette.textPrimary,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -129,9 +130,9 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
                               children: [
                                 Text(
                                   'Due ${_formatDueDate(payment.expectedDate)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                    color: palette.textSecondary,
                                   ),
                                 ),
                                 if (isAutopay) ...[
@@ -142,15 +143,15 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
                                       vertical: 1,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.elevated,
+                                      color: palette.elevated,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Autopay',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w500,
-                                        color: AppColors.peach,
+                                        color: palette.primaryAccent,
                                       ),
                                     ),
                                   ),
@@ -163,10 +164,10 @@ class UpcomingSubscriptionsSection extends ConsumerWidget {
                       const SizedBox(width: AppSpacing.md),
                       AmountDisplay(payment.expectedAmountMinor, fontSize: 16),
                       const SizedBox(width: 4),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right_rounded,
                         size: 20,
-                        color: AppColors.textMuted,
+                        color: palette.textMuted,
                       ),
                     ],
                   ),
@@ -189,28 +190,29 @@ class SubscriptionsPage extends ConsumerWidget {
     final subController = ref.watch(subscriptionControllerProvider);
     final active = subController.subscriptions.where((s) => s.status.isOngoing).toList();
     final past = subController.subscriptions.where((s) => !s.status.isOngoing).toList();
+    final palette = context.lumaPalette;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.background,
       appBar: AppBar(
         title: const Text('Subscriptions'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_rounded, color: AppColors.peach),
+            icon: Icon(Icons.add_rounded, color: palette.primaryAccent),
             tooltip: 'Add subscription',
             onPressed: () => showAddEditSubscription(context, ref),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.peach,
-        foregroundColor: AppColors.onCta,
+        backgroundColor: palette.primaryAccent,
+        foregroundColor: palette.onPrimaryAccent,
         icon: const Icon(Icons.add_rounded),
         label: const Text('New Subscription'),
         onPressed: () => showAddEditSubscription(context, ref),
       ),
       body: subController.subscriptions.isEmpty
-          ? Center(
+          ? const Center(
               child: EmptyState(
                 icon: Icons.repeat_rounded,
                 title: 'No subscriptions yet',
@@ -224,12 +226,12 @@ class SubscriptionsPage extends ConsumerWidget {
                 if (active.isNotEmpty) ...[
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Active Subscriptions',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                          color: palette.textSecondary,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -244,12 +246,12 @@ class SubscriptionsPage extends ConsumerWidget {
                 if (past.isNotEmpty) ...[
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Past & Cancelled',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
+                          color: palette.textSecondary,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -274,11 +276,12 @@ class _SubscriptionListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCancelled = sub.isCancelled;
+    final palette = context.lumaPalette;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Material(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -298,13 +301,13 @@ class _SubscriptionListCard extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: isCancelled
-                        ? AppColors.surfaceLow
-                        : AppColors.plum.withValues(alpha: 0.4),
+                        ? palette.surface
+                        : palette.primaryAccent.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(AppRadii.compact),
                   ),
                   child: Icon(
                     isCancelled ? Icons.pause_circle_outline_rounded : Icons.repeat_rounded,
-                    color: isCancelled ? AppColors.textMuted : AppColors.peach,
+                    color: isCancelled ? palette.textMuted : palette.primaryAccent,
                     size: 22,
                   ),
                 ),
@@ -318,7 +321,7 @@ class _SubscriptionListCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: isCancelled ? AppColors.textSecondary : AppColors.textPrimary,
+                          color: isCancelled ? palette.textSecondary : palette.textPrimary,
                           decoration: isCancelled ? TextDecoration.lineThrough : null,
                         ),
                         maxLines: 1,
@@ -329,13 +332,13 @@ class _SubscriptionListCard extends StatelessWidget {
                         children: [
                           Text(
                             sub.billingCycle.label,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.textSecondary,
+                              color: palette.textSecondary,
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Text('•', style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.5))),
+                          Text('•', style: TextStyle(color: palette.textMuted.withValues(alpha: 0.5))),
                           const SizedBox(width: 6),
                           Text(
                             isCancelled
@@ -343,7 +346,7 @@ class _SubscriptionListCard extends StatelessWidget {
                                 : 'Next: ${formatDate(sub.nextRenewalDate)}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isCancelled ? AppColors.error : AppColors.textSecondary,
+                              color: isCancelled ? palette.error : palette.textSecondary,
                             ),
                           ),
                         ],
@@ -363,17 +366,17 @@ class _SubscriptionListCard extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
                         color: sub.paymentMethod == PaymentMethod.autopay
-                            ? AppColors.peach
-                            : AppColors.textMuted,
+                            ? palette.primaryAccent
+                            : palette.textMuted,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(width: 4),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
                   size: 20,
-                  color: AppColors.textMuted,
+                  color: palette.textMuted,
                 ),
               ],
             ),
@@ -391,10 +394,11 @@ class SubscriptionDetailPage extends ConsumerWidget {
   final int subscriptionId;
 
   Future<void> _confirmCancel(BuildContext context, WidgetRef ref, Subscription sub) async {
+    final palette = context.lumaPalette;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.elevated,
+        backgroundColor: palette.elevated,
         title: const Text('Cancel subscription?'),
         content: Text(
           'Future expected payments and reminder notifications for "${sub.name}" will stop. All previous recorded expenses will remain intact.',
@@ -406,7 +410,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: palette.error),
             child: const Text('Cancel Subscription'),
           ),
         ],
@@ -424,10 +428,11 @@ class SubscriptionDetailPage extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, Subscription sub) async {
+    final palette = context.lumaPalette;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.elevated,
+        backgroundColor: palette.elevated,
         title: const Text('Delete subscription?'),
         content: Text(
           'This will permanently remove the subscription record and uncompleted upcoming schedule for "${sub.name}". Past actual expenses are unaffected.',
@@ -439,7 +444,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: palette.error),
             child: const Text('Delete'),
           ),
         ],
@@ -461,6 +466,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final subController = ref.watch(subscriptionControllerProvider);
     final expenseController = ref.watch(expenseControllerProvider);
+    final palette = context.lumaPalette;
 
     final sub = subController.subscriptions.cast<Subscription?>().firstWhere(
           (s) => s?.id == subscriptionId,
@@ -469,7 +475,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
 
     if (sub == null) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: palette.background,
         appBar: AppBar(),
         body: const Center(child: Text('Subscription not found')),
       );
@@ -484,7 +490,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
     final matchedPayments = payments.where((p) => p.isMatched).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.background,
       appBar: AppBar(
         title: Text(sub.name),
         actions: [
@@ -494,7 +500,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
             onPressed: () => showAddEditSubscription(context, ref, subscription: sub),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+            icon: Icon(Icons.delete_outline_rounded, color: palette.error),
             tooltip: 'Delete subscription',
             onPressed: () => _confirmDelete(context, ref, sub),
           ),
@@ -507,9 +513,9 @@ class SubscriptionDetailPage extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: palette.surface,
               borderRadius: BorderRadius.circular(AppRadii.card),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: palette.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -519,21 +525,21 @@ class SubscriptionDetailPage extends ConsumerWidget {
                   children: [
                     Text(
                       sub.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: palette.textPrimary,
                       ),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: sub.status.isOngoing
-                            ? AppColors.plum.withValues(alpha: 0.4)
-                            : AppColors.surfaceLow,
+                            ? palette.primaryAccent.withValues(alpha: 0.16)
+                            : palette.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: sub.status.isOngoing ? AppColors.peach : AppColors.border,
+                          color: sub.status.isOngoing ? palette.primaryAccent : palette.border,
                         ),
                       ),
                       child: Text(
@@ -541,7 +547,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: sub.status.isOngoing ? AppColors.peach : AppColors.textMuted,
+                          color: sub.status.isOngoing ? palette.primaryAccent : palette.textMuted,
                         ),
                       ),
                     ),
@@ -556,9 +562,9 @@ class SubscriptionDetailPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Text(
                       '/ ${sub.billingCycle.label.toLowerCase()}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.textSecondary,
+                        color: palette.textSecondary,
                       ),
                     ),
                   ],
@@ -607,8 +613,8 @@ class SubscriptionDetailPage extends ConsumerWidget {
               width: double.infinity,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.error),
+                  foregroundColor: palette.error,
+                  side: BorderSide(color: palette.error),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadii.card),
@@ -623,12 +629,12 @@ class SubscriptionDetailPage extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // Upcoming Scheduled Payments
-          const Text(
+          Text(
             'Upcoming Schedule',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -636,12 +642,12 @@ class SubscriptionDetailPage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              child: const Text(
+              child: Text(
                 'No upcoming payments scheduled.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(color: palette.textSecondary, fontSize: 13),
               ),
             )
           else
@@ -650,7 +656,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(AppRadii.card),
                 ),
                 child: Row(
@@ -661,18 +667,18 @@ class SubscriptionDetailPage extends ConsumerWidget {
                       children: [
                         Text(
                           formatDate(p.expectedDate),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: palette.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
-                        const Text(
+                        Text(
                           'Expected',
                           style: TextStyle(
                             fontSize: 11,
-                            color: AppColors.peach,
+                            color: palette.primaryAccent,
                           ),
                         ),
                       ],
@@ -686,12 +692,12 @@ class SubscriptionDetailPage extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xl),
 
           // Historical Matched Expenses
-          const Text(
+          Text(
             'Payment History',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -699,12 +705,12 @@ class SubscriptionDetailPage extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(AppRadii.card),
               ),
-              child: const Text(
+              child: Text(
                 'No payments matched yet. Incoming debit SMS matching this subscription will appear here.',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                style: TextStyle(color: palette.textSecondary, fontSize: 13),
               ),
             )
           else
@@ -720,7 +726,7 @@ class SubscriptionDetailPage extends ConsumerWidget {
                 margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: palette.surface,
                   borderRadius: BorderRadius.circular(AppRadii.card),
                 ),
                 child: Row(
@@ -731,26 +737,26 @@ class SubscriptionDetailPage extends ConsumerWidget {
                       children: [
                         Text(
                           formatDate(p.expectedDate),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: palette.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.check_circle_rounded,
                               size: 13,
-                              color: AppColors.success,
+                              color: palette.success,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               exp != null ? 'Paid via ${exp.source.name}' : 'Matched',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: AppColors.success,
+                                color: palette.success,
                               ),
                             ),
                           ],
@@ -779,19 +785,20 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          style: TextStyle(fontSize: 13, color: palette.textSecondary),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
+            color: palette.textPrimary,
           ),
         ),
       ],
@@ -805,12 +812,13 @@ Future<void> showAddEditSubscription(
   WidgetRef ref, {
   Subscription? subscription,
 }) {
+  final palette = context.lumaPalette;
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: palette.surface,
     builder: (_) => _AddEditSubscriptionSheet(subscription: subscription),
   );
 }
@@ -865,6 +873,7 @@ class _AddEditSubscriptionSheetState
   }
 
   Future<void> _pickDate() async {
+    final palette = context.lumaPalette;
     final picked = await showDatePicker(
       context: context,
       initialDate: nextRenewalDate,
@@ -873,11 +882,11 @@ class _AddEditSubscriptionSheetState
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.peach,
-              onPrimary: AppColors.onCta,
-              surface: AppColors.elevated,
-              onSurface: AppColors.textPrimary,
+            colorScheme: ColorScheme.dark(
+              primary: palette.primaryAccent,
+              onPrimary: palette.onPrimaryAccent,
+              surface: palette.elevated,
+              onSurface: palette.textPrimary,
             ),
           ),
           child: child!,
@@ -940,6 +949,7 @@ class _AddEditSubscriptionSheetState
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.subscription != null;
+    final palette = context.lumaPalette;
 
     return SafeArea(
       top: false,
@@ -962,7 +972,7 @@ class _AddEditSubscriptionSheetState
             if (error != null) ...[
               Text(
                 error!,
-                style: const TextStyle(color: AppColors.error, fontSize: 13),
+                style: TextStyle(color: palette.error, fontSize: 13),
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
@@ -995,10 +1005,10 @@ class _AddEditSubscriptionSheetState
             const SizedBox(height: AppSpacing.lg),
 
             // Billing Cycle
-            const Text(
+            Text(
               'Billing cycle',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1011,9 +1021,11 @@ class _AddEditSubscriptionSheetState
                 return ChoiceChip(
                   label: Text(cycle.label),
                   selected: isSelected,
-                  selectedColor: AppColors.plum,
+                  selectedColor: palette.chipSelectedBackground,
+                  backgroundColor: palette.chipUnselectedBackground,
+                  side: BorderSide(color: palette.chipUnselectedBorder),
                   labelStyle: TextStyle(
-                    color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+                    color: isSelected ? palette.chipSelectedText : palette.textSecondary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                   onSelected: (val) {
@@ -1025,10 +1037,10 @@ class _AddEditSubscriptionSheetState
             const SizedBox(height: AppSpacing.md),
 
             // Payment Method
-            const Text(
+            Text(
               'Payment method',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -1040,12 +1052,15 @@ class _AddEditSubscriptionSheetState
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: paymentMethod == PaymentMethod.autopay
-                          ? AppColors.plum
+                          ? palette.chipSelectedBackground
                           : Colors.transparent,
+                      foregroundColor: paymentMethod == PaymentMethod.autopay
+                          ? palette.chipSelectedText
+                          : palette.primaryAccent,
                       side: BorderSide(
                         color: paymentMethod == PaymentMethod.autopay
-                            ? AppColors.peach
-                            : AppColors.border,
+                            ? palette.primaryAccent
+                            : palette.border,
                       ),
                     ),
                     onPressed: () =>
@@ -1058,12 +1073,15 @@ class _AddEditSubscriptionSheetState
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       backgroundColor: paymentMethod == PaymentMethod.manual
-                          ? AppColors.plum
+                          ? palette.chipSelectedBackground
                           : Colors.transparent,
+                      foregroundColor: paymentMethod == PaymentMethod.manual
+                          ? palette.chipSelectedText
+                          : palette.primaryAccent,
                       side: BorderSide(
                         color: paymentMethod == PaymentMethod.manual
-                            ? AppColors.peach
-                            : AppColors.border,
+                            ? palette.primaryAccent
+                            : palette.border,
                       ),
                     ),
                     onPressed: () =>

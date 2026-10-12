@@ -51,15 +51,16 @@ class _TransactionTypeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     final isDebit = selectedType == TransactionType.debit;
     final isCredit = selectedType == TransactionType.credit;
     return Container(
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: palette.border),
       ),
       child: Row(
         children: [
@@ -70,10 +71,14 @@ class _TransactionTypeSelector extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
-                  color: isDebit ? const Color(0xFF3E1C27) : Colors.transparent,
+                  color: isDebit
+                      ? (palette.id == LumaThemeId.lumaOriginal
+                          ? const Color(0xFF3E1C27)
+                          : palette.primaryAccent.withValues(alpha: 0.16))
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppRadii.compact),
                   border: isDebit
-                      ? Border.all(color: AppColors.peach, width: 1.2)
+                      ? Border.all(color: palette.primaryAccent, width: 1.2)
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -83,7 +88,7 @@ class _TransactionTypeSelector extends StatelessWidget {
                     Icon(
                       Icons.arrow_outward_rounded,
                       size: 16,
-                      color: isDebit ? AppColors.peach : AppColors.textSecondary,
+                      color: isDebit ? palette.primaryAccent : palette.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -92,8 +97,8 @@ class _TransactionTypeSelector extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: isDebit ? FontWeight.w600 : FontWeight.w500,
                         color: isDebit
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                            ? palette.textPrimary
+                            : palette.textSecondary,
                       ),
                     ),
                   ],
@@ -109,10 +114,14 @@ class _TransactionTypeSelector extends StatelessWidget {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 decoration: BoxDecoration(
-                  color: isCredit ? const Color(0xFF1B3828) : Colors.transparent,
+                  color: isCredit
+                      ? (palette.id == LumaThemeId.lumaOriginal
+                          ? const Color(0xFF1B3828)
+                          : palette.success.withValues(alpha: 0.16))
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(AppRadii.compact),
                   border: isCredit
-                      ? Border.all(color: AppColors.success, width: 1.2)
+                      ? Border.all(color: palette.success, width: 1.2)
                       : null,
                 ),
                 alignment: Alignment.center,
@@ -123,7 +132,7 @@ class _TransactionTypeSelector extends StatelessWidget {
                       Icons.arrow_downward_rounded,
                       size: 16,
                       color:
-                          isCredit ? AppColors.success : AppColors.textSecondary,
+                          isCredit ? palette.success : palette.textSecondary,
                     ),
                     const SizedBox(width: 6),
                     Text(
@@ -133,8 +142,8 @@ class _TransactionTypeSelector extends StatelessWidget {
                         fontWeight:
                             isCredit ? FontWeight.w600 : FontWeight.w500,
                         color: isCredit
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
+                            ? palette.textPrimary
+                            : palette.textSecondary,
                       ),
                     ),
                   ],
@@ -170,6 +179,7 @@ class _CategoryCardSelector extends StatelessWidget {
         itemBuilder: (context, index) {
           final item = defaultCategories[index];
           final isSelected = selectedCategoryId == item.id;
+          final palette = context.lumaPalette;
           return GestureDetector(
             onTap: () => onSelected(item.id),
             child: AnimatedContainer(
@@ -177,10 +187,10 @@ class _CategoryCardSelector extends StatelessWidget {
               width: 80,
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.plum : AppColors.surface,
+                color: isSelected ? palette.chipSelectedBackground : palette.surface,
                 borderRadius: BorderRadius.circular(AppRadii.card),
                 border: Border.all(
-                  color: isSelected ? AppColors.peach : AppColors.border,
+                  color: isSelected ? palette.primaryAccent : palette.border,
                   width: isSelected ? 1.5 : 1.0,
                 ),
               ),
@@ -191,16 +201,16 @@ class _CategoryCardSelector extends StatelessWidget {
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppColors.peach.withValues(alpha: 0.2)
-                          : AppColors.surfaceLow,
+                          ? palette.primaryAccent.withValues(alpha: 0.2)
+                          : palette.elevated,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       categoryIcon(item.id),
                       size: 20,
                       color: isSelected
-                          ? AppColors.peach
-                          : AppColors.textSecondary,
+                          ? palette.chipSelectedText
+                          : palette.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -214,8 +224,8 @@ class _CategoryCardSelector extends StatelessWidget {
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
                       color: isSelected
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                          ? palette.chipSelectedText
+                          : palette.textSecondary,
                     ),
                   ),
                 ],
@@ -252,16 +262,17 @@ class _RecurringSubscriptionOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return Container(
       margin: const EdgeInsets.only(top: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLow,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
         border: Border.all(
           color: enabled
-              ? AppColors.peach.withValues(alpha: 0.5)
-              : AppColors.border,
+              ? palette.primaryAccent.withValues(alpha: 0.5)
+              : palette.border,
         ),
       ),
       child: Column(
@@ -275,18 +286,18 @@ class _RecurringSubscriptionOption extends StatelessWidget {
               'Set up recurring subscription',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            subtitle: const Text(
+            subtitle: Text(
               'Track upcoming renewals and auto-match future debits',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: palette.textSecondary),
             ),
           ),
           if (enabled) ...[
             const Divider(height: 1),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'Billing cycle',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -302,12 +313,14 @@ class _RecurringSubscriptionOption extends StatelessWidget {
                 return ChoiceChip(
                   label: Text(cycle.label),
                   selected: isSelected,
-                  selectedColor: AppColors.plum,
+                  selectedColor: palette.chipSelectedBackground,
+                  backgroundColor: palette.chipUnselectedBackground,
+                  side: BorderSide(color: palette.chipUnselectedBorder),
                   labelStyle: TextStyle(
                     fontSize: 12,
                     color: isSelected
-                        ? AppColors.textPrimary
-                        : AppColors.textSecondary,
+                        ? palette.chipSelectedText
+                        : palette.textSecondary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                   onSelected: (val) {
@@ -317,10 +330,10 @@ class _RecurringSubscriptionOption extends StatelessWidget {
               }).toList(),
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'Payment method',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -333,12 +346,15 @@ class _RecurringSubscriptionOption extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       backgroundColor: paymentMethod == PaymentMethod.autopay
-                          ? AppColors.plum
+                          ? palette.chipSelectedBackground
                           : Colors.transparent,
+                      foregroundColor: paymentMethod == PaymentMethod.autopay
+                          ? palette.chipSelectedText
+                          : palette.primaryAccent,
                       side: BorderSide(
                         color: paymentMethod == PaymentMethod.autopay
-                            ? AppColors.peach
-                            : AppColors.border,
+                            ? palette.primaryAccent
+                            : palette.border,
                       ),
                     ),
                     onPressed: () =>
@@ -353,12 +369,15 @@ class _RecurringSubscriptionOption extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       backgroundColor: paymentMethod == PaymentMethod.manual
-                          ? AppColors.plum
+                          ? palette.chipSelectedBackground
                           : Colors.transparent,
+                      foregroundColor: paymentMethod == PaymentMethod.manual
+                          ? palette.chipSelectedText
+                          : palette.primaryAccent,
                       side: BorderSide(
                         color: paymentMethod == PaymentMethod.manual
-                            ? AppColors.peach
-                            : AppColors.border,
+                            ? palette.primaryAccent
+                            : palette.border,
                       ),
                     ),
                     onPressed: () =>
@@ -377,10 +396,10 @@ class _RecurringSubscriptionOption extends StatelessWidget {
                   style: TextStyle(fontSize: 12)),
               subtitle: Text(
                 formatDate(nextRenewalDate),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.peach,
+                  color: palette.primaryAccent,
                 ),
               ),
               trailing: const Icon(Icons.calendar_today_rounded, size: 16),
@@ -443,10 +462,11 @@ class _CompleteExpenseSheetState
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final palette = context.lumaPalette;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.elevated,
+        backgroundColor: palette.elevated,
         title: const Text('Delete expense?'),
         content: Text(
           '${merchantLabel(widget.expense.merchant)} (${formatAmount(widget.expense.amountMinor)}) will be removed from Needs Attention.',
@@ -458,7 +478,7 @@ class _CompleteExpenseSheetState
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: palette.error),
             child: const Text('Delete'),
           ),
         ],
@@ -478,7 +498,9 @@ class _CompleteExpenseSheetState
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: _sheetPadding(context),
@@ -494,8 +516,8 @@ class _CompleteExpenseSheetState
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.error),
+                    icon: Icon(Icons.delete_outline_rounded,
+                        color: palette.error),
                     tooltip: 'Delete expense',
                     onPressed: () => _confirmDelete(context),
                   ),
@@ -506,20 +528,20 @@ class _CompleteExpenseSheetState
               const SizedBox(height: AppSpacing.xs),
               Text(
                 merchantLabel(widget.expense.merchant),
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: TextStyle(color: palette.textSecondary),
               ),
               Text(
                 formatTime(widget.expense.timestamp),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: palette.textSecondary,
                   fontSize: 13,
                 ),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 'Transaction type',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: palette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -530,10 +552,10 @@ class _CompleteExpenseSheetState
                 onChanged: (val) => setState(() => transactionType = val),
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
+              Text(
                 'What was this for?',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: palette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -621,23 +643,23 @@ class _CompleteExpenseSheetState
                 ),
               ),
               if (category.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     'Pick a category to save.',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: palette.textSecondary,
                       fontSize: 12,
                     ),
                   ),
                 )
               else if (transactionType == TransactionType.unknown)
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.sm),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
                     'Select Debit (Expense) or Credit (Income) to save.',
                     style: TextStyle(
-                      color: AppColors.peach,
+                      color: palette.primaryAccent,
                       fontSize: 12,
                     ),
                   ),
@@ -647,12 +669,12 @@ class _CompleteExpenseSheetState
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: () => _confirmDelete(context),
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.error, size: 18),
-                  label: const Text(
+                  icon: Icon(Icons.delete_outline_rounded,
+                      color: palette.error, size: 18),
+                  label: Text(
                     'Delete this expense',
                     style: TextStyle(
-                      color: AppColors.error,
+                      color: palette.error,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -662,6 +684,7 @@ class _CompleteExpenseSheetState
           ),
         ),
       );
+  }
 }
 
 Future<void> showAddExpense(BuildContext context, WidgetRef ref) {
@@ -744,10 +767,10 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Text(
+              Text(
                 'Category',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: context.lumaPalette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -895,10 +918,11 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final palette = context.lumaPalette;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.elevated,
+        backgroundColor: palette.elevated,
         title: const Text('Delete expense?'),
         content: Text(
           '${merchantLabel(widget.expense.merchant)} (${formatAmount(widget.expense.amountMinor)}) will be removed permanently.',
@@ -910,7 +934,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: palette.error),
             child: const Text('Delete'),
           ),
         ],
@@ -930,7 +954,9 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
   }
 
   @override
-  Widget build(BuildContext context) => SafeArea(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return SafeArea(
         top: false,
         child: SingleChildScrollView(
           padding: _sheetPadding(context),
@@ -946,8 +972,8 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.error),
+                    icon: Icon(Icons.delete_outline_rounded,
+                        color: palette.error),
                     tooltip: 'Delete expense',
                     onPressed: () => _confirmDelete(context),
                   ),
@@ -979,10 +1005,10 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Text(
+              Text(
                 'Category',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: palette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1046,12 +1072,12 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                 width: double.infinity,
                 child: TextButton.icon(
                   onPressed: () => _confirmDelete(context),
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.error, size: 18),
-                  label: const Text(
+                  icon: Icon(Icons.delete_outline_rounded,
+                      color: palette.error, size: 18),
+                  label: Text(
                     'Delete this expense',
                     style: TextStyle(
-                      color: AppColors.error,
+                      color: palette.error,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1061,4 +1087,5 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
           ),
         ),
       );
+  }
 }

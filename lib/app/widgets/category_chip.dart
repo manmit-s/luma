@@ -27,13 +27,13 @@ class CategoryChip extends StatelessWidget {
           vertical: compact ? AppSpacing.xs : 5,
         ),
         decoration: BoxDecoration(
-          color: palette.secondaryAccent,
+          color: palette.chipSelectedBackground,
           borderRadius: BorderRadius.circular(AppRadii.control),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: palette.primaryAccent,
+            color: palette.chipSelectedText,
             fontSize: compact ? 11 : 12,
             fontWeight: FontWeight.w600,
           ),
@@ -44,11 +44,11 @@ class CategoryChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: onSelected,
-      selectedColor: palette.secondaryAccent,
-      backgroundColor: palette.surface,
-      side: BorderSide(color: palette.border),
+      selectedColor: palette.chipSelectedBackground,
+      backgroundColor: palette.chipUnselectedBackground,
+      side: BorderSide(color: palette.chipUnselectedBorder),
       labelStyle: TextStyle(
-        color: selected ? palette.primaryAccent : palette.textSecondary,
+        color: selected ? palette.chipSelectedText : palette.chipUnselectedText,
         fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
       ),
     );
@@ -67,13 +67,13 @@ class CountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: palette.secondaryAccent,
+        color: palette.chipSelectedBackground,
         borderRadius: BorderRadius.circular(AppRadii.control),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: palette.primaryAccent,
+          color: palette.chipSelectedText,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),

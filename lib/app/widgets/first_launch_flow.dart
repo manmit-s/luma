@@ -123,26 +123,27 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return PopScope(
       canPop: _currentPage == 0,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _previousPage();
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: palette.background,
         resizeToAvoidBottomInset: true,
         body: SafeArea(
           child: Column(
             children: [
-              _buildTopBar(),
+              _buildTopBar(palette),
               Expanded(
                 child: PageView(
                   controller: _pageController,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    _buildWelcomeStep(),
-                    _buildNameStep(),
-                    _buildBalanceStep(),
+                    _buildWelcomeStep(palette),
+                    _buildNameStep(palette),
+                    _buildBalanceStep(palette),
                   ],
                 ),
               ),
@@ -153,7 +154,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     );
   }
 
-  Widget _buildTopBar() {
+  Widget _buildTopBar(LumaPalette palette) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       child: Row(
@@ -161,7 +162,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
         children: [
           _currentPage > 0
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+                  icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
                   onPressed: _previousPage,
                   tooltip: 'Back',
                 )
@@ -170,14 +171,14 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: palette.surface,
                 borderRadius: BorderRadius.circular(AppRadii.control),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: palette.border),
               ),
               child: Text(
                 'Step $_currentPage of 2',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: palette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.5,
@@ -190,7 +191,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     );
   }
 
-  Widget _buildWelcomeStep() {
+  Widget _buildWelcomeStep(LumaPalette palette) {
     return Padding(
       padding: AppSpacing.screenPadding,
       child: Column(
@@ -205,7 +206,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
               borderRadius: BorderRadius.circular(26),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.plum.withValues(alpha: 0.4),
+                  color: palette.secondaryAccent.withValues(alpha: 0.4),
                   blurRadius: 36,
                   spreadRadius: 2,
                   offset: const Offset(0, 10),
@@ -221,35 +222,35 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
             ),
           ),
           const SizedBox(height: AppSpacing.xxxl),
-          const Text(
+          Text(
             'Luma',
             style: TextStyle(
               fontSize: 38,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
               letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          const Text(
+          Text(
             'Remember where your money went.',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              color: AppColors.peach,
+              color: palette.primaryAccent,
               letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
             child: Text(
               'Luma keeps track of your spending as it happens, so you don\'t have to remember it later.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 height: 1.5,
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
               ),
             ),
           ),
@@ -258,11 +259,11 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildTimelineDot(isFilled: true),
-              _buildTimelineLine(),
-              _buildTimelineDot(isFilled: false),
-              _buildTimelineLine(),
-              _buildTimelineDot(isFilled: false),
+              _buildTimelineDot(palette, isFilled: true),
+              _buildTimelineLine(palette),
+              _buildTimelineDot(palette, isFilled: false),
+              _buildTimelineLine(palette),
+              _buildTimelineDot(palette, isFilled: false),
             ],
           ),
           const SizedBox(height: AppSpacing.xxl),
@@ -279,26 +280,26 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     );
   }
 
-  Widget _buildTimelineDot({required bool isFilled}) {
+  Widget _buildTimelineDot(LumaPalette palette, {required bool isFilled}) {
     return Container(
       width: 7,
       height: 7,
       decoration: BoxDecoration(
-        color: isFilled ? AppColors.peach : AppColors.border,
+        color: isFilled ? palette.primaryAccent : palette.border,
         shape: BoxShape.circle,
       ),
     );
   }
 
-  Widget _buildTimelineLine() {
+  Widget _buildTimelineLine(LumaPalette palette) {
     return Container(
       width: 24,
       height: 1.5,
-      color: AppColors.border,
+      color: palette.border,
     );
   }
 
-  Widget _buildNameStep() {
+  Widget _buildNameStep(LumaPalette palette) {
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: AppSpacing.screenPadding,
@@ -312,22 +313,22 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: AppSpacing.lg),
-                  const Text(
+                  Text(
                     'What should Luma\ncall you?',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: palette.textPrimary,
                       height: 1.25,
                       letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Text(
+                  Text(
                     'This name is only used for your personal greeting.',
                     style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.textSecondary,
+                      color: palette.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -341,36 +342,36 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                     onSubmitted: (_) {
                       if (_isNameValid) _nextPage();
                     },
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: palette.textPrimary,
                     ),
-                    cursorColor: AppColors.peach,
+                    cursorColor: palette.primaryAccent,
                     decoration: InputDecoration(
                       hintText: 'Enter your preferred name',
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w400,
-                        color: AppColors.textMuted,
+                        color: palette.textMuted,
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: palette.surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xl,
                         vertical: AppSpacing.lg,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        borderSide: BorderSide(color: palette.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        borderSide: BorderSide(color: palette.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.peach, width: 1.5),
+                        borderSide: BorderSide(color: palette.primaryAccent, width: 1.5),
                       ),
                     ),
                   ),
@@ -394,7 +395,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     );
   }
 
-  Widget _buildBalanceStep() {
+  Widget _buildBalanceStep(LumaPalette palette) {
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: AppSpacing.screenPadding,
@@ -408,22 +409,22 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: AppSpacing.lg),
-                  const Text(
+                  Text(
                     'What\'s your\ncurrent balance?',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: palette.textPrimary,
                       height: 1.25,
                       letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Text(
+                  Text(
                     'Enter the balance in your account right now. Luma will update it as transactions are recorded.',
                     style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.textSecondary,
+                      color: palette.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -436,65 +437,65 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                     onSubmitted: (_) {
                       if (_isBalanceValid) _handleFinish();
                     },
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: palette.textPrimary,
                     ),
-                    cursorColor: AppColors.peach,
+                    cursorColor: palette.primaryAccent,
                     decoration: InputDecoration(
-                      prefixIcon: const Padding(
-                        padding: EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
                         child: Text(
                           '₹',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.peach,
+                            color: palette.primaryAccent,
                           ),
                         ),
                       ),
                       prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
                       hintText: '0.00',
-                      hintStyle: const TextStyle(
+                      hintStyle: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.textMuted,
+                        color: palette.textMuted,
                       ),
                       filled: true,
-                      fillColor: AppColors.surface,
+                      fillColor: palette.surface,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xl,
                         vertical: AppSpacing.lg,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        borderSide: BorderSide(color: palette.border),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.border),
+                        borderSide: BorderSide(color: palette.border),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: const BorderSide(color: AppColors.peach, width: 1.5),
+                        borderSide: BorderSide(color: palette.primaryAccent, width: 1.5),
                       ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Row(
+                  Row(
                     children: [
                       Icon(
                         Icons.info_outline_rounded,
                         size: 14,
-                        color: AppColors.textSecondary,
+                        color: palette.textSecondary,
                       ),
-                      SizedBox(width: 6),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Your starting point. Luma will update it as transactions are recorded.',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: palette.textSecondary,
                             fontSize: 13,
                           ),
                         ),

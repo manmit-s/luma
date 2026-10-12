@@ -43,10 +43,10 @@ class ExpenseCard extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: palette.secondaryAccent,
+                backgroundColor: palette.chipSelectedBackground,
                 child: Icon(
                   categoryIcon(expense.categoryId),
-                  color: palette.primaryAccent,
+                  color: palette.chipSelectedText,
                   size: 19,
                 ),
               ),
