@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 /// Primary CTA (peach) and secondary/plum actions share one style source.
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
@@ -40,9 +42,10 @@ class PlumButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     final style = FilledButton.styleFrom(
-      backgroundColor: const Color(0xFF542A52),
-      foregroundColor: Colors.white,
+      backgroundColor: palette.secondaryAccent,
+      foregroundColor: palette.onSecondaryAccent,
       minimumSize: const Size.fromHeight(48),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
