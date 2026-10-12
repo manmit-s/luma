@@ -27,60 +27,64 @@ class ExpenseCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Card(
-        margin: EdgeInsets.zero,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AppColors.plum,
-                  child: Icon(
-                    categoryIcon(expense.categoryId),
-                    color: AppColors.peach,
-                    size: 19,
-                  ),
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: palette.secondaryAccent,
+                child: Icon(
+                  categoryIcon(expense.categoryId),
+                  color: palette.primaryAccent,
+                  size: 19,
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        merchantLabel(expense.merchant),
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      merchantLabel(expense.merchant),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${categoryName(expense.categoryId)} · ${formatTime(expense.timestamp)}',
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 12,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${categoryName(expense.categoryId)} · ${formatTime(expense.timestamp)}',
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.md),
-                AmountDisplay(
-                  expense.amountMinor,
-                  fontSize: 15,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              AmountDisplay(
+                expense.amountMinor,
+                fontSize: 15,
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 /// Pending expense — elevated distinction from completed (SPEC 43).
@@ -96,13 +100,14 @@ class PendingExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     final isCredit = expense.transactionType == TransactionType.credit;
     return Material(
-      color: AppColors.elevated,
+      color: palette.elevated,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.card),
         side: BorderSide(
-          color: isCredit ? AppColors.success : AppColors.peach,
+          color: isCredit ? palette.success : palette.primaryAccent,
           width: 0.6,
         ),
       ),
@@ -124,7 +129,7 @@ class PendingExpenseCard extends StatelessWidget {
                         AmountDisplay(
                           expense.amountMinor,
                           fontSize: 24,
-                          color: isCredit ? AppColors.success : null,
+                          color: isCredit ? palette.success : null,
                         ),
                         if (isCredit) ...[
                           const SizedBox(width: 8),
@@ -134,19 +139,19 @@ class PendingExpenseCard extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1B3828),
+                              color: palette.success.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: AppColors.success,
+                                color: palette.success,
                                 width: 0.8,
                               ),
                             ),
-                            child: const Text(
+                            child: Text(
                               'Credit',
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.success,
+                                color: palette.success,
                               ),
                             ),
                           ),
@@ -162,45 +167,45 @@ class PendingExpenseCard extends StatelessWidget {
                   ),
                 ],
               ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  merchantLabel(expense.merchant),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                merchantLabel(expense.merchant),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 13,
                 ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    const Text(
-                      'Suggested:',
-                      style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12,
-                      ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Text(
+                    'Suggested:',
+                    style: TextStyle(
+                      color: palette.textSecondary,
+                      fontSize: 12,
                     ),
-                    const SizedBox(width: 6),
-                    CategoryChip(
-                      label: categoryName(expense.categoryId),
-                      compact: true,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  const SizedBox(width: 6),
+                  CategoryChip(
+                    label: categoryName(expense.categoryId),
+                    compact: true,
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 }
