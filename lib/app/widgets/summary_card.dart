@@ -19,55 +19,58 @@ class SummaryCard extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: AppSpacing.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Container(
+      padding: AppSpacing.cardPadding,
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              if (expenseCount != null)
+                Text(
+                  '$expenseCount expenses',
+                  style: TextStyle(color: palette.textSecondary),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          AmountDisplay(monthTotal, fontSize: 32),
+          if (todayTotal != null) ...[
+            const SizedBox(height: AppSpacing.lg),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.0,
-                  ),
+                  'Spent today',
+                  style: TextStyle(color: palette.textSecondary),
                 ),
-                if (expenseCount != null)
-                  Text(
-                    '$expenseCount expenses',
-                    style: const TextStyle(color: AppColors.textSecondary),
-                  ),
+                const SizedBox(width: AppSpacing.md),
+                AmountDisplay(
+                  todayTotal!,
+                  fontSize: 15,
+                  color: palette.primaryAccent,
+                ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            AmountDisplay(monthTotal, fontSize: 32),
-            if (todayTotal != null) ...[
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  const Text(
-                    'Spent today',
-                    style: TextStyle(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  AmountDisplay(
-                    todayTotal!,
-                    fontSize: 15,
-                    color: AppColors.peach,
-                  ),
-                ],
-              ),
-            ],
           ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
