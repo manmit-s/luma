@@ -204,9 +204,11 @@ class ExportService {
         runningBalance -= expense.amountMinor;
       }
 
+      final localTimestamp = expense.timestamp.toLocal();
+
       excel.appendRow(sheetName, [
-        TextCellValue(_dateOf(expense.timestamp)),
-        TextCellValue(_timeOf(expense.timestamp)),
+        TextCellValue(_dateOf(localTimestamp)),
+        TextCellValue(_timeOf(localTimestamp)),
         TextCellValue(expense.merchant ?? ''),
         TextCellValue(categoryName(expense.categoryId)),
         TextCellValue(_txLabel(expense.transactionType)),
