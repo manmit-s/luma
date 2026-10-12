@@ -73,9 +73,9 @@ abstract final class AppSpacing {
 /// Identifiers for selectable Luma themes.
 enum LumaThemeId {
   lumaOriginal('luma_original', 'Luma Original', 'Plum × Peach'),
-  roseOlive('rose_olive', 'Rose × Olive', 'Warm, calm and refined'),
-  lavenderBeige('lavender_beige', 'Lavender × Beige', 'Creative, soft and timeless'),
-  sageCream('sage_cream', 'Sage × Cream', 'Natural, calm and elegant');
+  roseOlive('rose_olive', 'Rosé Grove', 'Warm, calm and refined'),
+  lavenderBeige('lavender_beige', 'Lavender Latte', 'Creative, soft and timeless'),
+  sageCream('sage_cream', 'Sage Soufflé', 'Natural, calm and elegant');
 
   const LumaThemeId(this.id, this.label, this.description);
   final String id;
@@ -109,6 +109,13 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     required this.border,
     required this.success,
     required this.error,
+    required this.navIndicatorBackground,
+    required this.navIndicatorBorder,
+    required this.chipSelectedBackground,
+    required this.chipSelectedText,
+    required this.chipUnselectedBackground,
+    required this.chipUnselectedText,
+    required this.chipUnselectedBorder,
   });
 
   final LumaThemeId id;
@@ -127,6 +134,17 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
   final Color success;
   final Color error;
 
+  /// Semantic navigation indicator colors
+  final Color navIndicatorBackground;
+  final Color navIndicatorBorder;
+
+  /// Semantic chip / filter / badge selection colors
+  final Color chipSelectedBackground;
+  final Color chipSelectedText;
+  final Color chipUnselectedBackground;
+  final Color chipUnselectedText;
+  final Color chipUnselectedBorder;
+
   // A. Luma Original: current canonical Plum × Peach palette
   static const original = LumaPalette(
     id: LumaThemeId.lumaOriginal,
@@ -144,12 +162,19 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     border: AppColors.border,
     success: AppColors.success,
     error: AppColors.error,
+    navIndicatorBackground: Color(0xB2542A52), // AppColors.plum @ 0.70
+    navIndicatorBorder: Color(0x59FFB39A), // AppColors.peach @ 0.35
+    chipSelectedBackground: AppColors.plum,
+    chipSelectedText: AppColors.peach,
+    chipUnselectedBackground: AppColors.surface,
+    chipUnselectedText: AppColors.textSecondary,
+    chipUnselectedBorder: AppColors.border,
   );
 
-  // B. Rose × Olive: warm, calm and refined
+  // B. Rose × Olive: warm, calm and refined -> Rosé Grove
   static const roseOlive = LumaPalette(
     id: LumaThemeId.roseOlive,
-    name: 'Rose × Olive',
+    name: 'Rosé Grove',
     background: Color(0xFF1A1514),
     surface: Color(0xFF2C2421),
     elevated: Color(0xFF3B312D),
@@ -163,12 +188,19 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     border: Color(0xFF433733),
     success: Color(0xFF4CAF50),
     error: Color(0xFFCF6679),
+    navIndicatorBackground: Color(0x29C9A0A0), // Rose @ 0.16
+    navIndicatorBorder: Color(0x59C9A0A0), // Rose @ 0.35
+    chipSelectedBackground: Color(0xFF8A8F68),
+    chipSelectedText: Color(0xFFFFFFFF),
+    chipUnselectedBackground: Color(0xFF2C2421),
+    chipUnselectedText: Color(0xFF9E8D8A),
+    chipUnselectedBorder: Color(0xFF433733),
   );
 
-  // C. Lavender × Beige: creative, soft and timeless
+  // C. Lavender × Beige: creative, soft and timeless -> Lavender Latte
   static const lavenderBeige = LumaPalette(
     id: LumaThemeId.lavenderBeige,
-    name: 'Lavender × Beige',
+    name: 'Lavender Latte',
     background: Color(0xFF14121A),
     surface: Color(0xFF23202B),
     elevated: Color(0xFF302C3C),
@@ -182,12 +214,19 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     border: Color(0xFF393448),
     success: Color(0xFF4CAF50),
     error: Color(0xFFCF6679),
+    navIndicatorBackground: Color(0x29A89BBE), // Lavender @ 0.16
+    navIndicatorBorder: Color(0x59A89BBE), // Lavender @ 0.35
+    chipSelectedBackground: Color(0xFFD8C3A8),
+    chipSelectedText: Color(0xFF14121A),
+    chipUnselectedBackground: Color(0xFF23202B),
+    chipUnselectedText: Color(0xFF8D859E),
+    chipUnselectedBorder: Color(0xFF393448),
   );
 
-  // D. Sage × Cream: natural, calm and elegant
+  // D. Sage × Cream: natural, calm and elegant -> Sage Soufflé
   static const sageCream = LumaPalette(
     id: LumaThemeId.sageCream,
-    name: 'Sage × Cream',
+    name: 'Sage Soufflé',
     background: Color(0xFF111511),
     surface: Color(0xFF1D241D),
     elevated: Color(0xFF2B362B),
@@ -201,6 +240,13 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     border: Color(0xFF303C30),
     success: Color(0xFF4CAF50),
     error: Color(0xFFCF6679),
+    navIndicatorBackground: Color(0x29A3B18A), // Sage @ 0.16
+    navIndicatorBorder: Color(0x59A3B18A), // Sage @ 0.35
+    chipSelectedBackground: Color(0xFFF2E8CF),
+    chipSelectedText: Color(0xFF111511),
+    chipUnselectedBackground: Color(0xFF1D241D),
+    chipUnselectedText: Color(0xFF7E8A75),
+    chipUnselectedBorder: Color(0xFF303C30),
   );
 
   static LumaPalette of(LumaThemeId id) => switch (id) {
@@ -232,6 +278,13 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
     Color? border,
     Color? success,
     Color? error,
+    Color? navIndicatorBackground,
+    Color? navIndicatorBorder,
+    Color? chipSelectedBackground,
+    Color? chipSelectedText,
+    Color? chipUnselectedBackground,
+    Color? chipUnselectedText,
+    Color? chipUnselectedBorder,
   }) =>
       LumaPalette(
         id: id ?? this.id,
@@ -249,6 +302,17 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
         border: border ?? this.border,
         success: success ?? this.success,
         error: error ?? this.error,
+        navIndicatorBackground:
+            navIndicatorBackground ?? this.navIndicatorBackground,
+        navIndicatorBorder: navIndicatorBorder ?? this.navIndicatorBorder,
+        chipSelectedBackground:
+            chipSelectedBackground ?? this.chipSelectedBackground,
+        chipSelectedText: chipSelectedText ?? this.chipSelectedText,
+        chipUnselectedBackground:
+            chipUnselectedBackground ?? this.chipUnselectedBackground,
+        chipUnselectedText: chipUnselectedText ?? this.chipUnselectedText,
+        chipUnselectedBorder:
+            chipUnselectedBorder ?? this.chipUnselectedBorder,
       );
 
   @override
@@ -273,6 +337,20 @@ class LumaPalette extends ThemeExtension<LumaPalette> {
       border: Color.lerp(border, other.border, t)!,
       success: Color.lerp(success, other.success, t)!,
       error: Color.lerp(error, other.error, t)!,
+      navIndicatorBackground: Color.lerp(
+          navIndicatorBackground, other.navIndicatorBackground, t)!,
+      navIndicatorBorder:
+          Color.lerp(navIndicatorBorder, other.navIndicatorBorder, t)!,
+      chipSelectedBackground:
+          Color.lerp(chipSelectedBackground, other.chipSelectedBackground, t)!,
+      chipSelectedText:
+          Color.lerp(chipSelectedText, other.chipSelectedText, t)!,
+      chipUnselectedBackground: Color.lerp(
+          chipUnselectedBackground, other.chipUnselectedBackground, t)!,
+      chipUnselectedText:
+          Color.lerp(chipUnselectedText, other.chipUnselectedText, t)!,
+      chipUnselectedBorder:
+          Color.lerp(chipUnselectedBorder, other.chipUnselectedBorder, t)!,
     );
   }
 }
@@ -368,9 +446,16 @@ ThemeData buildLumaTheme({LumaThemeId themeId = LumaThemeId.lumaOriginal}) {
         color: palette.textSecondary,
       ),
     ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: palette.elevated,
+      surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(AppRadii.card)),
+      ),
+    ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: palette.surface,
-      indicatorColor: palette.secondaryAccent,
+      indicatorColor: palette.navIndicatorBackground,
       height: 72,
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
@@ -430,14 +515,14 @@ ThemeData buildLumaTheme({LumaThemeId themeId = LumaThemeId.lumaOriginal}) {
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: palette.surface,
-      selectedColor: palette.secondaryAccent,
-      secondarySelectedColor: palette.secondaryAccent,
-      disabledColor: palette.surface,
-      side: BorderSide(color: palette.border),
-      labelStyle: TextStyle(color: palette.textSecondary, fontSize: 13),
+      backgroundColor: palette.chipUnselectedBackground,
+      selectedColor: palette.chipSelectedBackground,
+      secondarySelectedColor: palette.chipSelectedBackground,
+      disabledColor: palette.chipUnselectedBackground,
+      side: BorderSide(color: palette.chipUnselectedBorder),
+      labelStyle: TextStyle(color: palette.chipUnselectedText, fontSize: 13),
       secondaryLabelStyle: TextStyle(
-        color: palette.primaryAccent,
+        color: palette.chipSelectedText,
         fontSize: 13,
         fontWeight: FontWeight.w600,
       ),
