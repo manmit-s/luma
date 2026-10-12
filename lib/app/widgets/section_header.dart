@@ -45,17 +45,19 @@ class EmptyState extends StatelessWidget {
   final String subtitle;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Container(
         width: double.infinity,
         padding: AppSpacing.cardPadding,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: palette.surface,
           borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: palette.border),
         ),
         child: Column(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 28),
+            Icon(icon, color: palette.textSecondary, size: 28),
             const SizedBox(height: AppSpacing.sm),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: AppSpacing.xs),
@@ -67,4 +69,5 @@ class EmptyState extends StatelessWidget {
           ],
         ),
       );
+  }
 }

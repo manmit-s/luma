@@ -236,5 +236,72 @@ void main() {
       // After credit ₹1000: 2500 + 1000 = 3500
       expect((rows[8][6] as num).toDouble(), 3500.0);
     });
+
+    test('transaction timestamped at 13:03 exports as 13:03, not 00:00',
+        () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      await _add(
+        repo,
+        amountMinor: 8500,
+        merchant: 'College Canteen',
+        at: DateTime(2026, 9, 23, 13, 3),
+      );
+      final service = _service(repo, dir);
+
+      final result = await service.generate(ExportMode.full);
+      final rows = _rows(result.file);
+
+      expect(rows[7][0], '2026-09-23');
+      expect(rows[7][1], '13:03');
+    });
+
+    test('date and time remain correct across day boundaries', () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      await _add(
+        repo,
+        amountMinor: 1500,
+        merchant: 'Late Night Snack',
+        at: DateTime(2026, 9, 23, 23, 55),
+      );
+      await _add(
+        repo,
+        amountMinor: 2500,
+        merchant: 'Early Morning Coffee',
+        at: DateTime(2026, 9, 24, 0, 5),
+      );
+      final service = _service(repo, dir);
+
+      final result = await service.generate(ExportMode.full);
+      final rows = _rows(result.file);
+
+      expect(rows[7][0], '2026-09-23');
+      expect(rows[7][1], '23:55');
+      expect(rows[8][0], '2026-09-24');
+      expect(rows[8][1], '00:05');
+    });
+
+    test('failed file writing does not mark unexported expenses or update metadata',
+        () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      await _add(repo, amountMinor: 1000, merchant: 'Store');
+
+      final failingService = ExportService(
+        repo,
+        null,
+        outputDir: () async => dir,
+        writeFile: (dir, filename, bytes) async {
+          throw ExportException('Disk write failure');
+        },
+      );
+
+      expect(
+        () => failingService.generate(ExportMode.full),
+        throwsA(isA<ExportException>()),
+      );
+
+      final unexported = await repo.queryUnexported();
+      expect(unexported.length, 1);
+      expect(unexported.first.lastExportedAt, isNull);
+    });
   });
 }

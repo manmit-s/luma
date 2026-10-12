@@ -75,26 +75,97 @@ class SmsTransactionParser {
     caseSensitive: false,
   );
 
-  static DateTime? _parseDate(String message) {
+  static final _numericDatePattern = RegExp(
+    r'\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b',
+  );
+
+  static final _timePattern = RegExp(
+    r'\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\s*(am|pm)?\b',
+    caseSensitive: false,
+  );
+
+  static ({int year, int month, int day})? _extractDate(String message) {
     final match = _datePattern.firstMatch(message);
-    if (match == null) return null;
-    final day = int.tryParse(match.group(1)!);
-    final monthStr = match.group(2)!.toLowerCase();
-    final yearStr = match.group(3)!;
-    if (day == null || day < 1 || day > 31) return null;
+    if (match != null) {
+      final day = int.tryParse(match.group(1)!);
+      final monthStr = match.group(2)!.toLowerCase();
+      final yearStr = match.group(3)!;
+      if (day != null && day >= 1 && day <= 31) {
+        const months = {
+          'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+          'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
+        };
+        final month = months[monthStr];
+        var year = int.tryParse(yearStr);
+        if (month != null && year != null) {
+          if (year < 100) year += 2000;
+          return (year: year, month: month, day: day);
+        }
+      }
+    }
 
-    const months = {
-      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12,
-    };
-    final month = months[monthStr];
-    if (month == null) return null;
+    final numMatch = _numericDatePattern.firstMatch(message);
+    if (numMatch != null) {
+      final day = int.tryParse(numMatch.group(1)!);
+      final month = int.tryParse(numMatch.group(2)!);
+      var year = int.tryParse(numMatch.group(3)!);
+      if (day != null &&
+          day >= 1 &&
+          day <= 31 &&
+          month != null &&
+          month >= 1 &&
+          month <= 12 &&
+          year != null) {
+        if (year < 100) year += 2000;
+        return (year: year, month: month, day: day);
+      }
+    }
 
-    var year = int.tryParse(yearStr);
-    if (year == null) return null;
-    if (year < 100) year += 2000;
+    return null;
+  }
 
-    return DateTime(year, month, day);
+  static ({int hour, int minute, int second})? _extractTime(String message) {
+    final timeMatch = _timePattern.firstMatch(message);
+    if (timeMatch == null) return null;
+    var hour = int.tryParse(timeMatch.group(1)!);
+    final minute = int.tryParse(timeMatch.group(2)!);
+    final second = int.tryParse(timeMatch.group(3) ?? '') ?? 0;
+    final ampm = timeMatch.group(4)?.toLowerCase();
+
+    if (hour == null || minute == null) return null;
+
+    if (ampm != null) {
+      if (ampm == 'pm' && hour < 12) hour += 12;
+      if (ampm == 'am' && hour == 12) hour = 0;
+    }
+
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+
+    return (hour: hour, minute: minute, second: second);
+  }
+
+  static DateTime? _parseTimestamp(String message, {DateTime? receivedAt}) {
+    final d = _extractDate(message);
+    final t = _extractTime(message);
+
+    if (d != null) {
+      if (t != null) {
+        return DateTime(d.year, d.month, d.day, t.hour, t.minute, t.second);
+      } else if (receivedAt != null) {
+        return DateTime(d.year, d.month, d.day, receivedAt.hour, receivedAt.minute, receivedAt.second);
+      } else {
+        return DateTime(d.year, d.month, d.day);
+      }
+    } else if (t != null) {
+      if (receivedAt != null) {
+        return DateTime(receivedAt.year, receivedAt.month, receivedAt.day, t.hour, t.minute, t.second);
+      } else {
+        final now = DateTime.now();
+        return DateTime(now.year, now.month, now.day, t.hour, t.minute, t.second);
+      }
+    } else {
+      return receivedAt;
+    }
   }
 
   // Payee / Merchant patterns:
@@ -187,7 +258,7 @@ class SmsTransactionParser {
     final digitsStart =
         amountMatch.start + amountMatch.group(0)!.indexOf(digits);
 
-    final timestamp = receivedAt ?? _parseDate(normalized);
+    final timestamp = _parseTimestamp(normalized, receivedAt: receivedAt);
 
     return ParsedTransaction(
       amountMinor: (amount * 100).round(),
@@ -203,43 +274,51 @@ class SmsTransactionParser {
   String? _merchant(String message, int amountStart, {TransactionType? transactionType}) {
     // 1. Try structured patterns after amount or anywhere in text
     // Info pattern: Info: BIL*NETFLIX
-    final infoMatch = _infoPattern.firstMatch(message)?.group(1);
-    final cleanedInfo = _cleanMerchant(infoMatch);
-    if (cleanedInfo != null) return cleanedInfo;
+    for (final m in _infoPattern.allMatches(message)) {
+      final cleaned = _cleanMerchant(m.group(1));
+      if (cleaned != null) return cleaned;
+    }
 
     // UPI Path pattern: UPI/P2M/.../Zomato
-    final upiPathMatch = _upiPathPattern.firstMatch(message)?.group(1);
-    final cleanedUpi = _cleanMerchant(upiPathMatch);
-    if (cleanedUpi != null) return cleanedUpi;
+    for (final m in _upiPathPattern.allMatches(message)) {
+      final cleaned = _cleanMerchant(m.group(1));
+      if (cleaned != null) return cleaned;
+    }
 
     // "at <Merchant>"
-    final atMatch = _atMerchantPattern.firstMatch(message)?.group(1);
-    final cleanedAt = _cleanMerchant(atMatch);
-    if (cleanedAt != null) return cleanedAt;
+    for (final m in _atMerchantPattern.allMatches(message)) {
+      final cleaned = _cleanMerchant(m.group(1));
+      if (cleaned != null) return cleaned;
+    }
 
     // "towards <Merchant>"
-    final towardsMatch = _towardsPattern.firstMatch(message)?.group(1);
-    final cleanedTowards = _cleanMerchant(towardsMatch);
-    if (cleanedTowards != null) return cleanedTowards;
+    for (final m in _towardsPattern.allMatches(message)) {
+      final cleaned = _cleanMerchant(m.group(1));
+      if (cleaned != null) return cleaned;
+    }
 
     if (transactionType == TransactionType.credit) {
       // For credits: check from first ("transfer from YouTube"), then to
-      final fromMatch = _fromPayeePattern.firstMatch(message)?.group(1);
-      final cleanedFrom = _cleanMerchant(fromMatch);
-      if (cleanedFrom != null) return cleanedFrom;
+      for (final m in _fromPayeePattern.allMatches(message)) {
+        final cleaned = _cleanMerchant(m.group(1));
+        if (cleaned != null) return cleaned;
+      }
 
-      final toMatch = _toPayeePattern.firstMatch(message)?.group(1);
-      final cleanedTo = _cleanMerchant(toMatch);
-      if (cleanedTo != null) return cleanedTo;
+      for (final m in _toPayeePattern.allMatches(message)) {
+        final cleaned = _cleanMerchant(m.group(1));
+        if (cleaned != null) return cleaned;
+      }
     } else {
       // For debits / unknown: check to first ("to Ramesh Sharma"), then from
-      final toMatch = _toPayeePattern.firstMatch(message)?.group(1);
-      final cleanedTo = _cleanMerchant(toMatch);
-      if (cleanedTo != null) return cleanedTo;
+      for (final m in _toPayeePattern.allMatches(message)) {
+        final cleaned = _cleanMerchant(m.group(1));
+        if (cleaned != null) return cleaned;
+      }
 
-      final fromMatch = _fromPayeePattern.firstMatch(message)?.group(1);
-      final cleanedFrom = _cleanMerchant(fromMatch);
-      if (cleanedFrom != null) return cleanedFrom;
+      for (final m in _fromPayeePattern.allMatches(message)) {
+        final cleaned = _cleanMerchant(m.group(1));
+        if (cleaned != null) return cleaned;
+      }
     }
 
     // Fallback: prefix before amount ("Swiggy debited Rs 250...")

@@ -23,8 +23,9 @@ class MainActivity : FlutterActivity() {
 					result.success(messages)
 				}
 				"scanInboxSms" -> {
-					val limit = (call.argument<Int>("limit") ?: 50).coerceIn(1, 200)
-					result.success(scanInbox(limit))
+					val limit = (call.argument<Int>("limit") ?: 50).coerceIn(1, 500)
+					val beforeDate = call.argument<Number>("beforeDate")?.toLong()
+					result.success(scanInbox(limit, beforeDate))
 				}
 				// Diagnostics: how many receiver-queued SMS are still waiting.
 				// Non-destructive (does NOT drain) so Settings can display it.
@@ -55,22 +56,29 @@ class MainActivity : FlutterActivity() {
 		}
 	}
 
-	private fun scanInbox(limit: Int): List<String> {
-		val messages = mutableListOf<String>()
+	private fun scanInbox(limit: Int, beforeDate: Long? = null): List<Map<String, Any>> {
+		val messages = mutableListOf<Map<String, Any>>()
 		try {
+			val selection = if (beforeDate != null) "${android.provider.Telephony.Sms.Inbox.DATE} <= ?" else null
+			val selectionArgs = if (beforeDate != null) arrayOf(beforeDate.toString()) else null
 			val cursor = contentResolver.query(
 				android.provider.Telephony.Sms.Inbox.CONTENT_URI,
-				arrayOf(android.provider.Telephony.Sms.Inbox.BODY),
-				null,
-				null,
+				arrayOf(
+					android.provider.Telephony.Sms.Inbox.BODY,
+					android.provider.Telephony.Sms.Inbox.DATE
+				),
+				selection,
+				selectionArgs,
 				"${android.provider.Telephony.Sms.Inbox.DATE} DESC"
 			)
 			cursor?.use {
 				val bodyIndex = it.getColumnIndex(android.provider.Telephony.Sms.Inbox.BODY)
+				val dateIndex = it.getColumnIndex(android.provider.Telephony.Sms.Inbox.DATE)
 				while (it.moveToNext() && messages.size < limit) {
 					val body = it.getString(bodyIndex) ?: continue
+					val date = if (dateIndex >= 0) it.getLong(dateIndex) else System.currentTimeMillis()
 					if (SmsInboxReceiver.likelyTransaction(body)) {
-						messages.add(body)
+						messages.add(mapOf("body" to body, "date" to date))
 					}
 				}
 			}

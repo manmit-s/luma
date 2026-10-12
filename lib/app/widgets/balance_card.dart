@@ -20,25 +20,26 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     final isNegative = currentBalanceMinor < 0;
 
     return Container(
       padding: AppSpacing.cardPadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: palette.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'CURRENT BALANCE',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: palette.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.0,
@@ -47,7 +48,7 @@ class BalanceCard extends StatelessWidget {
               Icon(
                 Icons.account_balance_wallet_outlined,
                 size: 16,
-                color: AppColors.textMuted,
+                color: palette.textSecondary,
               ),
             ],
           ),
@@ -55,21 +56,21 @@ class BalanceCard extends StatelessWidget {
           AmountDisplay(
             currentBalanceMinor,
             fontSize: 32,
-            color: isNegative ? AppColors.error : AppColors.textPrimary,
+            color: isNegative ? palette.error : palette.textPrimary,
           ),
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.history_rounded,
                 size: 14,
-                color: AppColors.textSecondary,
+                color: palette.textSecondary,
               ),
               const SizedBox(width: 6),
               Text(
                 'Started with ${formatAmount(initialBalanceMinor)}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: palette.textSecondary,
                   fontSize: 13,
                 ),
               ),

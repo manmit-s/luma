@@ -67,11 +67,12 @@ class _LumaAppState extends ConsumerState<LumaApp> {
 
   @override
   Widget build(BuildContext context) {
+    final currentThemeId = ref.watch(themeProvider);
     return MaterialApp(
       title: 'Luma',
       navigatorKey: lumaNavigatorKey,
       debugShowCheckedModeBanner: false,
-      theme: buildLumaTheme(),
+      theme: buildLumaTheme(themeId: currentThemeId),
       home: AnimatedSwitcher(
         duration: const Duration(milliseconds: 280),
         switchInCurve: Curves.easeOut,
@@ -1034,6 +1035,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   Widget build(BuildContext context) {
     super.build(context);
     final textTheme = Theme.of(context).textTheme;
+    final palette = context.lumaPalette;
+    final currentTheme = ref.watch(themeProvider);
     final smsOn = _smsState == SmsPermissionState.granted;
     final activeSubs = ref
         .watch(subscriptionControllerProvider)
@@ -1054,7 +1057,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         Text(
           'Keep Luma working quietly in the background',
           style: textTheme.bodyMedium?.copyWith(
-            color: AppColors.textSecondary,
+            color: palette.textSecondary,
           ),
         ),
         const SizedBox(height: 14),
@@ -1068,8 +1071,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               trailing: Switch(
                 value: smsOn,
                 onChanged: (_) => _onSmsTap(),
-                activeThumbColor: AppColors.peach,
-                activeTrackColor: AppColors.plum,
+                activeThumbColor: palette.primaryAccent,
+                activeTrackColor: palette.secondaryAccent,
               ),
               onTap: _onSmsTap,
             ),
@@ -1079,6 +1082,27 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               title: 'Daily audit',
               subtitle: dailyAudit ? 'Every day at 9:00 PM' : 'Off',
               onTap: _showDailyAuditSheet,
+            ),
+          ],
+        ),
+        const _SettingsSectionHeader('APPEARANCE'),
+        _SettingsSectionCard(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: LumaThemeId.values.map((themeId) {
+                  final isSelected = currentTheme == themeId;
+                  final previewPalette = LumaPalette.of(themeId);
+                  return _ThemeOptionTile(
+                    themeId: themeId,
+                    palette: previewPalette,
+                    isSelected: isSelected,
+                    onSelect: () =>
+                        ref.read(themeProvider.notifier).setTheme(themeId),
+                  );
+                }).toList(),
+              ),
             ),
           ],
         ),
@@ -1168,6 +1192,117 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 }
 
+class _ThemeOptionTile extends StatelessWidget {
+  const _ThemeOptionTile({
+    required this.themeId,
+    required this.palette,
+    required this.isSelected,
+    required this.onSelect,
+  });
+
+  final LumaThemeId themeId;
+  final LumaPalette palette;
+  final bool isSelected;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final activePalette = context.lumaPalette;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onSelect,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activePalette.primaryAccent.withAlpha(25)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? activePalette.primaryAccent
+                : activePalette.border.withAlpha(120),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: isSelected
+                  ? activePalette.primaryAccent
+                  : activePalette.textSecondary,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    themeId.label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: activePalette.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    themeId.description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: activePalette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: BoxDecoration(
+                color: palette.background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SwatchDot(palette.surface),
+                  const SizedBox(width: 4),
+                  _SwatchDot(palette.primaryAccent),
+                  const SizedBox(width: 4),
+                  _SwatchDot(palette.secondaryAccent),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SwatchDot extends StatelessWidget {
+  const _SwatchDot(this.color);
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+        ),
+      );
+}
+
 class _SettingsSectionHeader extends StatelessWidget {
   const _SettingsSectionHeader(this.title);
 
@@ -1175,6 +1310,7 @@ class _SettingsSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
       child: Text(
@@ -1183,7 +1319,7 @@ class _SettingsSectionHeader extends StatelessWidget {
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
-          color: AppColors.textSecondary.withAlpha(180),
+          color: palette.textSecondary.withAlpha(180),
         ),
       ),
     );
@@ -1197,12 +1333,13 @@ class _SettingsSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.border.withAlpha(160),
+          color: palette.border.withAlpha(160),
           width: 1,
         ),
       ),
@@ -1219,10 +1356,11 @@ class _SettingsRowDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    final palette = context.lumaPalette;
+    return Divider(
       height: 1,
       thickness: 1,
-      color: AppColors.border,
+      color: palette.border,
       indent: 54,
       endIndent: 16,
     );
@@ -1250,6 +1388,7 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
@@ -1261,7 +1400,7 @@ class _SettingsRow extends StatelessWidget {
               Icon(
                 icon,
                 size: 22,
-                color: iconColor ?? AppColors.textSecondary,
+                color: iconColor ?? palette.textSecondary,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -1274,15 +1413,15 @@ class _SettingsRow extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w500,
-                        color: titleColor ?? AppColors.textPrimary,
+                        color: titleColor ?? palette.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 3),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: palette.textSecondary,
                       ),
                     ),
                   ],
@@ -1290,10 +1429,10 @@ class _SettingsRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               trailing ??
-                  const Icon(
+                  Icon(
                     Icons.chevron_right_rounded,
                     size: 20,
-                    color: AppColors.textSecondary,
+                    color: palette.textSecondary,
                   ),
             ],
           ),
@@ -1514,14 +1653,27 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
     }
   }
 
-  Future<void> _scanInbox({int? targetCount}) async {
+  Future<void> _scanInbox({int? targetCount, DateTime? cutoffDate}) async {
     setState(() => _scanning = true);
     try {
-      final result = await scanInboxSms(ref, targetCount: targetCount);
+      final result = await scanInboxSms(
+        ref,
+        targetCount: targetCount,
+        cutoffDate: cutoffDate,
+      );
       await _refreshQueue();
       if (!mounted) return;
       final String message;
-      if (targetCount != null) {
+      if (cutoffDate != null) {
+        final dateLabel =
+            '${cutoffDate.year}-${cutoffDate.month.toString().padLeft(2, '0')}-${cutoffDate.day.toString().padLeft(2, '0')}';
+        if (result.validParsed > 0) {
+          message =
+              'Scanned inbox up to $dateLabel: ${result.validParsed} found (${result.newlyCreated} imported).';
+        } else {
+          message = 'No matching transaction SMS found up to $dateLabel.';
+        }
+      } else if (targetCount != null) {
         if (result.validParsed > 0) {
           message =
               'Scanned ${result.validParsed} latest transaction SMS (${result.newlyCreated} added to Needs Attention).';
@@ -1539,6 +1691,11 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error scanning SMS: $e')),
+      );
     } finally {
       if (mounted) setState(() => _scanning = false);
     }
@@ -1547,82 +1704,244 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
   void _showSelectedScanDialog() {
     final countController = TextEditingController(text: '4');
     var selectedPreset = 4;
+    var scanMode = 0; // 0: by count, 1: up to date
+    DateTime? selectedCutoffDate;
+
     showDialog<void>(
       context: context,
       builder: (dialogCtx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: AppColors.elevated,
-          title: const Text('Scan Recent SMS'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Specify how many latest transaction SMS to scan from inbox and import into Needs Attention:',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Wrap(
-                spacing: 8,
-                children: [2, 3, 4, 5, 10].map((preset) {
-                  final isSelected = selectedPreset == preset;
-                  return ChoiceChip(
-                    label: Text('$preset SMS'),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setDialogState(() {
-                          selectedPreset = preset;
-                          countController.text = '$preset';
-                        });
-                      }
-                    },
-                    selectedColor: AppColors.peach.withAlpha(50),
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? AppColors.peach
-                          : AppColors.textSecondary,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
+        builder: (context, setDialogState) {
+          final palette = context.lumaPalette;
+          return AlertDialog(
+            backgroundColor: palette.elevated,
+            title: const Text('Scan Recent SMS'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('By count'),
+                        selected: scanMode == 0,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() => scanMode = 0);
+                          }
+                        },
+                        selectedColor: palette.primaryAccent.withAlpha(50),
+                        labelStyle: TextStyle(
+                          color: scanMode == 0
+                              ? palette.primaryAccent
+                              : palette.textSecondary,
+                          fontWeight: scanMode == 0
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Up to date'),
+                        selected: scanMode == 1,
+                        onSelected: (selected) {
+                          if (selected) {
+                            setDialogState(() => scanMode = 1);
+                          }
+                        },
+                        selectedColor: palette.primaryAccent.withAlpha(50),
+                        labelStyle: TextStyle(
+                          color: scanMode == 1
+                              ? palette.primaryAccent
+                              : palette.textSecondary,
+                          fontWeight: scanMode == 1
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  if (scanMode == 0) ...[
+                    Text(
+                      'Specify how many latest transaction SMS to scan from inbox and import into Needs Attention:',
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
-                  );
-                }).toList(),
+                    const SizedBox(height: AppSpacing.md),
+                    Wrap(
+                      spacing: 8,
+                      children: [2, 3, 4, 5, 10].map((preset) {
+                        final isSelected = selectedPreset == preset;
+                        return ChoiceChip(
+                          label: Text('$preset SMS'),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setDialogState(() {
+                                selectedPreset = preset;
+                                countController.text = '$preset';
+                              });
+                            }
+                          },
+                          selectedColor: palette.primaryAccent.withAlpha(50),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? palette.primaryAccent
+                                : palette.textSecondary,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    TextField(
+                      controller: countController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'Number of recent SMS',
+                        hintText: 'e.g. 4',
+                      ),
+                      onChanged: (val) {
+                        final parsed = int.tryParse(val);
+                        setDialogState(() {
+                          selectedPreset = parsed ?? -1;
+                        });
+                      },
+                    ),
+                  ] else ...[
+                    Text(
+                      'Process eligible transaction SMS from the inbox up to and including the selected date:',
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    if (selectedCutoffDate != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: palette.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: palette.primaryAccent.withAlpha(120),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: palette.primaryAccent,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Cutoff date (inclusive)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: palette.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    formatDayLabel(selectedCutoffDate!),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: selectedCutoffDate ??
+                                      DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (picked != null) {
+                                  setDialogState(
+                                      () => selectedCutoffDate = picked);
+                                }
+                              },
+                              child: const Text('Change'),
+                            ),
+                            IconButton(
+                              tooltip: 'Clear',
+                              icon: const Icon(Icons.close_rounded, size: 18),
+                              onPressed: () => setDialogState(
+                                  () => selectedCutoffDate = null),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                            );
+                            if (picked != null) {
+                              setDialogState(
+                                  () => selectedCutoffDate = picked);
+                            }
+                          },
+                          icon: const Icon(Icons.date_range_rounded, size: 18),
+                          label: const Text('Select cutoff date'),
+                        ),
+                      ),
+                  ],
+                ],
               ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: countController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Number of recent SMS',
-                  hintText: 'e.g. 4',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
+              ),
+              if (scanMode == 0)
+                PrimaryButton(
+                  label: 'Scan recent',
+                  onPressed: () {
+                    final count =
+                        int.tryParse(countController.text.trim()) ?? 4;
+                    Navigator.pop(dialogCtx);
+                    _scanInbox(targetCount: count.clamp(1, 50));
+                  },
+                )
+              else
+                PrimaryButton(
+                  label: 'Scan up to date',
+                  onPressed: selectedCutoffDate == null
+                      ? null
+                      : () {
+                          final date = selectedCutoffDate!;
+                          Navigator.pop(dialogCtx);
+                          _scanInbox(cutoffDate: date);
+                        },
                 ),
-                onChanged: (val) {
-                  final parsed = int.tryParse(val);
-                  setDialogState(() {
-                    selectedPreset = parsed ?? -1;
-                  });
-                },
-              ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel'),
-            ),
-            PrimaryButton(
-              label: 'Scan recent',
-              onPressed: () {
-                final count = int.tryParse(countController.text.trim()) ?? 4;
-                Navigator.pop(dialogCtx);
-                _scanInbox(targetCount: count.clamp(1, 50));
-              },
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
