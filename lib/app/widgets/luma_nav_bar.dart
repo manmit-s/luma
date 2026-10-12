@@ -23,7 +23,9 @@ class LumaNavBar extends StatelessWidget {
   final VoidCallback onAdd;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -35,10 +37,15 @@ class LumaNavBar extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  const Color(0xFF221D30).withValues(alpha: 0.82),
-                  const Color(0xFF161222).withValues(alpha: 0.90),
-                ],
+                colors: palette.id == LumaThemeId.lumaOriginal
+                    ? [
+                        const Color(0xFF221D30).withValues(alpha: 0.82),
+                        const Color(0xFF161222).withValues(alpha: 0.90),
+                      ]
+                    : [
+                        palette.elevated.withValues(alpha: 0.82),
+                        palette.background.withValues(alpha: 0.90),
+                      ],
               ),
               borderRadius: BorderRadius.circular(30),
               // Frosted rim catching light
@@ -53,7 +60,7 @@ class LumaNavBar extends StatelessWidget {
                   offset: const Offset(0, 10),
                 ),
                 BoxShadow(
-                  color: AppColors.peach.withValues(alpha: 0.06),
+                  color: palette.primaryAccent.withValues(alpha: 0.06),
                   blurRadius: 20,
                   offset: const Offset(0, 2),
                 ),
@@ -110,6 +117,7 @@ class LumaNavBar extends StatelessWidget {
           ),
         ),
       );
+  }
 }
 
 class _NavItem extends StatelessWidget {
@@ -132,7 +140,9 @@ class _NavItem extends StatelessWidget {
   final int badgeCount;
 
   @override
-  Widget build(BuildContext context) => Semantics(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Semantics(
         label: label,
         selected: selected,
         button: true,
@@ -154,19 +164,19 @@ class _NavItem extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: selected
-                        ? AppColors.plum.withValues(alpha: 0.70)
+                        ? palette.secondaryAccent.withValues(alpha: 0.70)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: selected
-                          ? AppColors.peach.withValues(alpha: 0.35)
+                          ? palette.primaryAccent.withValues(alpha: 0.35)
                           : Colors.transparent,
                       width: 1,
                     ),
                     boxShadow: selected
                         ? [
                             BoxShadow(
-                              color: AppColors.peach.withValues(alpha: 0.12),
+                              color: palette.primaryAccent.withValues(alpha: 0.12),
                               blurRadius: 10,
                               offset: const Offset(0, 2),
                             ),
@@ -188,8 +198,8 @@ class _NavItem extends StatelessWidget {
                               selected ? selectedIcon : icon,
                               size: 21,
                               color: selected
-                                  ? AppColors.peach
-                                  : AppColors.textSecondary,
+                                  ? palette.primaryAccent
+                                  : palette.textSecondary,
                             ),
                           ),
                           if (badgeCount > 0)
@@ -205,15 +215,15 @@ class _NavItem extends StatelessWidget {
                                   horizontal: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.plum,
+                                  color: palette.secondaryAccent,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: AppColors.peach,
+                                    color: palette.primaryAccent,
                                     width: 1,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.peach.withValues(alpha: 0.3),
+                                      color: palette.primaryAccent.withValues(alpha: 0.3),
                                       blurRadius: 4,
                                     ),
                                   ],
@@ -221,8 +231,8 @@ class _NavItem extends StatelessWidget {
                                 alignment: Alignment.center,
                                 child: Text(
                                   badgeCount > 9 ? '9+' : '$badgeCount',
-                                  style: const TextStyle(
-                                    color: AppColors.peach,
+                                  style: TextStyle(
+                                    color: palette.primaryAccent,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     height: 1.2,
@@ -242,8 +252,8 @@ class _NavItem extends StatelessWidget {
                           fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                           letterSpacing: 0.1,
                           color: selected
-                              ? AppColors.peach
-                              : AppColors.textSecondary,
+                              ? palette.primaryAccent
+                              : palette.textSecondary,
                         ),
                       ),
                     ],
@@ -254,6 +264,7 @@ class _NavItem extends StatelessWidget {
           ),
         ),
       );
+  }
 }
 
 class _CenterFab extends StatefulWidget {
@@ -269,7 +280,9 @@ class _CenterFabState extends State<_CenterFab> {
   bool _pressed = false;
 
   @override
-  Widget build(BuildContext context) => Semantics(
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Semantics(
         label: 'Add expense',
         button: true,
         child: Tooltip(
@@ -289,14 +302,20 @@ class _CenterFabState extends State<_CenterFab> {
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFFFFB894),
-                      AppColors.peach,
-                      Color(0xFFE2744B),
-                    ],
+                    colors: palette.id == LumaThemeId.lumaOriginal
+                        ? const [
+                            Color(0xFFFFB894),
+                            AppColors.peach,
+                            Color(0xFFE2744B),
+                          ]
+                        : [
+                            Color.lerp(palette.primaryAccent, Colors.white, 0.18) ?? palette.primaryAccent,
+                            palette.primaryAccent,
+                            Color.lerp(palette.primaryAccent, Colors.black, 0.18) ?? palette.primaryAccent,
+                          ],
                   ),
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.40),
@@ -304,21 +323,22 @@ class _CenterFabState extends State<_CenterFab> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.peach.withValues(alpha: 0.45),
+                      color: palette.primaryAccent.withValues(alpha: 0.45),
                       blurRadius: 18,
                       offset: const Offset(0, 5),
                     ),
                   ],
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
+                child: Icon(
                   Icons.add_rounded,
                   size: 27,
-                  color: AppColors.onCta,
+                  color: palette.onPrimaryAccent,
                 ),
               ),
             ),
           ),
         ),
       );
+  }
 }
