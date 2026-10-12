@@ -86,6 +86,38 @@ void main() {
     test('ignores unrelated messages', () {
       expect(SmsTransactionParser().parse('Your OTP is 482910'), isNull);
     });
+
+    test('parses transaction timestamp with time 13:03', () {
+      final parsed = SmsTransactionParser().parse(
+        'Dear SBI User, your A/c X9937-debited by Rs.200.00 on 01Oct26 at 13:03 at Swiggy Ref No 123456789 -SBI',
+      );
+      expect(parsed?.timestamp, DateTime(2026, 10, 1, 13, 3));
+      expect(parsed?.merchant, 'Swiggy');
+    });
+
+    test('parses transaction timestamp with 12-hour PM time', () {
+      final parsed = SmsTransactionParser().parse(
+        'Alert: You spent Rs. 500 on 28-Sep-26 at 01:03 PM at Dominos. Ref 998877',
+      );
+      expect(parsed?.timestamp, DateTime(2026, 9, 28, 13, 3));
+      expect(parsed?.merchant, 'Dominos');
+    });
+
+    test('parses numeric date format and preserves time', () {
+      final parsed = SmsTransactionParser().parse(
+        'Your A/C XX1234 debited by Rs.200.90 at Uber on 23-09-2026 at 13:03. UPI Ref 123456789',
+      );
+      expect(parsed?.timestamp, DateTime(2026, 9, 23, 13, 3));
+      expect(parsed?.merchant, 'Uber');
+    });
+
+    test('combines SMS date with receivedAt time when SMS lacks time', () {
+      final parsed = SmsTransactionParser().parse(
+        'A/c debited by Rs.500.00 at Starbucks on 01-10-2026. Ref 112233',
+        receivedAt: DateTime(2026, 10, 1, 13, 3, 25),
+      );
+      expect(parsed?.timestamp, DateTime(2026, 10, 1, 13, 3, 25));
+    });
   });
 
   test('merchant learning returns the highest frequency category', () {
