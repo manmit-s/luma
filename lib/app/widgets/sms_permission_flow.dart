@@ -54,46 +54,49 @@ class SmsDisabledBanner extends ConsumerWidget {
   const SmsDisabledBanner({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => Container(
-        width: double.infinity,
-        padding: AppSpacing.cardPadding,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.sms_failed_outlined,
-              color: AppColors.peach,
-              size: 22,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Automatic detection is disabled',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.lumaPalette;
+    return Container(
+      width: double.infinity,
+      padding: AppSpacing.cardPadding,
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.sms_failed_outlined,
+            color: palette.primaryAccent,
+            size: 22,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Automatic detection is disabled',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Allow SMS access to auto-catch expenses.',
+                  style: TextStyle(
+                    color: palette.textSecondary,
+                    fontSize: 13,
                   ),
-                  SizedBox(height: 2),
-                  Text(
-                    'Allow SMS access to auto-catch expenses.',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => requestSmsPermissionFlow(context, ref),
-              child: const Text('Enable'),
-            ),
-          ],
-        ),
-      );
+          ),
+          TextButton(
+            onPressed: () => requestSmsPermissionFlow(context, ref),
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
 }
