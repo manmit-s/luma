@@ -90,37 +90,78 @@ Future<int> drainSmsQueue(WidgetRef ref) async {
 /// chronological order (newest first) and stops once [targetCount] valid
 /// debit/credit transaction SMS have been processed.
 ///
+/// If [cutoffDate] is provided, scanning only processes eligible transactions
+/// up to and including the local calendar day of [cutoffDate].
+///
 /// Requires SMS permission. Returns an [SmsScanResult] with count of valid
 /// parsed transactions and newly created pending expenses.
 Future<SmsScanResult> scanInboxSms(
   WidgetRef ref, {
   int limit = 50,
   int? targetCount,
+  DateTime? cutoffDate,
 }) async {
   try {
     final controller = ref.read(expenseControllerProvider);
     final parser = SmsTransactionParser();
     final queryLimit = targetCount != null
         ? (targetCount * 4).clamp(20, 200)
-        : limit;
-    final messages = await _smsChannel.invokeListMethod<String>(
+        : (cutoffDate != null ? 200 : limit);
+
+    final endOfDay = cutoffDate != null
+        ? DateTime(cutoffDate.year, cutoffDate.month, cutoffDate.day, 23, 59, 59, 999)
+        : null;
+
+    final rawList = await _smsChannel.invokeMethod<List<dynamic>>(
           'scanInboxSms',
-          {'limit': queryLimit},
+          {
+            'limit': queryLimit,
+            if (endOfDay != null) 'beforeDate': endOfDay.millisecondsSinceEpoch,
+          },
         ) ??
         [];
+
     var newlyCreated = 0;
     var validParsed = 0;
-    for (final message in messages) {
+    for (final item in rawList) {
       if (targetCount != null && validParsed >= targetCount) {
         break;
       }
-      final parsed = parser.parse(message);
+
+      final String message;
+      final DateTime? receivedAt;
+      if (item is Map) {
+        message = item['body'] as String? ?? '';
+        final dateVal = item['date'];
+        final dateMs = dateVal is int
+            ? dateVal
+            : (dateVal is num ? dateVal.toInt() : null);
+        receivedAt =
+            dateMs != null ? DateTime.fromMillisecondsSinceEpoch(dateMs) : null;
+      } else {
+        message = item.toString();
+        receivedAt = null;
+      }
+
+      if (message.isEmpty) continue;
+
+      final parsed = parser.parse(message, receivedAt: receivedAt);
       if (parsed == null) {
         continue;
       }
+
+      // Cutoff date filter: inclusive of messages on the selected day up to 23:59:59.999
+      if (endOfDay != null) {
+        final txTime = parsed.timestamp ?? receivedAt;
+        if (txTime != null && txTime.isAfter(endOfDay)) {
+          continue;
+        }
+      }
+
       validParsed++;
       final existingCount = controller.expenses.length;
-      final expense = await controller.processSms(message);
+      final expense =
+          await controller.processSms(message, receivedAt: receivedAt);
       final wasNewlyCreated = controller.expenses.length > existingCount;
       if (wasNewlyCreated &&
           expense != null &&
