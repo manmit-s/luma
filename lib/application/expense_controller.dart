@@ -76,6 +76,14 @@ class ExpenseController extends ChangeNotifier {
 
   List<Expense> get pending => expenses.where((expense) => expense.isPending).toList();
 
+  List<Expense> get pendingOrUncategorized => expenses
+      .where((expense) =>
+          expense.status != ExpenseStatus.ignored &&
+          (expense.isPending ||
+              expense.categoryId == null ||
+              expense.categoryId!.trim().isEmpty))
+      .toList();
+
   List<Expense> get unexported => expenses
       .where((expense) =>
           expense.lastExportedAt == null ||
