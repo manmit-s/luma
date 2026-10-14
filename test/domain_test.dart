@@ -139,4 +139,54 @@ void main() {
     expect(second?.id, first?.id);
     expect(controller.expenses.where((expense) => expense.referenceNumber == '123456789'), hasLength(1));
   });
+
+  test('pendingOrUncategorized returns pending and uncategorized expenses while ignoring ignored ones', () {
+    final controller = ExpenseController();
+    final now = DateTime.now();
+    controller.expenses = [
+      Expense(
+        id: 1,
+        amountMinor: 1000,
+        merchant: 'Uber',
+        categoryId: null,
+        timestamp: now,
+        status: ExpenseStatus.pending,
+        transactionType: TransactionType.debit,
+        source: ExpenseSource.sms,
+      ),
+      Expense(
+        id: 2,
+        amountMinor: 2000,
+        merchant: 'Swiggy',
+        categoryId: 'food',
+        timestamp: now,
+        status: ExpenseStatus.completed,
+        transactionType: TransactionType.debit,
+        source: ExpenseSource.manual,
+      ),
+      Expense(
+        id: 3,
+        amountMinor: 500,
+        merchant: 'Chai',
+        categoryId: '',
+        timestamp: now,
+        status: ExpenseStatus.completed,
+        transactionType: TransactionType.debit,
+        source: ExpenseSource.manual,
+      ),
+      Expense(
+        id: 4,
+        amountMinor: 3000,
+        merchant: 'Ignored',
+        categoryId: null,
+        timestamp: now,
+        status: ExpenseStatus.ignored,
+        transactionType: TransactionType.debit,
+        source: ExpenseSource.sms,
+      ),
+    ];
+
+    final pendingOrUncategorized = controller.pendingOrUncategorized;
+    expect(pendingOrUncategorized.map((e) => e.id), [1, 3]);
+  });
 }
