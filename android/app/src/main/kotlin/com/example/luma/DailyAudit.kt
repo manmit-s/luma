@@ -129,9 +129,9 @@ object DailyAudit {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             )
             val text = if (pending == 1) {
-                "You have 1 expense waiting to be completed."
+                "You have 1 pending or uncategorized expense waiting for review."
             } else {
-                "You have $pending expenses waiting to be completed."
+                "You have $pending pending or uncategorized expenses waiting for review."
             }
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -153,7 +153,10 @@ object DailyAudit {
         var db: SQLiteDatabase? = null
         return try {
             db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
-            db.rawQuery("SELECT COUNT(*) FROM expenses WHERE status = 0", null).use { cursor ->
+            db.rawQuery(
+                "SELECT COUNT(*) FROM expenses WHERE status != 2 AND (status = 0 OR category_id IS NULL OR category_id = '')",
+                null
+            ).use { cursor ->
                 if (cursor.moveToFirst()) cursor.getInt(0) else 0
             }
         } catch (_: Exception) {

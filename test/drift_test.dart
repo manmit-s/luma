@@ -56,6 +56,20 @@ void main() {
       await store.setDailyAuditEnabled(true);
       expect(await store.userName(), 'Manmit');
       expect(await store.isDailyAuditEnabled(), isTrue);
+
+      // Default audit time is 21:00 (9:00 PM)
+      expect(await store.auditTime(), (21, 0));
+
+      // Setting audit time persists
+      await store.setAuditTime(20, 30);
+      expect(await store.auditTime(), (20, 30));
+
+      // Memory-only store also defaults to (21, 0) and updates
+      final memoryStore = AppSettingsStore(null);
+      expect(await memoryStore.auditTime(), (21, 0));
+      await memoryStore.setAuditTime(8, 15);
+      expect(await memoryStore.auditTime(), (8, 15));
+
       await db.close();
     });
 

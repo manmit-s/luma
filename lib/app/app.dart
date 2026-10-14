@@ -687,6 +687,8 @@ class _SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<_SettingsPage>
     with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
   bool dailyAudit = true;
+  int _auditHour = 21;
+  int _auditMinute = 0;
   SmsPermissionState? _smsState;
   bool _checkingSms = true;
   bool _loadingAudit = true;
@@ -730,11 +732,14 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _loadAuditState() async {
-    final enabled =
-        await ref.read(appSettingsStoreProvider).isDailyAuditEnabled();
+    final store = ref.read(appSettingsStoreProvider);
+    final enabled = await store.isDailyAuditEnabled();
+    final (hour, minute) = await store.auditTime();
     if (mounted) {
       setState(() {
         dailyAudit = enabled;
+        _auditHour = hour;
+        _auditMinute = minute;
         _loadingAudit = false;
       });
     }
@@ -832,12 +837,28 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     await ref.read(appSettingsStoreProvider).setDailyAuditEnabled(enabled);
     final audit = ref.read(dailyAuditServiceProvider);
     if (enabled) {
-      final (hour, minute) =
-          await ref.read(appSettingsStoreProvider).auditTime();
-      await audit.schedule(hour, minute);
+      await audit.schedule(_auditHour, _auditMinute);
     } else {
       await audit.cancel();
     }
+  }
+
+  Future<void> _setAuditTime(int hour, int minute) async {
+    setState(() {
+      _auditHour = hour;
+      _auditMinute = minute;
+    });
+    await ref.read(appSettingsStoreProvider).setAuditTime(hour, minute);
+    if (dailyAudit) {
+      await ref.read(dailyAuditServiceProvider).schedule(hour, minute);
+    }
+  }
+
+  String _formatAuditTime(int hour, int minute) {
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final h12 = hour % 12 == 0 ? 12 : hour % 12;
+    final mStr = minute.toString().padLeft(2, '0');
+    return '$h12:$mStr $period';
   }
 
   String get _smsSubtitle {
@@ -862,6 +883,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     final palette = context.lumaPalette;
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: palette.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -870,97 +892,390 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: palette.border,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          color: palette.primaryAccent,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Daily audit',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Luma can send a gentle evening reminder to review your day’s transactions and keep your balance accurate.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: palette.textSecondary,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: palette.elevated,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: palette.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Evening reminder',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w500,
-                                    color: palette.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  dailyAudit ? 'Every day at 9:00 PM' : 'Disabled',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: dailyAudit ? palette.primaryAccent : palette.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: palette.border,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          Switch(
-                            value: dailyAudit,
-                            onChanged: _loadingAudit
-                                ? null
-                                : (val) async {
-                                    setSheetState(() => dailyAudit = val);
-                                    await _setAudit(val);
-                                  },
-                            activeThumbColor: palette.primaryAccent,
-                            activeTrackColor: palette.secondaryAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            color: palette.primaryAccent,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Daily audit',
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Luma can send a gentle reminder to review your day’s transactions and keep your balance accurate.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: palette.textSecondary,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: palette.elevated,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: palette.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Daily reminder',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: palette.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    dailyAudit
+                                        ? 'Every day at ${_formatAuditTime(_auditHour, _auditMinute)}'
+                                        : 'Disabled',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: dailyAudit ? palette.primaryAccent : palette.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: dailyAudit,
+                              onChanged: _loadingAudit
+                                  ? null
+                                  : (val) async {
+                                      setSheetState(() => dailyAudit = val);
+                                      await _setAudit(val);
+                                    },
+                              activeThumbColor: palette.primaryAccent,
+                              activeTrackColor: palette.secondaryAccent,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (dailyAudit) ...[
+                        const SizedBox(height: 12),
+                        Material(
+                          color: palette.elevated,
+                          borderRadius: BorderRadius.circular(14),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () async {
+                              final initial = TimeOfDay(
+                                hour: _auditHour,
+                                minute: _auditMinute,
+                              );
+                              final picked = await showTimePicker(
+                                context: sheetContext,
+                                initialTime: initial,
+                                builder: (pickerContext, child) {
+                                  return Theme(
+                                    data: Theme.of(pickerContext).copyWith(
+                                      colorScheme: ColorScheme.dark(
+                                        primary: palette.primaryAccent,
+                                        onPrimary: palette.onPrimaryAccent,
+                                        surface: palette.elevated,
+                                        onSurface: palette.textPrimary,
+                                      ),
+                                      timePickerTheme: TimePickerThemeData(
+                                        backgroundColor: palette.elevated,
+                                        hourMinuteColor: palette.surface,
+                                        hourMinuteTextColor: palette.textPrimary,
+                                        dayPeriodColor: palette.surface,
+                                        dayPeriodTextColor: palette.textPrimary,
+                                        dialBackgroundColor: palette.surface,
+                                        dialHandColor: palette.primaryAccent,
+                                        dialTextColor: palette.textPrimary,
+                                        entryModeIconColor: palette.primaryAccent,
+                                      ),
+                                    ),
+                                    child: child!,
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setSheetState(() {
+                                  _auditHour = picked.hour;
+                                  _auditMinute = picked.minute;
+                                });
+                                await _setAuditTime(picked.hour, picked.minute);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: palette.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 20,
+                                    color: palette.primaryAccent,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Audit time',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w500,
+                                            color: palette.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Tap to customize reminder time',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: palette.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: palette.surface,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: palette.border),
+                                    ),
+                                    child: Text(
+                                      _formatAuditTime(_auditHour, _auditMinute),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: palette.primaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Consumer(
+                        builder: (ctx, watchRef, _) {
+                          final controller = watchRef.watch(expenseControllerProvider);
+                          final pendingItems = controller.pendingOrUncategorized;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Pending & uncategorized',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.textPrimary,
+                                      letterSpacing: .3,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: pendingItems.isEmpty
+                                          ? palette.success.withValues(alpha: 0.15)
+                                          : palette.primaryAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      pendingItems.isEmpty
+                                          ? 'All clear'
+                                          : '${pendingItems.length} to audit',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: pendingItems.isEmpty
+                                            ? palette.success
+                                            : palette.primaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              if (pendingItems.isEmpty) ...[
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: palette.elevated,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: palette.border),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_rounded,
+                                        color: palette.success,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'No pending or uncategorized transactions. All up to date!',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: palette.textSecondary,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else ...[
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: palette.elevated,
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: palette.border),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      ...pendingItems.take(4).map((expense) {
+                                        final isFirst = expense == pendingItems.first;
+                                        return Container(
+                                          decoration: BoxDecoration(
+                                            border: isFirst
+                                                ? null
+                                                : Border(top: BorderSide(color: palette.border)),
+                                          ),
+                                          child: ListTile(
+                                            dense: true,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 2,
+                                            ),
+                                            title: Text(
+                                              expense.merchant?.isNotEmpty == true
+                                                  ? expense.merchant!
+                                                  : (expense.isDebit ? 'Expense' : 'Income'),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: 14,
+                                                color: palette.textPrimary,
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              expense.isPending
+                                                  ? 'Pending review'
+                                                  : 'Uncategorized',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: palette.primaryAccent,
+                                              ),
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '₹${(expense.amountMinor / 100).toStringAsFixed(expense.amountMinor % 100 == 0 ? 0 : 2)}',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                    color: palette.textPrimary,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  Icons.chevron_right_rounded,
+                                                  size: 18,
+                                                  color: palette.textSecondary,
+                                                ),
+                                              ],
+                                            ),
+                                            onTap: () async {
+                                              Navigator.pop(sheetContext);
+                                              await openExpense(context, ref, expense);
+                                            },
+                                          ),
+                                        );
+                                      }),
+                                      if (pendingItems.length > 4) ...[
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          decoration: BoxDecoration(
+                                            border: Border(top: BorderSide(color: palette.border)),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '+${pendingItems.length - 4} more waiting for review',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: palette.textSecondary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1091,7 +1406,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             _SettingsRow(
               icon: Icons.schedule_rounded,
               title: 'Daily audit',
-              subtitle: dailyAudit ? 'Every day at 9:00 PM' : 'Off',
+              subtitle: dailyAudit
+                  ? 'Every day at ${_formatAuditTime(_auditHour, _auditMinute)}'
+                  : 'Off',
               onTap: _showDailyAuditSheet,
             ),
           ],

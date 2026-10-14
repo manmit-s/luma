@@ -163,18 +163,34 @@ class AppSettingsStore {
     } catch (_) {}
   }
 
+  int _memoryAuditHour = 21;
+  int _memoryAuditMinute = 0;
+
   /// [hour], [minute] default to 21:00 (SPEC 42). Null-DB default matches.
   Future<(int, int)> auditTime() async {
     final db = _db;
-    if (db == null) return (21, 0);
+    if (db == null) return (_memoryAuditHour, _memoryAuditMinute);
     try {
       final row = await (db.select(db.appSettings)
             ..where((t) => t.id.equals(1)))
           .getSingleOrNull();
-      if (row == null) return (21, 0);
+      if (row == null) return (_memoryAuditHour, _memoryAuditMinute);
       return (row.auditHour, row.auditMinute);
     } catch (_) {
-      return (21, 0);
+      return (_memoryAuditHour, _memoryAuditMinute);
     }
+  }
+
+  Future<void> setAuditTime(int hour, int minute) async {
+    _memoryAuditHour = hour;
+    _memoryAuditMinute = minute;
+    final db = _db;
+    if (db == null) return;
+    await _updateSettings(
+      AppSettingsCompanion(
+        auditHour: Value(hour),
+        auditMinute: Value(minute),
+      ),
+    );
   }
 }
