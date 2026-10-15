@@ -875,6 +875,10 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _onSmsTap() async {
+    if (_smsState != SmsPermissionState.granted) {
+      final proceed = await showSmsDisclosureDialog(context);
+      if (!proceed || !mounted) return;
+    }
     await requestSmsPermissionFlow(context, ref);
     await _refreshSmsState();
   }
