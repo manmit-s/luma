@@ -1,4 +1,4 @@
-package com.example.luma
+package com.manmit.luma
 
 import android.content.ComponentName
 import android.content.Intent

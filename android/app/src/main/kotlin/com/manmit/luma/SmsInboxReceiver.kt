@@ -1,4 +1,4 @@
-package com.example.luma
+package com.manmit.luma
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
