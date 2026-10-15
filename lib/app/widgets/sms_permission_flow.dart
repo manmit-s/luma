@@ -49,6 +49,60 @@ Future<bool> requestSmsPermissionFlow(
   }
 }
 
+/// Prominent disclosure dialog for runtime SMS permission (Google Play policy).
+Future<bool> showSmsDisclosureDialog(BuildContext context) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      final palette = context.lumaPalette;
+      return AlertDialog(
+        title: const Text('SMS Permission Disclosure'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Luma reads incoming and recent transaction SMS messages (RECEIVE_SMS and READ_SMS) to automatically detect bank/UPI expenses, calculate running balance, and match subscriptions.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 16,
+                  color: palette.primaryAccent,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'All SMS processing happens 100% locally on the device in an offline database; Luma has no internet access and never uploads or shares SMS or financial data with any server or third party.',
+                    style: TextStyle(
+                      color: palette.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not now'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      );
+    },
+  );
+  return confirmed ?? false;
+}
+
 /// "Automatic transaction detection is disabled." banner (SPEC 39).
 class SmsDisabledBanner extends ConsumerWidget {
   const SmsDisabledBanner({super.key});
@@ -92,7 +146,12 @@ class SmsDisabledBanner extends ConsumerWidget {
             ),
           ),
           TextButton(
-            onPressed: () => requestSmsPermissionFlow(context, ref),
+            onPressed: () async {
+              final proceed = await showSmsDisclosureDialog(context);
+              if (proceed && context.mounted) {
+                await requestSmsPermissionFlow(context, ref);
+              }
+            },
             child: const Text('Enable'),
           ),
         ],
