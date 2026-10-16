@@ -1,6 +1,6 @@
 /* ============================================================
    Luma — Privacy Policy
-   A calm, offline, premium dark interface.
+   A calm, offline, ultra-premium dark interface.
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -10,24 +10,25 @@
   color-scheme: dark;
 
   /* Surfaces */
-  --bg:            #0E0D10; /* page base */
-  --bg-soft:       #141317; /* chrome bars, subtle bands */
-  --surface:       #1A181E; /* cards */
-  --raised:        #232028; /* dialogs, inputs, code chips */
+  --bg:            #0B0A0D; /* deeper page base for richer contrast */
+  --bg-soft:       #121114; /* chrome bars, subtle bands */
+  --surface:       #18161C; /* cards */
+  --raised:        #211F26; /* dialogs, inputs, code chips */
 
   /* Lines */
-  --border:        #2E2A35; /* hairline dividers and card edges */
-  --border-hi:     #3D3646; /* hover borders */
+  --border:        #2A2630; /* hairline dividers and card edges */
+  --border-hi:     #3F384A; /* hover borders */
 
   /* Text */
-  --text:          #F4F1F6; /* primary copy */
-  --muted:         #A9A3B3; /* secondary copy */
-  --quiet:         #6E6878; /* decorative marks only — never load-bearing text */
+  --text:          #F5F2F7; /* primary copy */
+  --muted:         #A8A1B3; /* secondary copy */
+  --quiet:         #6B6575; /* decorative marks only — never load-bearing text */
 
   /* Accents */
-  --plum:          #542A52; /* ambient glow only */
+  --plum:          #5C2E5A; /* ambient glow only */
   --peach:         #FFB39A; /* primary accent */
   --peach-soft:    #FFD9C9; /* accent hover, high-contrast accent text */
+  --peach-glow:    rgba(255, 179, 154, 0.22);
 
   /* Feedback */
   --error:         #CF6679; /* destructive action */
@@ -39,26 +40,29 @@
   --gutter:        clamp(16px, 5vw, 40px); /* page side padding */
 
   /* Header geometry — shared with `scroll-padding` so anchors clear the pill */
-  --header-h:      56px;    /* pill height */
-  --header-offset: 16px;    /* distance from viewport top */
-  --header-space:  calc(var(--header-h) + var(--header-offset)); /* 72px */
+  --header-h:      58px;    /* pill height */
+  --header-offset: 18px;    /* distance from viewport top */
+  --header-space:  calc(var(--header-h) + var(--header-offset));
 
   /* Radii */
   --r-sm:          8px;
   --r-md:          12px;
   --r-lg:          20px;
+  --r-xl:          28px;
 
   /* Motion */
-  --ease:          cubic-bezier(.2, .8, .2, 1);
-  --dur:           160ms;
-  --dur-slow:      220ms;
+  --ease:          cubic-bezier(.22, 1, .36, 1);
+  --ease-out:      cubic-bezier(.16, 1, .3, 1);
+  --dur:           180ms;
+  --dur-slow:      280ms;
 
   /* Elevation */
-  --shadow:        0 20px 60px rgba(0, 0, 0, .45);
-  --shadow-plum:   0 14px 40px rgba(84, 42, 82, .30);
+  --shadow:        0 24px 64px rgba(0, 0, 0, .55);
+  --shadow-plum:   0 16px 48px rgba(92, 46, 90, .28);
+  --shadow-soft:   0 8px 32px rgba(0, 0, 0, .35);
 
   /* Type */
-  --font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: ui-sans-serif, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
