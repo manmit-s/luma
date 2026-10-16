@@ -170,5 +170,58 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Scan Recent SMS'), findsNothing);
   });
+
+  testWidgets('Reset requires the typed final confirmation', (tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const ProviderScope(child: LumaApp()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(LumaNavBar), matching: find.text('Settings')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete All Records'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reset everything'), findsOneWidget);
+    await tester.tap(find.text('Reset everything'));
+    await tester.pumpAndSettle();
+    expect(find.text('Final Confirmation'), findsOneWidget);
+    expect(find.text('Confirm reset'), findsOneWidget);
+    var confirm = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Confirm reset'));
+    expect(confirm.onPressed, isNull);
+    await tester.enterText(find.byType(TextField).last, ' Confirm ');
+    await tester.pumpAndSettle();
+    confirm = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Confirm reset'));
+    expect(confirm.onPressed, isNotNull);
+    await tester.tap(find.text('Cancel').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Final Confirmation'), findsNothing);
+    expect(find.text('All records have been reset.'), findsNothing);
+    await tester.tap(find.text('Delete All Records'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reset everything'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'confirm');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm reset'));
+    await tester.pumpAndSettle();
+    expect(find.text('All records have been reset.'), findsOneWidget);
+  });
+
+  testWidgets('Settings includes About Luma and developer links', (tester) async {
+    tester.view.physicalSize = const Size(800, 1500);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(const ProviderScope(child: LumaApp()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(LumaNavBar), matching: find.text('Settings')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Built by Manmit'), 500, scrollable: find.byType(Scrollable).first);
+    expect(find.text('Built by Manmit'), findsOneWidget);
+    expect(find.text('Python • ML • LLMs • Flutter'), findsOneWidget);
+    expect(find.text('work.manmit.samal@zohomail.in'), findsOneWidget);
+    expect(find.text('github.com/manmit-s/luma'), findsOneWidget);
+  });
 }
 

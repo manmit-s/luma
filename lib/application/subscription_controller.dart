@@ -256,4 +256,13 @@ class SubscriptionController extends ChangeNotifier {
     );
     await _refresh();
   }
+
+  Future<void> clearAll() async {
+    for (final subscription in subscriptions) {
+      await _scheduler.cancelReminders(subscription.id);
+    }
+    await _paymentRepo.clearAll();
+    await _subRepo.clearAll();
+    await _refresh();
+  }
 }
