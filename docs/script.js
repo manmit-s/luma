@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ------------------------------------------------------------
-   1. Scroll progress bar + header density
+   1. Scroll progress bar + header density (the pill always stays put)
    ------------------------------------------------------------ */
 (function scrollEffects() {
   const bar = document.querySelector('#progress-bar');
@@ -17,16 +17,17 @@
   function paint() {
     const doc = document.documentElement;
     const max = doc.scrollHeight - window.innerHeight;
+    const y = window.scrollY;
 
     if (bar) {
-      const ratio = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+      const ratio = max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
       bar.style.transform = 'scaleX(' + ratio + ')';
     }
 
     // Tighten the glass pill once the page has moved, so it reads as
     // "floating above content" rather than "pinned to the top".
     if (header) {
-      const scrolled = window.scrollY > 40;
+      const scrolled = y > 40;
       if (scrolled !== lastScrolled) {
         header.classList.toggle('is-scrolled', scrolled);
         lastScrolled = scrolled;
