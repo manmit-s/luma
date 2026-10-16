@@ -1441,16 +1441,6 @@ html { scrollbar-width: thin; scrollbar-color: #2E2A35 var(--bg); }
   }
 
   .brand { font-size: .97rem; }
-  .brand::after {
-    width: 5px;
-    height: 5px;
-    margin-left: 7px;
-  }
-
-  .nav a {
-    padding: 8px 12px;
-    font-size: .8rem;
-  }
 
   .hero__inner {
     padding-block:
