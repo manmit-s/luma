@@ -277,13 +277,18 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 # 2. Watch native logs while testing SMS/alarm paths
 adb logcat -c; adb logcat | Select-String "Luma|SmsInbox|DailyAudit"
 # 3. Inspect the on-device database if numbers ever look wrong
-adb exec-out run-as com.example.luma ls -l app_flutter/
+adb exec-out run-as com.manmit.luma ls -l app_flutter/
 ```
 
 ## 7. Resume checklist (first session back)
 
-- [ ] `flutter analyze --no-pub` (expect only `section_header.dart` info).
-- [ ] `flutter test` (expect 61/61).
+- [ ] `flutter analyze --no-pub` (expect 0 errors).
+- [ ] `flutter test` (all unit and widget tests pass).
+- [ ] Package migrated to `com.manmit.luma` (Play Store compatible namespace).
+- [ ] Inexact alarms used for daily audit via `setAndAllowWhileIdle` (no `USE_EXACT_ALARM`).
+- [ ] Prominent SMS disclosures updated in `onboarding_sheet.dart` and `sms_permission_flow.dart`.
+- [ ] R8 proguard keep rules defined in `android/app/proguard-rules.pro`.
+- [ ] Release signing scaffold in `build.gradle.kts` (reads `key.properties`, falls back to `debug`).
 - [ ] Keep `drift: 2.26.0` + `permission_handler: ^11.4.0` pinned (see top note);
   run codegen after any schema change.
 - [ ] Never add `INTERNET`, Firebase, analytics, or cloud DBs.

@@ -57,31 +57,41 @@ Future<bool> showOnboardingSheet(
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Luma reads incoming transaction SMS messages so it can automatically detect expenses and remind you to record them.',
+              'Luma reads incoming and recent transaction SMS messages (RECEIVE_SMS and READ_SMS) to automatically detect bank/UPI expenses, calculate running balance, and match subscriptions.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.md),
             Builder(
               builder: (context) {
                 final palette = context.lumaPalette;
-                return Row(
-                  children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      size: 14,
-                      color: palette.textSecondary,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        'Everything stays on this device. Nothing is uploaded.',
-                        style: TextStyle(
-                          color: palette.textSecondary,
-                          fontSize: 13,
+                return Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: palette.primaryAccent,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'All SMS processing happens 100% locally on the device in an offline database; Luma has no internet access and never uploads or shares SMS or financial data with any server or third party.',
+                          style: TextStyle(
+                            color: palette.textSecondary,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 );
               },
             ),

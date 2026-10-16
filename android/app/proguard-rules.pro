@@ -1,0 +1,4 @@
+-keep class com.manmit.luma.MainActivity { *; }
+-keep class com.manmit.luma.SmsInboxReceiver { *; }
+-keep class com.manmit.luma.DailyAudit { *; }
+-keep class com.manmit.luma.DailyAuditReceiver { *; }

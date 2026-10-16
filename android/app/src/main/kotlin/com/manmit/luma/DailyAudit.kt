@@ -1,4 +1,4 @@
-package com.example.luma
+package com.manmit.luma
 
 import android.app.AlarmManager
 import android.app.NotificationChannel
@@ -14,7 +14,7 @@ import androidx.core.app.NotificationManagerCompat
 import java.io.File
 import java.util.Calendar
 
-/** Exact daily audit ("Luma Daily Check", SPEC 42).
+/** Daily audit ("Luma Daily Check", SPEC 42).
  *
  * Fully native so it fires at 21:00 and survives reboot without a Dart
  * isolate: on fire it counts `status = 0` (pending) rows straight from the
@@ -23,7 +23,7 @@ import java.util.Calendar
  * can reschedule without touching the database.
  */
 object DailyAudit {
-    const val ACTION_FIRE = "com.example.luma.DAILY_AUDIT_FIRE"
+    const val ACTION_FIRE = "com.manmit.luma.DAILY_AUDIT_FIRE"
     const val CHANNEL_ID = "daily_audit"
     private const val REQUEST_CODE = 9100
     private const val PREFS = "luma_audit"
@@ -73,7 +73,7 @@ object DailyAudit {
     }
 
     private fun setExact(context: Context, triggerAt: Long) {
-        val manager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val manager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
         val intent = pendingIntent(context) ?: return
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -81,14 +81,19 @@ object DailyAudit {
                     manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
                     return
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
                 return
             }
-            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+            manager.set(AlarmManager.RTC_WAKEUP, triggerAt, intent)
         } catch (_: SecurityException) {
             try {
-                manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+                } else {
+                    manager.set(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+                }
             } catch (_: Exception) {
             }
         } catch (_: Exception) {

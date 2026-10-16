@@ -1,3 +1,7 @@
+import java.util.Properties
+import java.io.FileInputStream
+import java.io.File
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,8 +9,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystorePropertiesFile = rootProject.file("key.properties").takeIf { it.exists() } ?: file("key.properties")
+val keystoreProperties = Properties()
+val hasKeystore = keystorePropertiesFile.exists()
+if (hasKeystore) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+val hasReleaseSigning = hasKeystore && keystoreProperties.getProperty("storeFile")?.let { path ->
+    val f = file(path)
+    val rf = rootProject.file(path)
+    f.exists() || rf.exists()
+} == true
+
 android {
-    namespace = "com.example.luma"
+    namespace = "com.manmit.luma"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -26,7 +43,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.luma"
+        applicationId = "com.manmit.luma"
         minSdk = 24
         targetSdk = 34
         versionCode = flutter.versionCode
@@ -35,20 +52,28 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("luma-release.jks")
-            storePassword = "lumapassword123"
-            keyAlias = "luma"
-            keyPassword = "lumapassword123"
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
-            enableV4Signing = true
+            if (hasReleaseSigning) {
+                val storeFilePath = keystoreProperties.getProperty("storeFile")
+                val f = file(storeFilePath)
+                storeFile = if (f.exists()) f else rootProject.file(storeFilePath)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
