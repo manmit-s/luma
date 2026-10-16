@@ -1,0 +1,79 @@
+name: Bug report
+description: Report a problem with Luma
+title: "[Bug]: "
+labels: [bug, needs triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please share enough detail for us to reproduce it. Do not include real financial or personal data in screenshots or logs.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe what you observed and what you expected to happen instead.
+      placeholder: I expected…, but Luma…
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: List the steps that reliably trigger the problem.
+      placeholder: |
+        1. Open…
+        2. Tap…
+        3. See…
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Operating system
+      options:
+        - Android
+        - iOS
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Luma version or commit hash
+      description: Find the app version in Settings, or provide the commit hash if using a development build.
+      placeholder: "1.0.0 or abc1234"
+    validations:
+      required: true
+
+  - type: input
+    id: device-browser
+    attributes:
+      label: Device, browser, or relevant environment
+      description: Include device model and Android/iOS version, or browser name and version where relevant.
+      placeholder: "Pixel 8, Android 15"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs-screenshots
+    attributes:
+      label: Logs or screenshots
+      description: Paste relevant logs or stack traces, or drag screenshots here. Remove personal or financial information first.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add anything else that may help investigate, such as how often this happens or whether it began after an update.
+    validations:
+      required: false
