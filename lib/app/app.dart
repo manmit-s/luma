@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 
 import 'dart:async';
 
@@ -798,7 +799,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: palette.elevated,
-        title: const Text('Reset all records?'),
+        title: const Text('Delete All Records?'),
         content: const Text(
           'This will permanently delete all expenses and pending items. This cannot be undone.',
         ),
@@ -813,14 +814,23 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               foregroundColor: palette.textPrimary,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Reset Everything'),
+            child: const Text('Reset everything'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed != true || !mounted) return;
+    final typedConfirmation = await showDialog<bool>(
+      context: context,
+      builder: (context) => _FinalResetDialog(palette: palette),
+    );
+    if (typedConfirmation == true && mounted) {
       await ref.read(expenseControllerProvider).clearAll();
+      await ref.read(subscriptionControllerProvider).clearAll();
+      await ref.read(appSettingsStoreProvider).reset();
+      ref.read(userNameProvider.notifier).state = '';
+      await ref.read(themeProvider.notifier).setTheme(LumaThemeId.lumaOriginal);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -830,6 +840,15 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         );
       }
     }
+  }
+
+  Future<void> _copyAboutValue(String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Copied to clipboard: $value'),
+      behavior: SnackBarBehavior.floating,
+    ));
   }
 
   Future<void> _setAudit(bool enabled) async {
@@ -1507,7 +1526,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             _SettingsRow(
               icon: Icons.delete_outline_rounded,
               iconColor: palette.error,
-              title: 'Reset all records',
+              title: 'Delete All Records',
               titleColor: palette.error,
               subtitle: 'Wipe all transactions and start completely fresh',
               trailing: Icon(
@@ -1519,9 +1538,67 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             ),
           ],
         ),
+        const _SettingsSectionHeader('ABOUT'),
+        _SettingsSectionCard(children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text('About Luma', style: textTheme.titleLarge)),
+                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: palette.secondaryAccent, borderRadius: BorderRadius.circular(24)), child: Text('v1.0.0', style: textTheme.labelMedium?.copyWith(color: palette.onSecondaryAccent))),
+              ]),
+              const SizedBox(height: 8),
+              Text('Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.', style: textTheme.bodyMedium),
+              const SizedBox(height: 18),
+              Text('Built by Manmit', style: textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text('Engineering student. AI/ML tinkerer. Serial side-project shipper.', style: textTheme.bodySmall),
+              const SizedBox(height: 8),
+              Text('I build things that solve real problems — fast, offline-first, and actually useful. Luma started as a "wouldn\'t it be cool if..." and turned into the app you\'re holding.', style: textTheme.bodyMedium),
+              const SizedBox(height: 10),
+              Text('Python • ML • LLMs • Flutter', style: textTheme.labelMedium?.copyWith(color: palette.primaryAccent)),
+              const SizedBox(height: 8),
+              Text('“Keep learning. Keep shipping.”', style: textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
+            ]),
+          ),
+          const _SettingsRowDivider(),
+          _SettingsRow(icon: Icons.email_outlined, title: 'Contact email', subtitle: 'work.manmit.samal@zohomail.in', onTap: () => _copyAboutValue('work.manmit.samal@zohomail.in')),
+          const _SettingsRowDivider(),
+          _SettingsRow(icon: Icons.work_outline, title: 'LinkedIn', subtitle: 'linkedin.com/in/manmit-samal', onTap: () => _copyAboutValue('https://www.linkedin.com/in/manmit-samal')),
+          const _SettingsRowDivider(),
+          _SettingsRow(icon: Icons.code, title: 'Developer GitHub', subtitle: 'github.com/manmit-s', onTap: () => _copyAboutValue('https://github.com/manmit-s')),
+          const _SettingsRowDivider(),
+          _SettingsRow(icon: Icons.source_outlined, title: 'App source code', subtitle: 'github.com/manmit-s/luma', onTap: () => _copyAboutValue('https://github.com/manmit-s/luma')),
+          Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: Text('Luma is open-source! Meaningful contributions, feature ideas, and bug reports via GitHub Issues/PRs are always welcome.', style: textTheme.bodySmall)),
+        ]),
       ],
     );
   }
+}
+
+class _FinalResetDialog extends StatefulWidget {
+  const _FinalResetDialog({required this.palette});
+  final LumaPalette palette;
+  @override
+  State<_FinalResetDialog> createState() => _FinalResetDialogState();
+}
+
+class _FinalResetDialogState extends State<_FinalResetDialog> {
+  String value = '';
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    backgroundColor: widget.palette.elevated,
+    title: const Text('Final Confirmation'),
+    content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text("Type 'confirm' below to permanently delete all expenses, subscriptions, categories, and settings."),
+      const SizedBox(height: 16),
+      TextField(autofocus: true, decoration: const InputDecoration(hintText: 'confirm'), onChanged: (text) => setState(() => value = text)),
+    ]),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+      FilledButton(style: FilledButton.styleFrom(backgroundColor: widget.palette.error, foregroundColor: widget.palette.textPrimary), onPressed: value.trim().toLowerCase() == 'confirm' ? () => Navigator.pop(context, true) : null, child: const Text('Confirm reset')),
+    ],
+  );
 }
 
 class _ThemeOptionTile extends StatelessWidget {
