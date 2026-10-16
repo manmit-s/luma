@@ -163,6 +163,27 @@ class AppSettingsStore {
     } catch (_) {}
   }
 
+  Future<void> reset() async {
+    _memoryOnboardingDone = true;
+    _memoryInitialBalanceMinor = 0;
+    _memoryThemeId = 'luma_original';
+    _memoryAuditEnabled = true;
+    _memoryUserName = '';
+    _memoryAuditHour = 21;
+    _memoryAuditMinute = 0;
+    final db = _db;
+    if (db != null) {
+      await db.delete(db.categories).go();
+      await db.delete(db.merchantProfiles).go();
+      await db.delete(db.exportRecords).go();
+      await (db.delete(db.appSettings)..where((t) => t.id.equals(1))).go();
+      await _updateSettings(const AppSettingsCompanion(
+        onboardingDone: Value(true),
+      ));
+    }
+    await setThemeId('luma_original');
+  }
+
   int _memoryAuditHour = 21;
   int _memoryAuditMinute = 0;
 
