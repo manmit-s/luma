@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest an improvement or new capability for Luma
+title: "[Feature]: "
+labels: [enhancement, needs triage]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Explaining the problem and who it affects helps us evaluate the idea.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Explain the situation you encounter, who is affected, and why the current experience is not enough.
+      placeholder: I need to…, because…
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe how you imagine the feature working and what a useful outcome would look like.
+      placeholder: It would help if Luma…
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe workarounds or other approaches you have tried or considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add mockups, screenshots, examples, or any other details that clarify the request.
+    validations:
+      required: false
