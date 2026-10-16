@@ -43,6 +43,12 @@
   --header-h:      58px;    /* pill height */
   --header-offset: 18px;    /* distance from viewport top */
   --header-space:  calc(var(--header-h) + var(--header-offset));
+  --header-maxw:   900px;   /* pill max width */
+
+  /* Glass */
+  --glass:         rgba(18, 17, 22, 0.62);
+  --glass-deep:    rgba(16, 15, 20, 0.78);
+  --glass-edge:    rgba(255, 255, 255, 0.09);
 
   /* Radii */
   --r-sm:          8px;
