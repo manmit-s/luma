@@ -73,23 +73,35 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: calc(var(--header-space) + 24px);
+  scroll-padding-top: calc(var(--header-space) + 28px);
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  overflow-x: clip; /* safety net: never allow a horizontal scrollbar */
+  overflow-x: clip;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
   font-size: 17px;
   line-height: 1.7;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3 { font-weight: 700; }
+/* Subtle global film grain for depth */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1, h2, h3 { font-weight: 700; letter-spacing: -0.03em; }
 
 a { color: var(--peach); }
 
@@ -101,16 +113,19 @@ code {
   background: var(--raised);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 2px 6px;
+  padding: 2px 7px;
 }
 
 :focus-visible {
   outline: 2px solid var(--peach);
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
-::selection { background: rgba(84, 42, 82, .75); color: var(--text); }
+::selection {
+  background: rgba(92, 46, 90, .72);
+  color: var(--text);
+}
 
 /* ------------------------------------------------------------
    3. Utilities
@@ -138,9 +153,9 @@ code {
 .skip {
   position: absolute;
   left: 16px;
-  top: -72px;
+  top: -80px;
   z-index: 100;
-  padding: 12px 18px;
+  padding: 12px 20px;
   border-radius: var(--r-md);
   border: 1px solid var(--border-hi);
   background: var(--raised);
@@ -149,14 +164,15 @@ code {
   font-weight: 600;
   text-decoration: none;
   transition: top var(--dur) var(--ease);
+  box-shadow: var(--shadow-soft);
 }
-.skip:focus { top: 14px; }
+.skip:focus { top: 16px; }
 
 .eyebrow {
-  margin: 0 0 14px;
-  font-size: .75rem;
+  margin: 0 0 16px;
+  font-size: .72rem;
   font-weight: 700;
-  letter-spacing: .16em;
+  letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--peach);
   font-variant-numeric: tabular-nums;
@@ -167,10 +183,10 @@ code {
 @media (scripting: enabled) {
   .reveal {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(18px);
     transition:
-      opacity 520ms var(--ease),
-      transform 520ms var(--ease);
+      opacity 640ms var(--ease-out),
+      transform 640ms var(--ease-out);
   }
   .reveal.is-visible {
     opacity: 1;
@@ -184,7 +200,7 @@ code {
 .progress {
   position: fixed;
   inset: 0 0 auto 0;
-  height: 2px;
+  height: 2.5px;
   z-index: 60;
   pointer-events: none;
   background: transparent;
@@ -196,12 +212,18 @@ code {
   width: 100%;
   transform: scaleX(0);
   transform-origin: 0 50%;
-  background: linear-gradient(90deg, var(--plum), var(--peach-soft) 60%, var(--peach));
-  transition: transform 90ms linear;
+  background: linear-gradient(
+    90deg,
+    var(--plum) 0%,
+    var(--peach-soft) 55%,
+    var(--peach) 100%
+  );
+  box-shadow: 0 0 12px var(--peach-glow);
+  transition: transform 80ms linear;
 }
 
 /* ------------------------------------------------------------
-   5. Sticky glass pill header
+   5. Sticky glass-morphic header (premium)
    ------------------------------------------------------------ */
 .site-header {
   position: fixed;
