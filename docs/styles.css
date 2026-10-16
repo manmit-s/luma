@@ -1422,6 +1422,14 @@ html { scrollbar-width: thin; scrollbar-color: #2E2A35 var(--bg); }
   .perms { grid-template-columns: 1fr; }
 }
 
+/* Compact header: pill nav becomes a hamburger + dropdown panel */
+@media (max-width: 760px) {
+  .nav { display: none; }
+  .nav-cta { display: none; }
+  .nav-toggle { display: block; }
+  .site-header__inner { padding: 5px 5px 5px 12px; }
+}
+
 @media (max-width: 600px) {
   :root {
     --header-h: 54px;
