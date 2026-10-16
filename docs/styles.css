@@ -239,7 +239,9 @@ code {
   z-index: 50;
   padding-inline: var(--gutter);
   pointer-events: none;
-  animation: header-in 800ms var(--ease-out) both;
+  /* `backwards` (not `both`) so the finished keyframe never overrides
+     later transforms on the header. */
+  animation: header-in 800ms var(--ease-out) backwards;
 }
 
 @keyframes header-in {
@@ -260,10 +262,10 @@ code {
   display: flex;
   align-items: center;
   gap: 4px;
-  max-width: 840px;
+  max-width: var(--header-maxw);
   min-height: var(--header-h);
   margin-inline: auto;
-  padding: 6px 7px 6px 20px;
+  padding: 6px 7px 6px 14px;
   border-radius: 999px;
 
   /* Multi-layer glass base */
