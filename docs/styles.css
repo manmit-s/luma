@@ -606,6 +606,92 @@ code {
   filter: blur(2px);
 }
 
+/* Slow-drifting aurora orbs for a living background */
+.hero__orb {
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(70px);
+  opacity: 0.5;
+}
+.hero__orb--a {
+  width: min(520px, 70vw);
+  aspect-ratio: 1 / 1;
+  top: -12%;
+  left: -10%;
+  background: radial-gradient(closest-side, rgba(92, 46, 90, 0.8), transparent 72%);
+  animation: orb-drift-a 22s ease-in-out infinite alternate;
+}
+.hero__orb--b {
+  width: min(420px, 60vw);
+  aspect-ratio: 1 / 1;
+  bottom: -30%;
+  right: 6%;
+  background: radial-gradient(closest-side, rgba(255, 179, 154, 0.16), transparent 70%);
+  animation: orb-drift-b 26s ease-in-out infinite alternate;
+}
+@keyframes orb-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(6%, 10%) scale(1.12); }
+}
+@keyframes orb-drift-b {
+  from { transform: translate(0, 0) scale(1.08); }
+  to   { transform: translate(-8%, -8%) scale(0.95); }
+}
+
+/* Faint blueprint grid fading toward the bottom */
+.hero__grid {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(90% 75% at 50% 20%, #000 30%, transparent 100%);
+  -webkit-mask-image: radial-gradient(90% 75% at 50% 20%, #000 30%, transparent 100%);
+}
+
+.hero__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 0 0 26px;
+  padding: 0;
+}
+.hero__badges li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 650;
+  letter-spacing: .02em;
+}
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(111, 207, 142, 0.5);
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(111, 207, 142, 0.45); }
+  70%  { box-shadow: 0 0 0 9px rgba(111, 207, 142, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(111, 207, 142, 0); }
+}
+
 /* Fine film grain — built from an inline SVG so the page never phones home. */
 .hero::after {
   content: "";
