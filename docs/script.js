@@ -339,3 +339,47 @@
     if (window.innerWidth > 760) setOpen(false);
   });
 })();
+
+/* ------------------------------------------------------------
+   7. Sliding active pill in the desktop nav
+   ------------------------------------------------------------ */
+(function navIndicator() {
+  const nav = document.querySelector('#primary-nav');
+  if (!nav) return;
+  const pill = nav.querySelector('.nav__indicator');
+  const links = Array.prototype.slice.call(nav.querySelectorAll('a[data-toc]'));
+  if (!pill || !links.length) return;
+
+  function current() {
+    return links.filter(function (link) {
+      return link.getAttribute('aria-current') === 'true';
+    })[0] || null;
+  }
+
+  function move() {
+    const active = current();
+    // The pill only makes sense when the desktop nav is actually visible.
+    if (!active || nav.offsetParent === null || nav.offsetWidth === 0) {
+      pill.classList.remove('is-on');
+      return;
+    }
+    pill.style.width = active.offsetWidth + 'px';
+    pill.style.transform = 'translateX(' + active.offsetLeft + 'px)';
+    pill.classList.add('is-on');
+  }
+
+  // `aria-current` is managed by the active-section tracker — follow it.
+  if ('MutationObserver' in window) {
+    const observer = new MutationObserver(move);
+    links.forEach(function (link) {
+      observer.observe(link, { attributes: true, attributeFilter: ['aria-current'] });
+    });
+  }
+
+  window.addEventListener('resize', move, { passive: true });
+  if (document.fonts && typeof document.fonts.ready.then === 'function') {
+    document.fonts.ready.then(move).catch(function () { /* ignore */ });
+  }
+  window.addEventListener('load', move);
+  move();
+})();
