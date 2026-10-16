@@ -449,21 +449,23 @@ code {
   overflow: hidden;
   border-bottom: 1px solid var(--border);
   background:
-    radial-gradient(90% 120% at 100% 0%, rgba(84, 42, 82, .55) 0%, rgba(84, 42, 82, 0) 62%),
+    radial-gradient(100% 140% at 95% -10%, rgba(92, 46, 90, 0.65) 0%, rgba(92, 46, 90, 0) 58%),
+    radial-gradient(60% 80% at 10% 100%, rgba(255, 179, 154, 0.04) 0%, transparent 50%),
     var(--bg);
 }
 
 .hero__glow {
   position: absolute;
-  top: -34%;
-  right: -14%;
+  top: -38%;
+  right: -18%;
   z-index: -1;
-  width: min(820px, 92vw);
+  width: min(900px, 95vw);
   aspect-ratio: 1 / 1;
   pointer-events: none;
   background:
-    radial-gradient(closest-side, rgba(84, 42, 82, .85), rgba(84, 42, 82, .32) 48%, rgba(84, 42, 82, 0) 72%),
-    radial-gradient(closest-side at 62% 66%, rgba(255, 179, 154, .12), rgba(255, 179, 154, 0) 68%);
+    radial-gradient(closest-side, rgba(92, 46, 90, 0.9), rgba(92, 46, 90, 0.35) 45%, rgba(92, 46, 90, 0) 70%),
+    radial-gradient(closest-side at 58% 62%, rgba(255, 179, 154, 0.14), rgba(255, 179, 154, 0) 65%);
+  filter: blur(2px);
 }
 
 /* Fine film grain — built from an inline SVG so the page never phones home. */
@@ -473,31 +475,34 @@ code {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  opacity: .04;
+  opacity: .045;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 .hero__inner {
   position: relative;
-  /* Reserve space for the fixed glass pill plus a comfortable gap. */
   padding-block:
-    calc(var(--header-space) + clamp(40px, 7vw, 88px))
-    clamp(52px, 8vw, 104px);
-  max-width: 900px;
+    calc(var(--header-space) + clamp(48px, 8vw, 96px))
+    clamp(56px, 9vw, 112px);
+  max-width: 920px;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 6.6vw, 4.15rem);
-  line-height: 1.04;
-  letter-spacing: -.045em;
+  font-size: clamp(2.6rem, 6.8vw, 4.35rem);
+  line-height: 1.02;
+  letter-spacing: -.05em;
+  background: linear-gradient(180deg, #FFFFFF 20%, #E8E0F0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hero__sub {
-  margin: 20px 0 0;
+  margin: 22px 0 0;
   max-width: 46ch;
-  font-size: clamp(1.02rem, 1.6vw, 1.2rem);
-  line-height: 1.6;
+  font-size: clamp(1.05rem, 1.7vw, 1.22rem);
+  line-height: 1.55;
   color: var(--muted);
 }
 
@@ -507,19 +512,24 @@ code {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-top: 28px;
-  padding: 5px 5px 5px 16px;
+  margin-top: 32px;
+  padding: 6px 6px 6px 18px;
   background: var(--raised);
   border: 1px solid var(--border);
   border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
   transition:
-    border-color 220ms var(--ease),
-    box-shadow 220ms var(--ease);
+    border-color 240ms var(--ease),
+    box-shadow 240ms var(--ease),
+    transform 240ms var(--ease);
 }
 
 .chip:hover {
   border-color: var(--border-hi);
-  box-shadow: 0 0 0 4px rgba(84, 42, 82, .18);
+  box-shadow:
+    0 0 0 4px rgba(92, 46, 90, 0.2),
+    0 8px 28px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 .chip__code {
@@ -527,7 +537,7 @@ code {
   border: 0;
   padding: 0;
   font-family: var(--mono);
-  font-size: .85rem;
+  font-size: .86rem;
   color: var(--peach-soft);
 }
 
@@ -550,33 +560,34 @@ code {
 .chip__copy svg {
   width: 18px;
   height: 18px;
-  transition: transform 220ms var(--ease);
+  transition: transform 240ms var(--ease);
 }
 .chip__copy:hover {
   color: var(--peach);
-  background: rgba(84, 42, 82, .45);
+  background: rgba(92, 46, 90, 0.5);
 }
-.chip__copy:hover svg { transform: scale(1.08); }
-.chip__copy:active svg { transform: scale(.92); }
+.chip__copy:hover svg { transform: scale(1.1); }
+.chip__copy:active svg { transform: scale(.9); }
 
 .chip__tip {
   position: absolute;
   right: 0;
-  bottom: calc(100% + 10px);
-  padding: 6px 12px;
+  bottom: calc(100% + 12px);
+  padding: 7px 14px;
   border-radius: var(--r-sm);
   background: var(--peach);
   color: #1A1013;
-  font-size: .75rem;
+  font-size: .76rem;
   font-weight: 700;
   letter-spacing: .01em;
   white-space: nowrap;
   opacity: 0;
-  transform: translateY(4px);
+  transform: translateY(6px);
   pointer-events: none;
+  box-shadow: 0 8px 24px rgba(255, 179, 154, 0.3);
   transition:
-    opacity 200ms var(--ease),
-    transform 200ms var(--ease);
+    opacity 220ms var(--ease),
+    transform 220ms var(--ease);
 }
 .chip.is-copied .chip__tip {
   opacity: 1;
@@ -589,14 +600,14 @@ code {
   flex-wrap: wrap;
   align-items: center;
   list-style: none;
-  margin: 40px 0 0;
+  margin: 44px 0 0;
   padding: 0;
   color: var(--muted);
-  font-size: .95rem;
+  font-size: .96rem;
 }
 
 .stats li {
-  padding-inline: 20px;
+  padding-inline: 22px;
   border-left: 1px solid var(--border);
   font-variant-numeric: tabular-nums;
   transition: color 220ms var(--ease);
@@ -607,11 +618,13 @@ code {
 .stats__num {
   color: var(--peach);
   font-weight: 700;
-  margin-right: 6px;
+  margin-right: 7px;
   display: inline-block;
-  transition: transform 220ms var(--ease);
+  transition: transform 240ms var(--ease);
 }
-.stats li:hover .stats__num { transform: translateY(-1px) scale(1.06); }
+.stats li:hover .stats__num {
+  transform: translateY(-2px) scale(1.08);
+}
 
 /* ------------------------------------------------------------
    7. Layout + side rail TOC
@@ -634,18 +647,21 @@ code {
 .rail a {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   min-height: 44px;
-  padding: 8px;
+  padding: 8px 10px;
   border-radius: var(--r-md);
   color: var(--muted);
-  font-size: .82rem;
+  font-size: .83rem;
   font-weight: 600;
   letter-spacing: -.005em;
   text-decoration: none;
-  transition: color var(--dur) var(--ease);
+  transition: color var(--dur) var(--ease), background 200ms var(--ease);
 }
-.rail a:hover { color: var(--text); }
+.rail a:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.03);
+}
 .rail a[aria-current="true"] { color: var(--text); }
 
 .rail__dot {
@@ -656,11 +672,13 @@ code {
   background: var(--border-hi);
   transition:
     background var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+    transform var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 .rail a[aria-current="true"] .rail__dot {
   background: var(--peach);
-  transform: scale(1.5);
+  transform: scale(1.55);
+  box-shadow: 0 0 10px rgba(255, 179, 154, 0.5);
 }
 
 .sections { min-width: 0; }
@@ -669,19 +687,19 @@ code {
    8. Sections
    ------------------------------------------------------------ */
 .section {
-  padding-block: clamp(48px, 7vw, 80px);
+  padding-block: clamp(52px, 7.5vw, 88px);
   border-bottom: 1px solid var(--border);
-  scroll-margin-top: calc(var(--header-space) + 24px);
+  scroll-margin-top: calc(var(--header-space) + 28px);
   content-visibility: auto;
   contain-intrinsic-size: auto 720px;
 }
 .section:last-child { border-bottom: 0; }
 
 .section h2 {
-  margin: 0 0 22px;
-  font-size: clamp(1.6rem, 3.6vw, 2.25rem);
-  line-height: 1.15;
-  letter-spacing: -.032em;
+  margin: 0 0 24px;
+  font-size: clamp(1.65rem, 3.7vw, 2.3rem);
+  line-height: 1.12;
+  letter-spacing: -.035em;
 }
 
 .section p {
