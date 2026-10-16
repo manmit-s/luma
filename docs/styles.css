@@ -716,10 +716,16 @@ code {
   font-size: clamp(2.6rem, 6.8vw, 4.35rem);
   line-height: 1.02;
   letter-spacing: -.05em;
-  background: linear-gradient(180deg, #FFFFFF 20%, #E8E0F0 100%);
+  background: linear-gradient(110deg, #FFFFFF 38%, #FFD9C9 50%, #FFFFFF 62%);
+  background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: headline-sheen 8s ease-in-out infinite;
+}
+@keyframes headline-sheen {
+  0%, 100% { background-position: 110% 0; }
+  50%      { background-position: -10% 0; }
 }
 
 .hero__sub {
