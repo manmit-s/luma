@@ -294,3 +294,48 @@
     }
   });
 })();
+
+/* ------------------------------------------------------------
+   6. Mobile menu (glass dropdown panel)
+   ------------------------------------------------------------ */
+(function mobileMenu() {
+  const header = document.querySelector('#site-header');
+  const toggle = document.querySelector('#nav-toggle');
+  const panel = document.querySelector('#nav-panel');
+  if (!header || !toggle || !panel) return;
+
+  function setOpen(open) {
+    header.classList.toggle('is-menu-open', open);
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+  }
+
+  toggle.addEventListener('click', function () {
+    setOpen(!header.classList.contains('is-menu-open'));
+  });
+
+  // Choosing a destination dismisses the panel.
+  panel.addEventListener('click', function (event) {
+    if (event.target.closest('a')) setOpen(false);
+  });
+
+  // Escape dismisses the panel (dialogs handle their own Escape first).
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    if (!header.classList.contains('is-menu-open')) return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    setOpen(false);
+    toggle.focus();
+  });
+
+  // Tapping outside the header dismisses the panel.
+  document.addEventListener('click', function (event) {
+    if (!header.classList.contains('is-menu-open')) return;
+    if (!header.contains(event.target)) setOpen(false);
+  });
+
+  // A wider viewport has no use for the panel.
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 760) setOpen(false);
+  });
+})();
