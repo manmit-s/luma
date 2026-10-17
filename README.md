@@ -13,7 +13,8 @@ Luma is a private, local-first Android expense tracker built with Flutter. It wa
 [![Version](https://img.shields.io/badge/Version-1.0.0%2B1-FFB39A)](./pubspec.yaml)
 
 ---
-
+[![promotion-banner.png](https://i.postimg.cc/L5jWRCkR/promotion-banner.png)](https://postimg.cc/7JY9nNQQ)
+---
 ## Why Luma exists
 
 The usual flow fails:
