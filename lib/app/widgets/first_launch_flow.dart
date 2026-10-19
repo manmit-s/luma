@@ -1,6 +1,8 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/external_links.dart';
 import 'luma_buttons.dart';
 
 /// Serene, 3-step first-launch onboarding flow for Luma.
@@ -12,10 +14,7 @@ import 'luma_buttons.dart';
 ///
 /// Free of generic SaaS carousels, feature ads, and marketing fluff.
 class FirstLaunchFlow extends StatefulWidget {
-  const FirstLaunchFlow({
-    super.key,
-    required this.onComplete,
-  });
+  const FirstLaunchFlow({super.key, required this.onComplete});
 
   final Future<void> Function(String name, int initialBalanceMinor) onComplete;
 
@@ -33,16 +32,30 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
 
   int _currentPage = 0;
   bool _isSubmitting = false;
+  bool _consentAccepted = false;
+
+  late final TapGestureRecognizer _privacyRecognizer;
+  late final TapGestureRecognizer _termsRecognizer;
 
   @override
   void initState() {
     super.initState();
+    _privacyRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        ExternalLinks.openUrl(context, ExternalLinks.privacyPolicyUrl);
+      };
+    _termsRecognizer = TapGestureRecognizer()
+      ..onTap = () {
+        ExternalLinks.openUrl(context, ExternalLinks.termsUrl);
+      };
     _nameController.addListener(_onFieldChanged);
     _balanceController.addListener(_onFieldChanged);
   }
 
   @override
   void dispose() {
+    _privacyRecognizer.dispose();
+    _termsRecognizer.dispose();
     _pageController.dispose();
     _nameController.dispose();
     _balanceController.dispose();
@@ -156,13 +169,19 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
 
   Widget _buildTopBar(LumaPalette palette) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _currentPage > 0
               ? IconButton(
-                  icon: Icon(Icons.arrow_back_rounded, color: palette.textPrimary),
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    color: palette.textPrimary,
+                  ),
                   onPressed: _previousPage,
                   tooltip: 'Back',
                 )
@@ -215,10 +234,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(26),
-              child: Image.asset(
-                'assets/logo/luma.png',
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset('assets/logo/luma.png', fit: BoxFit.cover),
             ),
           ),
           const SizedBox(height: AppSpacing.xxxl),
@@ -266,13 +282,84 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
               _buildTimelineDot(palette, isFilled: false),
             ],
           ),
-          const SizedBox(height: AppSpacing.xxl),
+          const SizedBox(height: AppSpacing.lg),
+          // Privacy policy and terms consent
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Semantics(
+                label: 'I agree to the Privacy Policy and Terms & Conditions',
+                checked: _consentAccepted,
+                child: SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Checkbox(
+                    value: _consentAccepted,
+                    onChanged: (val) {
+                      setState(() => _consentAccepted = val ?? false);
+                    },
+                    activeColor: palette.primaryAccent,
+                    checkColor: palette.onPrimaryAccent,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    side: BorderSide(
+                      color: _consentAccepted
+                          ? palette.primaryAccent
+                          : palette.border,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    text: 'I agree to the ',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      height: 1.4,
+                      color: palette.textSecondary,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: TextStyle(
+                          color: palette.primaryAccent,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: palette.primaryAccent,
+                        ),
+                        recognizer: _privacyRecognizer,
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Terms & Conditions',
+                        style: TextStyle(
+                          color: palette.primaryAccent,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: palette.primaryAccent,
+                        ),
+                        recognizer: _termsRecognizer,
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             width: double.infinity,
             height: 52,
             child: PrimaryButton(
               label: 'Get started',
-              onPressed: _nextPage,
+              onPressed: _consentAccepted ? _nextPage : null,
             ),
           ),
         ],
@@ -292,11 +379,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
   }
 
   Widget _buildTimelineLine(LumaPalette palette) {
-    return Container(
-      width: 24,
-      height: 1.5,
-      color: palette.border,
-    );
+    return Container(width: 24, height: 1.5, color: palette.border);
   }
 
   Widget _buildNameStep(LumaPalette palette) {
@@ -304,7 +387,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
       builder: (context, constraints) => SingleChildScrollView(
         padding: AppSpacing.screenPadding,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight - AppSpacing.screenPadding.vertical),
+          constraints: BoxConstraints(
+            minHeight:
+                constraints.maxHeight - AppSpacing.screenPadding.vertical,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -371,7 +457,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: BorderSide(color: palette.primaryAccent, width: 1.5),
+                        borderSide: BorderSide(
+                          color: palette.primaryAccent,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -400,7 +489,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
       builder: (context, constraints) => SingleChildScrollView(
         padding: AppSpacing.screenPadding,
         child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight - AppSpacing.screenPadding.vertical),
+          constraints: BoxConstraints(
+            minHeight:
+                constraints.maxHeight - AppSpacing.screenPadding.vertical,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -432,7 +524,9 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   TextField(
                     controller: _balanceController,
                     focusNode: _balanceFocus,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) {
                       if (_isBalanceValid) _handleFinish();
@@ -445,7 +539,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                     cursorColor: palette.primaryAccent,
                     decoration: InputDecoration(
                       prefixIcon: Padding(
-                        padding: const EdgeInsets.only(left: AppSpacing.lg, right: AppSpacing.sm),
+                        padding: const EdgeInsets.only(
+                          left: AppSpacing.lg,
+                          right: AppSpacing.sm,
+                        ),
                         child: Text(
                           '₹',
                           style: TextStyle(
@@ -455,7 +552,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                           ),
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 0,
+                        minHeight: 0,
+                      ),
                       hintText: '0.00',
                       hintStyle: TextStyle(
                         fontSize: 28,
@@ -478,7 +578,10 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: BorderSide(color: palette.primaryAccent, width: 1.5),
+                        borderSide: BorderSide(
+                          color: palette.primaryAccent,
+                          width: 1.5,
+                        ),
                       ),
                     ),
                   ),
@@ -511,7 +614,9 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   height: 52,
                   child: PrimaryButton(
                     label: _isSubmitting ? 'Setting up...' : 'Start using Luma',
-                    onPressed: (_isBalanceValid && !_isSubmitting) ? _handleFinish : null,
+                    onPressed: (_isBalanceValid && !_isSubmitting)
+                        ? _handleFinish
+                        : null,
                   ),
                 ),
               ),
