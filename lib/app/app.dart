@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 
 import 'dart:async';
 
@@ -13,13 +12,10 @@ import '../services/export/export_service.dart';
 import '../services/notification/notification_service.dart';
 import '../services/permissions/sms_permission_service.dart';
 import '../services/sms/sms_ingest.dart'
-    show
-        drainSmsQueue,
-        openAutostartSettings,
-        scanInboxSms,
-        smsQueueSize;
+    show drainSmsQueue, openAutostartSettings, scanInboxSms, smsQueueSize;
 import 'providers.dart';
 import 'theme/app_theme.dart';
+import 'utils/external_links.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/category_chip.dart';
@@ -93,23 +89,23 @@ class _LumaAppState extends ConsumerState<LumaApp> {
                 },
               )
             : _needsOnboarding
-                ? FirstLaunchFlow(
-                    key: const ValueKey('first_launch_flow'),
-                    onComplete: (name, initialBalanceMinor) async {
-                      final store = ref.read(appSettingsStoreProvider);
-                      await store.setUserName(name);
-                      ref.read(userNameProvider.notifier).state = name;
-                      await store.setInitialBalanceMinor(initialBalanceMinor);
-                      ref
-                          .read(expenseControllerProvider)
-                          .setInitialBalance(initialBalanceMinor);
-                      await store.markOnboardingDone();
-                      if (mounted) {
-                        setState(() => _needsOnboarding = false);
-                      }
-                    },
-                  )
-                : const _MainShell(key: ValueKey('main_shell')),
+            ? FirstLaunchFlow(
+                key: const ValueKey('first_launch_flow'),
+                onComplete: (name, initialBalanceMinor) async {
+                  final store = ref.read(appSettingsStoreProvider);
+                  await store.setUserName(name);
+                  ref.read(userNameProvider.notifier).state = name;
+                  await store.setInitialBalanceMinor(initialBalanceMinor);
+                  ref
+                      .read(expenseControllerProvider)
+                      .setInitialBalance(initialBalanceMinor);
+                  await store.markOnboardingDone();
+                  if (mounted) {
+                    setState(() => _needsOnboarding = false);
+                  }
+                },
+              )
+            : const _MainShell(key: ValueKey('main_shell')),
       ),
     );
   }
@@ -208,12 +204,10 @@ class _MainShellState extends ConsumerState<_MainShell>
     }
     await notificationService.init(onTap: _handleNotificationTap);
     // Cold start: app opened from a notification tap.
-    final coldPayload =
-        await notificationService.consumeLaunchPayload();
+    final coldPayload = await notificationService.consumeLaunchPayload();
     await controller.load();
     await _drainSmsQueue();
-    await notificationService
-        .syncPendingSummary(controller.pending.length);
+    await notificationService.syncPendingSummary(controller.pending.length);
     if (coldPayload != null && coldPayload.isNotEmpty) {
       _handleNotificationTap(coldPayload);
     }
@@ -364,7 +358,11 @@ class _HomePageState extends ConsumerState<_HomePage>
     }
   }
 
-  Widget _buildGreeting(BuildContext context, TextTheme textTheme, String name) {
+  Widget _buildGreeting(
+    BuildContext context,
+    TextTheme textTheme,
+    String name,
+  ) {
     final palette = context.lumaPalette;
     final base = greetingFor(DateTime.now());
     final baseStyle = textTheme.headlineSmall?.copyWith(
@@ -414,7 +412,8 @@ class _HomePageState extends ConsumerState<_HomePage>
     final textTheme = Theme.of(context).textTheme;
     final watchedName = ref.watch(userNameProvider);
     final effectiveName = watchedName.isNotEmpty ? watchedName : _userName;
-    final showSmsBanner = _smsState == SmsPermissionState.denied ||
+    final showSmsBanner =
+        _smsState == SmsPermissionState.denied ||
         _smsState == SmsPermissionState.permanentlyDenied ||
         _smsState == SmsPermissionState.restricted;
 
@@ -484,8 +483,10 @@ class _HomePageState extends ConsumerState<_HomePage>
         const SizedBox(height: AppSpacing.xxl),
         SectionHeader(
           title: 'Recent expenses',
-          trailing:
-              TextButton(onPressed: widget.onHistory, child: const Text('View all')),
+          trailing: TextButton(
+            onPressed: widget.onHistory,
+            child: const Text('View all'),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         if (recent.isEmpty)
@@ -552,10 +553,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
       children: [
         Text('History', style: textTheme.headlineSmall),
         const SizedBox(height: 6),
-        Text(
-          'Every expense, in one place',
-          style: textTheme.bodyMedium,
-        ),
+        Text('Every expense, in one place', style: textTheme.bodyMedium),
         const SizedBox(height: AppSpacing.lg),
         SummaryCard(
           monthTotal: controller.monthTotal,
@@ -582,13 +580,16 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                 onSelected: (_) => setState(() => selectedCategory = null),
               ),
               ...defaultCategories.map(
-                    (category) => _SelectableFilterChip(
-                      label: category.name,
-                      selected: selectedCategory == category.id,
-                      onSelected: (_) => setState(() => selectedCategory =
-                          selectedCategory == category.id ? null : category.id),
-                    ),
+                (category) => _SelectableFilterChip(
+                  label: category.name,
+                  selected: selectedCategory == category.id,
+                  onSelected: (_) => setState(
+                    () => selectedCategory = selectedCategory == category.id
+                        ? null
+                        : category.id,
                   ),
+                ),
+              ),
             ],
           ),
         ),
@@ -612,8 +613,10 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSpacing.sm, left: 4),
+                    padding: const EdgeInsets.only(
+                      bottom: AppSpacing.sm,
+                      left: 4,
+                    ),
                     child: Text(
                       formatDayLabel(group.$1),
                       style: TextStyle(
@@ -670,7 +673,9 @@ class _SelectableFilterChip extends StatelessWidget {
               : palette.chipUnselectedBorder,
         ),
         labelStyle: TextStyle(
-          color: selected ? palette.chipSelectedText : palette.chipUnselectedText,
+          color: selected
+              ? palette.chipSelectedText
+              : palette.chipUnselectedText,
           fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
         ),
       ),
@@ -758,8 +763,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   }
 
   Future<void> _loadInitialBalance() async {
-    final balance =
-        await ref.read(appSettingsStoreProvider).initialBalanceMinor();
+    final balance = await ref
+        .read(appSettingsStoreProvider)
+        .initialBalanceMinor();
     if (mounted) {
       setState(() {
         _initialBalanceMinor = balance;
@@ -842,15 +848,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     }
   }
 
-  Future<void> _copyAboutValue(String value) async {
-    await Clipboard.setData(ClipboardData(text: value));
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Copied to clipboard: $value'),
-      behavior: SnackBarBehavior.floating,
-    ));
-  }
-
   Future<void> _setAudit(bool enabled) async {
     setState(() => dailyAudit = enabled);
     await ref.read(appSettingsStoreProvider).setDailyAuditEnabled(enabled);
@@ -885,8 +882,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     return switch (_smsState) {
       SmsPermissionState.granted => 'On — watching transaction SMS',
       SmsPermissionState.denied => 'Off — tap to enable',
-      SmsPermissionState.permanentlyDenied =>
-        'Blocked — tap for setup steps',
+      SmsPermissionState.permanentlyDenied => 'Blocked — tap for setup steps',
       SmsPermissionState.restricted =>
         'Needs restricted-settings approval — tap',
       _ => 'Not available on this device',
@@ -946,9 +942,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                           const SizedBox(width: 12),
                           Text(
                             'Daily audit',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -963,7 +958,10 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                       ),
                       const SizedBox(height: 20),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: palette.elevated,
                           borderRadius: BorderRadius.circular(14),
@@ -990,7 +988,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                         : 'Disabled',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: dailyAudit ? palette.primaryAccent : palette.textSecondary,
+                                      color: dailyAudit
+                                          ? palette.primaryAccent
+                                          : palette.textSecondary,
                                     ),
                                   ),
                                 ],
@@ -1037,13 +1037,15 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                       timePickerTheme: TimePickerThemeData(
                                         backgroundColor: palette.elevated,
                                         hourMinuteColor: palette.surface,
-                                        hourMinuteTextColor: palette.textPrimary,
+                                        hourMinuteTextColor:
+                                            palette.textPrimary,
                                         dayPeriodColor: palette.surface,
                                         dayPeriodTextColor: palette.textPrimary,
                                         dialBackgroundColor: palette.surface,
                                         dialHandColor: palette.primaryAccent,
                                         dialTextColor: palette.textPrimary,
-                                        entryModeIconColor: palette.primaryAccent,
+                                        entryModeIconColor:
+                                            palette.primaryAccent,
                                       ),
                                     ),
                                     child: child!,
@@ -1077,7 +1079,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Audit time',
@@ -1109,7 +1112,10 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                       border: Border.all(color: palette.border),
                                     ),
                                     child: Text(
-                                      _formatAuditTime(_auditHour, _auditMinute),
+                                      _formatAuditTime(
+                                        _auditHour,
+                                        _auditMinute,
+                                      ),
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -1126,8 +1132,11 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                       const SizedBox(height: 20),
                       Consumer(
                         builder: (ctx, watchRef, _) {
-                          final controller = watchRef.watch(expenseControllerProvider);
-                          final pendingItems = controller.pendingOrUncategorized;
+                          final controller = watchRef.watch(
+                            expenseControllerProvider,
+                          );
+                          final pendingItems =
+                              controller.pendingOrUncategorized;
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1150,8 +1159,12 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                     ),
                                     decoration: BoxDecoration(
                                       color: pendingItems.isEmpty
-                                          ? palette.success.withValues(alpha: 0.15)
-                                          : palette.primaryAccent.withValues(alpha: 0.15),
+                                          ? palette.success.withValues(
+                                              alpha: 0.15,
+                                            )
+                                          : palette.primaryAccent.withValues(
+                                              alpha: 0.15,
+                                            ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
@@ -1210,23 +1223,32 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                   child: Column(
                                     children: [
                                       ...pendingItems.take(4).map((expense) {
-                                        final isFirst = expense == pendingItems.first;
+                                        final isFirst =
+                                            expense == pendingItems.first;
                                         return Container(
                                           decoration: BoxDecoration(
                                             border: isFirst
                                                 ? null
-                                                : Border(top: BorderSide(color: palette.border)),
+                                                : Border(
+                                                    top: BorderSide(
+                                                      color: palette.border,
+                                                    ),
+                                                  ),
                                           ),
                                           child: ListTile(
                                             dense: true,
-                                            contentPadding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 2,
-                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 14,
+                                                  vertical: 2,
+                                                ),
                                             title: Text(
-                                              expense.merchant?.isNotEmpty == true
+                                              expense.merchant?.isNotEmpty ==
+                                                      true
                                                   ? expense.merchant!
-                                                  : (expense.isDebit ? 'Expense' : 'Income'),
+                                                  : (expense.isDebit
+                                                        ? 'Expense'
+                                                        : 'Income'),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                               style: TextStyle(
@@ -1265,7 +1287,11 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                             ),
                                             onTap: () async {
                                               Navigator.pop(sheetContext);
-                                              await openExpense(context, ref, expense);
+                                              await openExpense(
+                                                context,
+                                                ref,
+                                                expense,
+                                              );
                                             },
                                           ),
                                         );
@@ -1273,9 +1299,15 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                       if (pendingItems.length > 4) ...[
                                         Container(
                                           width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
                                           decoration: BoxDecoration(
-                                            border: Border(top: BorderSide(color: palette.border)),
+                                            border: Border(
+                                              top: BorderSide(
+                                                color: palette.border,
+                                              ),
+                                            ),
                                           ),
                                           child: Center(
                                             child: Text(
@@ -1347,8 +1379,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     Text(
                       'Private by design',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -1423,7 +1455,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               decoration: BoxDecoration(
                 color: palette.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: palette.border.withValues(alpha: 0.6)),
+                border: Border.all(
+                  color: palette.border.withValues(alpha: 0.6),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1464,9 +1498,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               ],
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: palette.border.withValues(alpha: 0.8),
-            ),
+            border: Border.all(color: palette.border.withValues(alpha: 0.8)),
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -1481,8 +1513,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                       children: [
                         CircleAvatar(
                           radius: 22,
-                          backgroundColor:
-                              palette.primaryAccent.withValues(alpha: 0.18),
+                          backgroundColor: palette.primaryAccent.withValues(
+                            alpha: 0.18,
+                          ),
                           child: Text(
                             _userName.trim().isNotEmpty
                                 ? _userName.trim()[0].toUpperCase()
@@ -1506,8 +1539,8 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                       _loadingName
                                           ? 'Loading…'
                                           : _userName.isNotEmpty
-                                              ? _userName
-                                              : 'Set your name',
+                                          ? _userName
+                                          : 'Set your name',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: textTheme.titleMedium?.copyWith(
@@ -1697,9 +1730,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
               subtitle: 'Troubleshoot SMS detection and processing',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const SmsDiagnosticsPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const SmsDiagnosticsPage()),
               ),
             ),
           ],
@@ -1751,7 +1782,9 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                           color: palette.secondaryAccent.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: palette.secondaryAccent.withValues(alpha: 0.5),
+                            color: palette.secondaryAccent.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                         ),
                         child: Text(
@@ -1827,31 +1860,44 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     runSpacing: 8,
                     children: [
                       _AboutChip(
+                        icon: Icons.privacy_tip_outlined,
+                        label: 'Privacy Policy',
+                        onTap: () => ExternalLinks.openUrl(
+                          context,
+                          ExternalLinks.privacyPolicyUrl,
+                        ),
+                      ),
+                      _AboutChip(
                         icon: Icons.email_outlined,
-                        label: 'work.manmit.samal@zohomail.in',
-                        onTap: () => _copyAboutValue(
-                          'work.manmit.samal@zohomail.in',
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.work_outline,
-                        label: 'linkedin.com/in/manmit-samal',
-                        onTap: () => _copyAboutValue(
-                          'https://www.linkedin.com/in/manmit-samal',
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.code,
-                        label: 'github.com/manmit-s',
-                        onTap: () => _copyAboutValue(
-                          'https://github.com/manmit-s',
+                        label: 'Contact Developer',
+                        onTap: () => ExternalLinks.openEmail(
+                          context,
+                          ExternalLinks.developerEmail,
+                          subject: 'Luma Feedback',
                         ),
                       ),
                       _AboutChip(
                         icon: Icons.source_outlined,
-                        label: 'github.com/manmit-s/luma',
-                        onTap: () => _copyAboutValue(
-                          'https://github.com/manmit-s/luma',
+                        label: 'Source Code',
+                        onTap: () => ExternalLinks.openUrl(
+                          context,
+                          ExternalLinks.sourceCodeUrl,
+                        ),
+                      ),
+                      _AboutChip(
+                        icon: Icons.code_rounded,
+                        label: 'GitHub Profile',
+                        onTap: () => ExternalLinks.openUrl(
+                          context,
+                          ExternalLinks.githubProfileUrl,
+                        ),
+                      ),
+                      _AboutChip(
+                        icon: Icons.work_outline,
+                        label: 'LinkedIn',
+                        onTap: () => ExternalLinks.openUrl(
+                          context,
+                          ExternalLinks.linkedinUrl,
                         ),
                       ),
                     ],
@@ -1886,14 +1932,36 @@ class _FinalResetDialogState extends State<_FinalResetDialog> {
   Widget build(BuildContext context) => AlertDialog(
     backgroundColor: widget.palette.elevated,
     title: const Text('Final Confirmation'),
-    content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Type 'confirm' below to permanently delete all expenses, subscriptions, categories, and settings."),
-      const SizedBox(height: 16),
-      TextField(autofocus: true, decoration: const InputDecoration(hintText: 'confirm'), onChanged: (text) => setState(() => value = text)),
-    ]),
+    content: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Type 'confirm' below to permanently delete all expenses, subscriptions, categories, and settings.",
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'confirm'),
+          onChanged: (text) => setState(() => value = text),
+        ),
+      ],
+    ),
     actions: [
-      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-      FilledButton(style: FilledButton.styleFrom(backgroundColor: widget.palette.error, foregroundColor: widget.palette.textPrimary), onPressed: value.trim().toLowerCase() == 'confirm' ? () => Navigator.pop(context, true) : null, child: const Text('Confirm reset')),
+      TextButton(
+        onPressed: () => Navigator.pop(context, false),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: widget.palette.error,
+          foregroundColor: widget.palette.textPrimary,
+        ),
+        onPressed: value.trim().toLowerCase() == 'confirm'
+            ? () => Navigator.pop(context, true)
+            : null,
+        child: const Text('Confirm reset'),
+      ),
     ],
   );
 }
@@ -1926,9 +1994,7 @@ class _QuickStatPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: palette.background.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: palette.border.withValues(alpha: 0.6),
-            ),
+            border: Border.all(color: palette.border.withValues(alpha: 0.6)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1982,7 +2048,6 @@ class _QuickStatPill extends StatelessWidget {
   }
 }
 
-
 class _AboutChip extends StatelessWidget {
   const _AboutChip({
     required this.icon,
@@ -2017,6 +2082,12 @@ class _AboutChip extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                   color: palette.textPrimary,
                 ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.arrow_outward_rounded,
+                size: 11,
+                color: palette.textSecondary.withValues(alpha: 0.65),
               ),
             ],
           ),
@@ -2069,8 +2140,10 @@ class _ThemeOptionTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: palette.background,
                       borderRadius: BorderRadius.circular(6),
@@ -2096,8 +2169,7 @@ class _ThemeOptionTile extends StatelessWidget {
                   else
                     Icon(
                       Icons.circle_outlined,
-                      color:
-                          activePalette.textSecondary.withValues(alpha: 0.4),
+                      color: activePalette.textSecondary.withValues(alpha: 0.4),
                       size: 16,
                     ),
                 ],
@@ -2137,13 +2209,10 @@ class _SwatchDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
-      );
+    width: 12,
+    height: 12,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 }
 
 class _SettingsSectionHeader extends StatelessWidget {
@@ -2181,15 +2250,10 @@ class _SettingsSectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: palette.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: palette.border.withAlpha(160),
-          width: 1,
-        ),
+        border: Border.all(color: palette.border.withAlpha(160), width: 1),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 }
@@ -2240,11 +2304,7 @@ class _SettingsRow extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 22,
-                color: iconColor ?? palette.textSecondary,
-              ),
+              Icon(icon, size: 22, color: iconColor ?? palette.textSecondary),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -2359,8 +2419,8 @@ class _EditBalanceDialogState extends State<_EditBalanceDialog> {
       text: initialRupees == 0
           ? '0'
           : (initialRupees % 1 == 0
-              ? initialRupees.toInt().toString()
-              : initialRupees.toStringAsFixed(2)),
+                ? initialRupees.toInt().toString()
+                : initialRupees.toStringAsFixed(2)),
     );
     _controller.addListener(() {
       if (mounted) setState(() {});
@@ -2450,8 +2510,7 @@ class SmsDiagnosticsPage extends ConsumerStatefulWidget {
   const SmsDiagnosticsPage({super.key});
 
   @override
-  ConsumerState<SmsDiagnosticsPage> createState() =>
-      _SmsDiagnosticsPageState();
+  ConsumerState<SmsDiagnosticsPage> createState() => _SmsDiagnosticsPageState();
 }
 
 class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
@@ -2532,14 +2591,14 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
           message = 'No new transactions found in SMS inbox.';
         }
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error scanning SMS: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error scanning SMS: $e')));
     } finally {
       if (mounted) setState(() => _scanning = false);
     }
@@ -2669,7 +2728,9 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                     if (selectedCutoffDate != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: palette.surface,
                           borderRadius: BorderRadius.circular(12),
@@ -2712,14 +2773,15 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                               onPressed: () async {
                                 final picked = await showDatePicker(
                                   context: context,
-                                  initialDate: selectedCutoffDate ??
-                                      DateTime.now(),
+                                  initialDate:
+                                      selectedCutoffDate ?? DateTime.now(),
                                   firstDate: DateTime(2020),
                                   lastDate: DateTime(2100),
                                 );
                                 if (picked != null) {
                                   setDialogState(
-                                      () => selectedCutoffDate = picked);
+                                    () => selectedCutoffDate = picked,
+                                  );
                                 }
                               },
                               child: const Text('Change'),
@@ -2728,7 +2790,8 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                               tooltip: 'Clear',
                               icon: const Icon(Icons.close_rounded, size: 18),
                               onPressed: () => setDialogState(
-                                  () => selectedCutoffDate = null),
+                                () => selectedCutoffDate = null,
+                              ),
                             ),
                           ],
                         ),
@@ -2745,8 +2808,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                               lastDate: DateTime(2100),
                             );
                             if (picked != null) {
-                              setDialogState(
-                                  () => selectedCutoffDate = picked);
+                              setDialogState(() => selectedCutoffDate = picked);
                             }
                           },
                           icon: const Icon(Icons.date_range_rounded, size: 18),
@@ -2808,10 +2870,7 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
               children: [
                 Text(
                   'Let Luma start in background',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 8),
                 Text(
@@ -2835,10 +2894,10 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
     final queueLabel = _checkingQueue
         ? 'Checking…'
         : _queued == null
-            ? 'Unknown on this device'
-            : _queued == 0
-                ? 'Empty — receiver caught up'
-                : '$_queued waiting — tap Process now';
+        ? 'Unknown on this device'
+        : _queued == 0
+        ? 'Empty — receiver caught up'
+        : '$_queued waiting — tap Process now';
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -2860,7 +2919,11 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
         actions: [
           IconButton(
             onPressed: _checkingQueue ? null : _refreshQueue,
-            icon: Icon(Icons.refresh_rounded, size: 22, color: palette.textPrimary),
+            icon: Icon(
+              Icons.refresh_rounded,
+              size: 22,
+              color: palette.textPrimary,
+            ),
             tooltip: 'Refresh',
           ),
         ],
@@ -2887,7 +2950,11 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.inbox_outlined, color: palette.primaryAccent, size: 20),
+                        Icon(
+                          Icons.inbox_outlined,
+                          color: palette.primaryAccent,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           'Queue Status',
@@ -2902,7 +2969,10 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                     const SizedBox(height: 8),
                     Text(
                       queueLabel,
-                      style: TextStyle(color: palette.textSecondary, fontSize: 13),
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -2911,14 +2981,19 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                           child: OutlinedButton.icon(
                             onPressed: _processing ? null : _processNow,
                             icon: const Icon(Icons.download_rounded, size: 18),
-                            label: Text(_processing ? 'Working…' : 'Process now'),
+                            label: Text(
+                              _processing ? 'Working…' : 'Process now',
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _scanning ? null : _scanInbox,
-                            icon: const Icon(Icons.mark_email_read_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.mark_email_read_outlined,
+                              size: 18,
+                            ),
                             label: Text(_scanning ? 'Scanning…' : 'Scan Inbox'),
                           ),
                         ),
@@ -2949,7 +3024,11 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                     const SizedBox(height: 6),
                     Text(
                       'Specify how many latest transaction SMS messages to scan and import into Needs Attention.',
-                      style: TextStyle(color: palette.textSecondary, fontSize: 13, height: 1.3),
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
@@ -2985,14 +3064,21 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
                     const SizedBox(height: 6),
                     Text(
                       'Ensure your phone manufacturer does not block Luma from running SMS background receivers.',
-                      style: TextStyle(color: palette.textSecondary, fontSize: 13, height: 1.3),
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                        height: 1.3,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: _openBackgroundStart,
-                        icon: const Icon(Icons.battery_saver_outlined, size: 18),
+                        icon: const Icon(
+                          Icons.battery_saver_outlined,
+                          size: 18,
+                        ),
                         label: const Text('Autostart'),
                       ),
                     ),
@@ -3006,7 +3092,6 @@ class _SmsDiagnosticsPageState extends ConsumerState<SmsDiagnosticsPage> {
     );
   }
 }
-
 
 class _TestSmsSheet extends ConsumerStatefulWidget {
   const _TestSmsSheet({required this.onIngest});
@@ -3040,101 +3125,108 @@ class _TestSmsSheetState extends ConsumerState<_TestSmsSheet> {
   Widget build(BuildContext context) {
     final palette = context.lumaPalette;
     return Padding(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          16,
-          20,
-          MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Test SMS Parser',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Paste a bank SMS below to test how Luma parses it.',
-              style: TextStyle(color: palette.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _controller,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'e.g. Paid Rs. 250 to Starbucks on 28 Sep. UPI Ref 123456...',
-                border: OutlineInputBorder(),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        16,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Test SMS Parser',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _analyze,
-                    child: const Text('Parse SMS'),
-                  ),
-                ),
-                if (_parsed != null && _parsed!.transactionType == TransactionType.debit) ...[
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () async {
-                        final controller = ref.read(expenseControllerProvider);
-                        final expense =
-                            await controller.processSms(_controller.text.trim());
-                        if (expense != null) {
-                          widget.onIngest(expense);
-                        }
-                      },
-                      child: const Text('Ingest into Luma'),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            if (_tested) ...[
-              const SizedBox(height: 16),
-              if (_parsed == null)
-                const Text(
-                  '❌ Parser did not recognize this as a debit transaction.',
-                  style: TextStyle(color: Colors.redAccent),
-                )
-              else
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: palette.surface,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: palette.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Amount: ₹${(_parsed!.amountMinor / 100).toStringAsFixed(2)}'),
-                      Text('Merchant: ${_parsed!.merchant ?? "None (tap to add)"}'),
-                      Text('Type: ${_parsed!.transactionType.name}'),
-                      Text('Ref: ${_parsed!.referenceNumber ?? "None"}'),
-                      Text('Confidence: ${(_parsed!.confidence * 100).toInt()}%'),
-                    ],
-                  ),
-                ),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Paste a bank SMS below to test how Luma parses it.',
+            style: TextStyle(color: palette.textSecondary),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText:
+                  'e.g. Paid Rs. 250 to Starbucks on 28 Sep. UPI Ref 123456...',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _analyze,
+                  child: const Text('Parse SMS'),
+                ),
+              ),
+              if (_parsed != null &&
+                  _parsed!.transactionType == TransactionType.debit) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () async {
+                      final controller = ref.read(expenseControllerProvider);
+                      final expense = await controller.processSms(
+                        _controller.text.trim(),
+                      );
+                      if (expense != null) {
+                        widget.onIngest(expense);
+                      }
+                    },
+                    child: const Text('Ingest into Luma'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (_tested) ...[
+            const SizedBox(height: 16),
+            if (_parsed == null)
+              const Text(
+                '❌ Parser did not recognize this as a debit transaction.',
+                style: TextStyle(color: Colors.redAccent),
+              )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: palette.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: palette.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Amount: ₹${(_parsed!.amountMinor / 100).toStringAsFixed(2)}',
+                    ),
+                    Text(
+                      'Merchant: ${_parsed!.merchant ?? "None (tap to add)"}',
+                    ),
+                    Text('Type: ${_parsed!.transactionType.name}'),
+                    Text('Ref: ${_parsed!.referenceNumber ?? "None"}'),
+                    Text('Confidence: ${(_parsed!.confidence * 100).toInt()}%'),
+                  ],
+                ),
+              ),
           ],
-        ),
-      );
+        ],
+      ),
+    );
   }
 }
 
@@ -3146,15 +3238,15 @@ Future<void> openExpense(BuildContext context, WidgetRef ref, Expense expense) {
 }
 
 String _sourceLabel(ExpenseSource source) => switch (source) {
-      ExpenseSource.sms => 'SMS detected',
-      ExpenseSource.manual => 'Manually added',
-    };
+  ExpenseSource.sms => 'SMS detected',
+  ExpenseSource.manual => 'Manually added',
+};
 
 String _txLabel(Expense e) => switch (e.transactionType) {
-      TransactionType.debit => 'Expense',
-      TransactionType.credit => 'Income',
-      TransactionType.unknown => 'Unknown',
-    };
+  TransactionType.debit => 'Expense',
+  TransactionType.credit => 'Income',
+  TransactionType.unknown => 'Unknown',
+};
 
 Future<void> showExpenseDetail(
   BuildContext context,
@@ -3169,138 +3261,133 @@ Future<void> showExpenseDetail(
     builder: (context) {
       final palette = context.lumaPalette;
       return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          AppSpacing.lg,
-          AppSpacing.xl,
-          MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxxl,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Expense detail',
-                  style: Theme.of(context).textTheme.titleLarge,
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.lg,
+            AppSpacing.xl,
+            MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxxl,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Expense detail',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  CategoryChip(
+                    label: categoryName(expense.categoryId),
+                    compact: true,
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              AmountDisplay(expense.amountMinor, fontSize: 36),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                merchantLabel(expense.merchant),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
-                CategoryChip(
-                  label: categoryName(expense.categoryId),
-                  compact: true,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
+                style: TextStyle(color: palette.textSecondary, fontSize: 13),
+              ),
+              if (expense.note.trim().isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  width: double.infinity,
+                  padding: AppSpacing.cardPadding,
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    border: Border.all(color: palette.border),
+                  ),
+                  child: Text(expense.note.trim()),
                 ),
               ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AmountDisplay(expense.amountMinor, fontSize: 36),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              merchantLabel(expense.merchant),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '${formatDayLabel(expense.timestamp)} · ${formatTime(expense.timestamp)}',
-              style: TextStyle(
-                color: palette.textSecondary,
-                fontSize: 13,
-              ),
-            ),
-            if (expense.note.trim().isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                width: double.infinity,
-                padding: AppSpacing.cardPadding,
-                decoration: BoxDecoration(
-                  color: palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.card),
-                  border: Border.all(color: palette.border),
+              const SizedBox(height: AppSpacing.lg),
+              _DetailRow(label: 'Type', value: _txLabel(expense)),
+              if (expense.referenceNumber?.isNotEmpty ?? false)
+                _DetailRow(label: 'Reference', value: expense.referenceNumber!),
+              _DetailRow(label: 'Source', value: _sourceLabel(expense.source)),
+              if ((expense.lastExportedAt) != null)
+                const _DetailRow(
+                  label: 'Export',
+                  value: 'Included in an export',
                 ),
-                child: Text(expense.note.trim()),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            _DetailRow(
-              label: 'Type',
-              value: _txLabel(expense),
-            ),
-            if (expense.referenceNumber?.isNotEmpty ?? false)
-              _DetailRow(label: 'Reference', value: expense.referenceNumber!),
-            _DetailRow(label: 'Source', value: _sourceLabel(expense.source)),
-            if ((expense.lastExportedAt) != null)
-              const _DetailRow(label: 'Export', value: 'Included in an export'),
-            if (expense.rawSms?.isNotEmpty ?? false)
-              ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: Text(
-                  'Raw SMS (debug)',
-                  style: TextStyle(
-                    color: palette.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-                children: [
-                  Container(
-                    width: double.infinity,
-                    padding: AppSpacing.cardPadding,
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.card),
-                      border: Border.all(color: palette.border),
+              if (expense.rawSms?.isNotEmpty ?? false)
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(
+                    'Raw SMS (debug)',
+                    style: TextStyle(
+                      color: palette.textSecondary,
+                      fontSize: 13,
                     ),
-                    child: Text(
-                      expense.rawSms!,
-                      style: TextStyle(
-                        color: palette.textSecondary,
-                        fontSize: 12,
+                  ),
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: AppSpacing.cardPadding,
+                      decoration: BoxDecoration(
+                        color: palette.surface,
+                        borderRadius: BorderRadius.circular(AppRadii.card),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: Text(
+                        expense.rawSms!,
+                        style: TextStyle(
+                          color: palette.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: PrimaryButton(
+                      label: 'Edit',
+                      icon: Icons.edit_outlined,
+                      onPressed: () {
+                        Navigator.pop(context);
+                        showEditExpense(context, ref, expense);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _confirmDelete(context, ref, expense),
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: palette.error,
+                        side: BorderSide(color: palette.error),
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.card),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-            const SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: PrimaryButton(
-                    label: 'Edit',
-                    icon: Icons.edit_outlined,
-                    onPressed: () {
-                      Navigator.pop(context);
-                      showEditExpense(context, ref, expense);
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () =>
-                        _confirmDelete(context, ref, expense),
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                    label: const Text('Delete'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: palette.error,
-                      side: BorderSide(color: palette.error),
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppRadii.card),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
     },
   );
 }
@@ -3313,26 +3400,23 @@ class _DetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(color: context.lumaPalette.textSecondary),
-            ),
-            const SizedBox(width: AppSpacing.lg),
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: context.lumaPalette.textSecondary)),
+        const SizedBox(width: AppSpacing.lg),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 Future<void> _confirmDelete(
@@ -3366,9 +3450,9 @@ Future<void> _confirmDelete(
   await ref.read(expenseControllerProvider).deleteExpense(expense.id);
   if (!context.mounted) return;
   Navigator.pop(context);
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Expense deleted.')),
-  );
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('Expense deleted.')));
 }
 
 class _ExportPage extends ConsumerStatefulWidget {
@@ -3416,17 +3500,19 @@ class _ExportPageState extends ConsumerState<_ExportPage>
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('File saved: ${result.file.path.split('/').last}. '
-                'Sharing failed — find it in the app temp folder.'),
+            content: Text(
+              'File saved: ${result.file.path.split('/').last}. '
+              'Sharing failed — find it in the app temp folder.',
+            ),
           ),
         );
       }
     } on ExportException catch (e) {
       debugPrint('Luma export: ${e.userMessage}');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.userMessage)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.userMessage)));
     } catch (e) {
       debugPrint('Luma export: unexpected failure: $e');
       if (!mounted) return;
@@ -3444,17 +3530,16 @@ class _ExportPageState extends ConsumerState<_ExportPage>
     final controller = ref.watch(expenseControllerProvider);
     final sinceLast = controller.unexported;
     final sinceTotal = sinceLast.fold(0, (sum, item) => sum + item.amountMinor);
-    final fullTotal =
-        controller.expenses.fold(0, (sum, item) => sum + item.amountMinor);
+    final fullTotal = controller.expenses.fold(
+      0,
+      (sum, item) => sum + item.amountMinor,
+    );
     final textTheme = Theme.of(context).textTheme;
 
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 128),
       children: [
-        Text(
-          'Export expenses',
-          style: textTheme.headlineSmall,
-        ),
+        Text('Export expenses', style: textTheme.headlineSmall),
         const SizedBox(height: 6),
         Text(
           'Generate a local Excel file to share from Android.',
@@ -3463,13 +3548,13 @@ class _ExportPageState extends ConsumerState<_ExportPage>
         const SizedBox(height: AppSpacing.xl),
         _ExportOption(
           title: 'Since last export',
-          subtitle:
-              'Export only expenses not included in a previous export.',
+          subtitle: 'Export only expenses not included in a previous export.',
           detail:
               '${sinceLast.length} new ${sinceLast.length == 1 ? 'expense' : 'expenses'} · ${formatAmount(sinceTotal)}',
           emphasized: true,
-          actionLabel:
-              _busy == ExportMode.incremental ? 'Generating…' : 'Generate XLSX',
+          actionLabel: _busy == ExportMode.incremental
+              ? 'Generating…'
+              : 'Generate XLSX',
           onPressed: sinceLast.isEmpty || _busy != null
               ? null
               : () => _runExport(ExportMode.incremental),
@@ -3480,8 +3565,9 @@ class _ExportPageState extends ConsumerState<_ExportPage>
           subtitle: 'Export every recorded expense.',
           detail:
               '${controller.expenses.length} total ${controller.expenses.length == 1 ? 'expense' : 'expenses'} · ${formatAmount(fullTotal)}',
-          actionLabel:
-              _busy == ExportMode.full ? 'Generating…' : 'Generate XLSX',
+          actionLabel: _busy == ExportMode.full
+              ? 'Generating…'
+              : 'Generate XLSX',
           onPressed: controller.expenses.isEmpty || _busy != null
               ? null
               : () => _runExport(ExportMode.full),
@@ -3510,58 +3596,55 @@ class _ExportOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: AppSpacing.cardPadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    child: Padding(
+      padding: AppSpacing.cardPadding,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
                   ),
-                  if (emphasized)
-                    Text(
-                      'Recommended',
-                      style: TextStyle(
-                        color: context.lumaPalette.primaryAccent,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
+                ),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(detail, style: const TextStyle(fontWeight: FontWeight.w600)),
-              const SizedBox(height: AppSpacing.md),
-              SizedBox(
-                width: double.infinity,
-                child: emphasized
-                    ? PrimaryButton(
-                        label: actionLabel,
-                        icon: Icons.table_view_rounded,
-                        onPressed: onPressed,
-                      )
-                    : PlumButton(
-                        label: actionLabel,
-                        icon: Icons.table_view_rounded,
-                        onPressed: onPressed,
-                      ),
-              ),
+              if (emphasized)
+                Text(
+                  'Recommended',
+                  style: TextStyle(
+                    color: context.lumaPalette.primaryAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
             ],
           ),
-        ),
-      );
+          const SizedBox(height: AppSpacing.sm),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: AppSpacing.md),
+          Text(detail, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: AppSpacing.md),
+          SizedBox(
+            width: double.infinity,
+            child: emphasized
+                ? PrimaryButton(
+                    label: actionLabel,
+                    icon: Icons.table_view_rounded,
+                    onPressed: onPressed,
+                  )
+                : PlumButton(
+                    label: actionLabel,
+                    icon: Icons.table_view_rounded,
+                    onPressed: onPressed,
+                  ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
