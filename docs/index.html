@@ -16,7 +16,10 @@
 
 <header class="site-header" id="site-header">
   <div class="site-header__inner">
-    <a class="brand" href="#top" aria-label="Luma — back to top">Luma<span class="brand__dot" aria-hidden="true">.</span></a>
+    <a class="brand" href="#top" aria-label="Luma — back to top">
+      <img class="brand__logo" src="assets/logo/luma.png" alt="" width="26" height="26" decoding="async">
+      Luma<span class="brand__dot" aria-hidden="true">.</span>
+    </a>
     <nav class="nav" aria-label="Primary" id="primary-nav">
       <span class="nav__indicator" aria-hidden="true"></span>
       <a href="#privacy" data-toc="privacy">Promise</a>
@@ -50,29 +53,58 @@
 
   <section class="hero" id="top">
     <span class="hero__glow" aria-hidden="true"></span>
+    <span class="hero__grid" aria-hidden="true"></span>
+    <span class="hero__orb hero__orb--a" aria-hidden="true"></span>
+    <span class="hero__orb hero__orb--b" aria-hidden="true"></span>
     <div class="shell hero__inner">
-      <p class="eyebrow reveal">PRIVACY POLICY · EFFECTIVE OCTOBER 16, 2026</p>
-      <h1 class="reveal">Your finances stay yours.</h1>
-      <p class="hero__sub reveal">100% Offline, Local-First Personal Expense &amp; Subscription Tracker</p>
+      <div class="hero__copy">
+        <p class="eyebrow reveal">PRIVACY POLICY · EFFECTIVE OCTOBER 16, 2026</p>
+        <h1 class="reveal">Your finances stay yours.</h1>
+        <p class="hero__sub reveal">100% Offline, Local-First Personal Expense &amp; Subscription Tracker</p>
 
-      <div class="chip reveal">
-        <code class="chip__code">com.manmit.luma</code>
-        <button class="chip__copy" id="copy-package" type="button" data-copy="com.manmit.luma">
-          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="7.25" y="7.25" width="9.5" height="9.5" rx="2.2"></rect>
-            <path d="M13 4.9V4.2A1.2 1.2 0 0 0 11.8 3H4.2A1.2 1.2 0 0 0 3 4.2v7.6A1.2 1.2 0 0 0 4.2 13h.7"></path>
-          </svg>
-          <span class="sr-only">Copy package name</span>
-        </button>
-        <span class="chip__tip" aria-hidden="true">Copied</span>
+        <div class="chip reveal">
+          <code class="chip__code">com.manmit.luma</code>
+          <button class="chip__copy" id="copy-package" type="button" data-copy="com.manmit.luma">
+            <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="7.25" y="7.25" width="9.5" height="9.5" rx="2.2"></rect>
+              <path d="M13 4.9V4.2A1.2 1.2 0 0 0 11.8 3H4.2A1.2 1.2 0 0 0 3 4.2v7.6A1.2 1.2 0 0 0 4.2 13h.7"></path>
+            </svg>
+            <span class="sr-only">Copy package name</span>
+          </button>
+          <span class="chip__tip" aria-hidden="true">Copied</span>
+        </div>
+        <span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
+
+        <ul class="stats reveal">
+          <li><span class="stats__num">0</span> trackers</li>
+          <li><span class="stats__num">0</span> servers</li>
+          <li><span class="stats__num">0</span> accounts</li>
+        </ul>
       </div>
-      <span class="sr-only" id="copy-status" role="status" aria-live="polite"></span>
 
-      <ul class="stats reveal">
-        <li><span class="stats__num">0</span> trackers</li>
-        <li><span class="stats__num">0</span> servers</li>
-        <li><span class="stats__num">0</span> accounts</li>
-      </ul>
+      <div class="hero__showcase reveal">
+        <span class="hero-phone hero-phone--b" aria-hidden="true">
+          <img src="assets/mockups/history.png" alt="" loading="lazy" decoding="async" width="441" height="873">
+        </span>
+        <span class="hero-phone hero-phone--c" aria-hidden="true">
+          <img src="assets/mockups/add-expense.png" alt="" loading="lazy" decoding="async" width="441" height="873">
+        </span>
+        <span class="hero-phone hero-phone--a">
+          <span class="hero-phone__tilt">
+            <img src="assets/mockups/home.png" alt="Luma home screen showing the current balance, a pending transaction to confirm, and recent expenses" decoding="async" fetchpriority="high" width="441" height="873">
+          </span>
+        </span>
+        <span class="hero-spark hero-spark--1" aria-hidden="true"></span>
+        <span class="hero-spark hero-spark--2" aria-hidden="true"></span>
+        <span class="hero-spark hero-spark--3" aria-hidden="true"></span>
+        <span class="hero-mark" aria-hidden="true">
+          <img src="assets/logo/luma.png" alt="" loading="lazy" decoding="async" width="30" height="30">
+          <span class="hero-mark__text">Luma<small>100% offline</small></span>
+        </span>
+        <span class="hero-note" aria-hidden="true">
+          <span class="pulse-dot"></span>On-device only
+        </span>
+      </div>
     </div>
   </section>
 
