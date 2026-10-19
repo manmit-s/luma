@@ -13,8 +13,9 @@ import 'package:luma/services/export/export_service.dart';
 
 void main() {
   group('FirstLaunchFlow Widget', () {
-    testWidgets('completes 3-step serene onboarding and validates inputs',
-        (tester) async {
+    testWidgets('completes 3-step serene onboarding and validates inputs', (
+      tester,
+    ) async {
       String? submittedName;
       int? submittedBalanceMinor;
 
@@ -35,12 +36,31 @@ void main() {
       expect(find.text('Remember where your money went.'), findsOneWidget);
       expect(
         find.text(
-            'Luma keeps track of your spending as it happens, so you don\'t have to remember it later.'),
+          'Luma keeps track of your spending as it happens, so you don\'t have to remember it later.',
+        ),
         findsOneWidget,
       );
 
+      // Verify consent checkbox and button gating
+      final consentCheckboxFinder = find.byType(Checkbox);
+      expect(consentCheckboxFinder, findsOneWidget);
+      expect(tester.widget<Checkbox>(consentCheckboxFinder).value, isFalse);
+
+      final getStartedFinder = find.widgetWithText(FilledButton, 'Get started');
+      expect(tester.widget<FilledButton>(getStartedFinder).onPressed, isNull);
+
+      // Agree to consent
+      await tester.tap(consentCheckboxFinder);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Checkbox>(consentCheckboxFinder).value, isTrue);
+      expect(
+        tester.widget<FilledButton>(getStartedFinder).onPressed,
+        isNotNull,
+      );
+
       // Tap "Get started"
-      await tester.tap(find.text('Get started'));
+      await tester.tap(getStartedFinder);
       await tester.pumpAndSettle();
 
       // Step 2: Name Screen
@@ -48,8 +68,14 @@ void main() {
       expect(find.text('Step 1 of 2'), findsOneWidget);
 
       // "Continue" button is disabled when name is empty
-      final continueButtonFinder = find.widgetWithText(FilledButton, 'Continue');
-      expect(tester.widget<FilledButton>(continueButtonFinder).onPressed, isNull);
+      final continueButtonFinder = find.widgetWithText(
+        FilledButton,
+        'Continue',
+      );
+      expect(
+        tester.widget<FilledButton>(continueButtonFinder).onPressed,
+        isNull,
+      );
 
       // Enter name
       await tester.enterText(find.byType(TextField), 'Manmit');
@@ -68,12 +94,15 @@ void main() {
       expect(find.text('Step 2 of 2'), findsOneWidget);
       expect(
         find.text(
-            'Enter the balance in your account right now. Luma will update it as transactions are recorded.'),
+          'Enter the balance in your account right now. Luma will update it as transactions are recorded.',
+        ),
         findsOneWidget,
       );
 
-      final finishButtonFinder =
-          find.widgetWithText(FilledButton, 'Start using Luma');
+      final finishButtonFinder = find.widgetWithText(
+        FilledButton,
+        'Start using Luma',
+      );
       // Empty balance is disabled
       expect(tester.widget<FilledButton>(finishButtonFinder).onPressed, isNull);
 
@@ -85,12 +114,18 @@ void main() {
       // Enter 0 (valid: user has 0 balance)
       await tester.enterText(find.byType(TextField), '0');
       await tester.pumpAndSettle();
-      expect(tester.widget<FilledButton>(finishButtonFinder).onPressed, isNotNull);
+      expect(
+        tester.widget<FilledButton>(finishButtonFinder).onPressed,
+        isNotNull,
+      );
 
       // Enter ₹3,000.50
       await tester.enterText(find.byType(TextField), '3000.50');
       await tester.pumpAndSettle();
-      expect(tester.widget<FilledButton>(finishButtonFinder).onPressed, isNotNull);
+      expect(
+        tester.widget<FilledButton>(finishButtonFinder).onPressed,
+        isNotNull,
+      );
 
       // Tap "Start using Luma"
       await tester.tap(finishButtonFinder);
@@ -99,6 +134,64 @@ void main() {
       expect(submittedName, 'Manmit');
       expect(submittedBalanceMinor, 300050);
     });
+
+    testWidgets(
+      'requires privacy consent before proceeding and renders policy links',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: FirstLaunchFlow(onComplete: (name, balanceMinor) async {}),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final checkbox = tester.widget<Checkbox>(find.byType(Checkbox));
+        expect(checkbox.value, isFalse);
+
+        final button = tester.widget<FilledButton>(
+          find.widgetWithText(FilledButton, 'Get started'),
+        );
+        expect(button.onPressed, isNull);
+
+        // Verify consent text and spans exist
+        expect(find.byType(RichText), findsWidgets);
+        final richTextWidgets = tester.widgetList<RichText>(
+          find.byType(RichText),
+        );
+        final consentRichText = richTextWidgets.firstWhere((r) {
+          return r.text.toPlainText().contains('I agree to the Privacy Policy');
+        });
+        expect(
+          consentRichText.text.toPlainText(),
+          'I agree to the Privacy Policy and Terms & Conditions.',
+        );
+
+        // Toggle consent on and off
+        await tester.tap(find.byType(Checkbox));
+        await tester.pumpAndSettle();
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Get started'),
+              )
+              .onPressed,
+          isNotNull,
+        );
+
+        await tester.tap(find.byType(Checkbox));
+        await tester.pumpAndSettle();
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.widgetWithText(FilledButton, 'Get started'),
+              )
+              .onPressed,
+          isNull,
+        );
+      },
+    );
   });
 
   group('Balance Semantics & Calculation', () {
@@ -114,18 +207,20 @@ void main() {
       expect(controller.monthTotal, 0);
 
       // Record a debit (expense) of ₹500
-      await repo.save(Expense(
-        id: 0,
-        amountMinor: 50000,
-        merchant: 'Groceries',
-        categoryId: 'food',
-        timestamp: DateTime.now(),
-        status: ExpenseStatus.completed,
-        transactionType: TransactionType.debit,
-        source: ExpenseSource.manual,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ));
+      await repo.save(
+        Expense(
+          id: 0,
+          amountMinor: 50000,
+          merchant: 'Groceries',
+          categoryId: 'food',
+          timestamp: DateTime.now(),
+          status: ExpenseStatus.completed,
+          transactionType: TransactionType.debit,
+          source: ExpenseSource.manual,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
       await controller.load();
 
       // Current balance: 3000 - 500 = 2500
@@ -134,18 +229,20 @@ void main() {
       expect(controller.monthTotal, 50000);
 
       // Record a credit of ₹1,000 (e.g. UPI received / refund)
-      await repo.save(Expense(
-        id: 0,
-        amountMinor: 100000,
-        merchant: 'Salary / Refund',
-        categoryId: 'other',
-        timestamp: DateTime.now(),
-        status: ExpenseStatus.completed,
-        transactionType: TransactionType.credit,
-        source: ExpenseSource.manual,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      ));
+      await repo.save(
+        Expense(
+          id: 0,
+          amountMinor: 100000,
+          merchant: 'Salary / Refund',
+          categoryId: 'other',
+          timestamp: DateTime.now(),
+          status: ExpenseStatus.completed,
+          transactionType: TransactionType.credit,
+          source: ExpenseSource.manual,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
+      );
       await controller.load();
 
       // Current balance: 2500 + 1000 = 3500
@@ -156,108 +253,120 @@ void main() {
   });
 
   group('BalanceCard & Home Display', () {
-    testWidgets('BalanceCard displays current balance and initial balance snapshot',
-        (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: BalanceCard(
-              currentBalanceMinor: 250000,
-              initialBalanceMinor: 300000,
+    testWidgets(
+      'BalanceCard displays current balance and initial balance snapshot',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: BalanceCard(
+                currentBalanceMinor: 250000,
+                initialBalanceMinor: 300000,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('CURRENT BALANCE'), findsOneWidget);
-      expect(find.textContaining('2,500'), findsOneWidget);
-      expect(find.textContaining('Started with ₹3,000'), findsOneWidget);
-    });
+        expect(find.text('CURRENT BALANCE'), findsOneWidget);
+        expect(find.textContaining('2,500'), findsOneWidget);
+        expect(find.textContaining('Started with ₹3,000'), findsOneWidget);
+      },
+    );
   });
 
   group('Export Balance Ledger', () {
-    test('XLSX export includes summary header and chronological balance column',
-        () async {
-      final dir = await Directory.systemTemp.createTemp('luma_bal_test');
-      addTearDown(() async {
-        if (await dir.exists()) await dir.delete(recursive: true);
-      });
+    test(
+      'XLSX export includes summary header and chronological balance column',
+      () async {
+        final dir = await Directory.systemTemp.createTemp('luma_bal_test');
+        addTearDown(() async {
+          if (await dir.exists()) await dir.delete(recursive: true);
+        });
 
-      final repo = MemoryExpenseRepository(seed: false);
-      final store = AppSettingsStore(null);
-      await store.setInitialBalanceMinor(200000); // ₹2,000 starting balance
+        final repo = MemoryExpenseRepository(seed: false);
+        final store = AppSettingsStore(null);
+        await store.setInitialBalanceMinor(200000); // ₹2,000 starting balance
 
-      final service = ExportService(
-        repo,
-        null,
-        settingsStore: store,
-        outputDir: () async => dir,
-      );
+        final service = ExportService(
+          repo,
+          null,
+          settingsStore: store,
+          outputDir: () async => dir,
+        );
 
-      // Debit ₹300 at 10 AM
-      await repo.save(Expense(
-        id: 1,
-        amountMinor: 30000,
-        merchant: 'Coffee',
-        categoryId: 'food',
-        timestamp: DateTime(2026, 9, 29, 10, 0),
-        status: ExpenseStatus.completed,
-        transactionType: TransactionType.debit,
-        source: ExpenseSource.manual,
-        createdAt: DateTime(2026, 9, 29, 10, 0),
-        updatedAt: DateTime(2026, 9, 29, 10, 0),
-      ));
+        // Debit ₹300 at 10 AM
+        await repo.save(
+          Expense(
+            id: 1,
+            amountMinor: 30000,
+            merchant: 'Coffee',
+            categoryId: 'food',
+            timestamp: DateTime(2026, 9, 29, 10, 0),
+            status: ExpenseStatus.completed,
+            transactionType: TransactionType.debit,
+            source: ExpenseSource.manual,
+            createdAt: DateTime(2026, 9, 29, 10, 0),
+            updatedAt: DateTime(2026, 9, 29, 10, 0),
+          ),
+        );
 
-      // Credit ₹500 at 12 PM
-      await repo.save(Expense(
-        id: 2,
-        amountMinor: 50000,
-        merchant: 'Cashback',
-        categoryId: 'other',
-        timestamp: DateTime(2026, 9, 29, 12, 0),
-        status: ExpenseStatus.completed,
-        transactionType: TransactionType.credit,
-        source: ExpenseSource.manual,
-        createdAt: DateTime(2026, 9, 29, 12, 0),
-        updatedAt: DateTime(2026, 9, 29, 12, 0),
-      ));
+        // Credit ₹500 at 12 PM
+        await repo.save(
+          Expense(
+            id: 2,
+            amountMinor: 50000,
+            merchant: 'Cashback',
+            categoryId: 'other',
+            timestamp: DateTime(2026, 9, 29, 12, 0),
+            status: ExpenseStatus.completed,
+            transactionType: TransactionType.credit,
+            source: ExpenseSource.manual,
+            createdAt: DateTime(2026, 9, 29, 12, 0),
+            updatedAt: DateTime(2026, 9, 29, 12, 0),
+          ),
+        );
 
-      final result = await service.generate(ExportMode.full);
-      final bytes = result.file.readAsBytesSync();
-      final excel = Excel.decodeBytes(bytes);
-      final table = excel.tables['Expenses']!;
+        final result = await service.generate(ExportMode.full);
+        final bytes = result.file.readAsBytesSync();
+        final excel = Excel.decodeBytes(bytes);
+        final table = excel.tables['Expenses']!;
 
-      final rows = table.rows.map((r) => r.map((c) => c?.value).toList()).toList();
+        final rows = table.rows
+            .map((r) => r.map((c) => c?.value).toList())
+            .toList();
 
-      num valOf(dynamic cell) {
-        if (cell is DoubleCellValue) return cell.value;
-        if (cell is IntCellValue) return cell.value;
-        return (cell as dynamic).value as num;
-      }
+        num valOf(dynamic cell) {
+          if (cell is DoubleCellValue) return cell.value;
+          if (cell is IntCellValue) return cell.value;
+          return (cell as dynamic).value as num;
+        }
 
-      // Top Summary
-      expect(rows[0][0]?.toString(), 'LUMA EXPENSE SUMMARY');
-      expect(rows[1][0]?.toString(), 'Initial Balance:');
-      expect(valOf(rows[1][1]).toDouble(), 2000.0);
-      expect(rows[2][0]?.toString(), 'Total Credits:');
-      expect(valOf(rows[2][1]).toDouble(), 500.0);
-      expect(rows[3][0]?.toString(), 'Total Debits:');
-      expect(valOf(rows[3][1]).toDouble(), 300.0);
-      expect(rows[4][0]?.toString(), 'Current Balance:');
-      expect(valOf(rows[4][1]).toDouble(), 2200.0);
+        // Top Summary
+        expect(rows[0][0]?.toString(), 'LUMA EXPENSE SUMMARY');
+        expect(rows[1][0]?.toString(), 'Initial Balance:');
+        expect(valOf(rows[1][1]).toDouble(), 2000.0);
+        expect(rows[2][0]?.toString(), 'Total Credits:');
+        expect(valOf(rows[2][1]).toDouble(), 500.0);
+        expect(rows[3][0]?.toString(), 'Total Debits:');
+        expect(valOf(rows[3][1]).toDouble(), 300.0);
+        expect(rows[4][0]?.toString(), 'Current Balance:');
+        expect(valOf(rows[4][1]).toDouble(), 2200.0);
 
-      // Table Header at row 6
-      final headers = rows[6].map((c) => (c as TextCellValue).value.toString()).toList();
-      expect(headers, contains('Balance'));
+        // Table Header at row 6
+        final headers = rows[6]
+            .map((c) => (c as TextCellValue).value.toString())
+            .toList();
+        expect(headers, contains('Balance'));
 
-      // Row 7 (Coffee): 2000 - 300 = 1700
-      expect(valOf(rows[7][5]).toDouble(), 300.0); // Amount
-      expect(valOf(rows[7][6]).toDouble(), 1700.0); // Running Balance
+        // Row 7 (Coffee): 2000 - 300 = 1700
+        expect(valOf(rows[7][5]).toDouble(), 300.0); // Amount
+        expect(valOf(rows[7][6]).toDouble(), 1700.0); // Running Balance
 
-      // Row 8 (Cashback): 1700 + 500 = 2200
-      expect(valOf(rows[8][5]).toDouble(), 500.0); // Amount
-      expect(valOf(rows[8][6]).toDouble(), 2200.0); // Running Balance
-    });
+        // Row 8 (Cashback): 1700 + 500 = 2200
+        expect(valOf(rows[8][5]).toDouble(), 500.0); // Amount
+        expect(valOf(rows[8][6]).toDouble(), 2200.0); // Running Balance
+      },
+    );
   });
 }
