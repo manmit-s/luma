@@ -376,6 +376,7 @@ code {
   margin-right: auto;
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: 44px;
   padding: 6px 10px 6px 8px;
   color: var(--text);
@@ -384,6 +385,13 @@ code {
   letter-spacing: -.03em;
   text-decoration: none;
   transition: color 200ms var(--ease);
+}
+
+.brand__logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  box-shadow: 0 2px 10px rgba(92, 46, 90, .4);
 }
 
 .brand__dot {
@@ -605,6 +613,10 @@ code {
     radial-gradient(closest-side at 58% 62%, rgba(255, 179, 154, 0.14), rgba(255, 179, 154, 0) 65%);
   filter: blur(2px);
 }
+@keyframes glow-breathe {
+  from { opacity: .78; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1.06); }
+}
 
 /* Slow-drifting aurora orbs for a living background */
 .hero__orb {
@@ -705,11 +717,16 @@ code {
 
 .hero__inner {
   position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .85fr);
+  align-items: center;
+  gap: clamp(40px, 6vw, 84px);
   padding-block:
     calc(var(--header-space) + clamp(48px, 8vw, 96px))
-    clamp(56px, 9vw, 112px);
-  max-width: 920px;
+    clamp(64px, 9vw, 112px);
 }
+
+.hero__copy { max-width: 560px; }
 
 .hero h1 {
   margin: 0;
@@ -854,6 +871,235 @@ code {
 }
 .stats li:hover .stats__num {
   transform: translateY(-2px) scale(1.08);
+}
+
+/* --- hero mockup showcase --- */
+.hero__showcase {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 316px);
+  margin-inline: auto;
+}
+
+.hero-phone {
+  display: block;
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.hero-phone img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Main phone — front, largest, floating */
+.hero-phone--a {
+  position: relative;
+  z-index: 3;
+  width: 72%;
+  filter:
+    drop-shadow(0 42px 72px rgba(0, 0, 0, .55))
+    drop-shadow(0 10px 34px rgba(92, 46, 90, .38));
+}
+@keyframes phone-float {
+  from { transform: translateY(0) rotate(0deg); }
+  to   { transform: translateY(-12px) rotate(-.6deg); }
+}
+
+/* Tilt lives on an inner wrapper so the screen sheen mask stays aligned */
+.hero-phone__tilt {
+  display: block;
+  position: relative;
+  transform: perspective(1200px) rotateY(-7deg) rotateX(2deg);
+  transition: transform 600ms var(--ease);
+}
+
+/* Soft light sweep across the screen, masked to the phone's own alpha */
+.hero-phone__tilt::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 42%, rgba(255, 236, 222, .18) 50%, transparent 58%);
+  background-size: 260% 100%;
+  background-repeat: no-repeat;
+  -webkit-mask-image: url("assets/mockups/home.png");
+  mask-image: url("assets/mockups/home.png");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+@keyframes screen-sheen {
+  0%, 52% { background-position: 135% 0; }
+  100%    { background-position: -135% 0; }
+}
+
+/* Side phones — smaller, dimmed, fanned behind the main one */
+.hero-phone--b,
+.hero-phone--c {
+  width: 58%;
+  opacity: .78;
+  filter: drop-shadow(0 26px 52px rgba(0, 0, 0, .5)) saturate(.92) brightness(.92);
+  transition:
+    transform 600ms var(--ease),
+    opacity 400ms var(--ease);
+}
+.hero-phone--b {
+  z-index: 2;
+  transform: translateX(-40%) translateY(3%) rotate(-11deg);
+}
+.hero-phone--c {
+  z-index: 1;
+  transform: translateX(40%) translateY(7%) rotate(11deg);
+}
+
+/* Entrance choreography: the container's own reveal fade handles
+   opacity; the phones animate transform only, so nothing flashes at
+   rest before the entrance begins. The stagger is baked into keyframe
+   holds (never animation-delay) so every browser timeline behaves the
+   same. Static styles are the resting state, so content is never lost
+   when JS is unavailable. All hero motion lives in one no-preference
+   block — reduced-motion users get the finished composition instantly. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-phone--a { animation: phone-float 7s var(--ease) infinite alternate; }
+  .hero-phone__tilt::after { animation: screen-sheen 6.5s ease-in-out infinite; }
+
+  .hero__showcase.is-visible .hero-phone__tilt {
+    animation: phone-in 900ms var(--ease-out) backwards;
+  }
+  .hero__showcase.is-visible .hero-phone--b {
+    animation: fan-in-left 1450ms var(--ease-out) backwards;
+  }
+  .hero__showcase.is-visible .hero-phone--c {
+    animation: fan-in-right 1450ms var(--ease-out) backwards;
+  }
+
+  .hero-mark {
+    animation:
+      mark-float 8s var(--ease) infinite alternate,
+      badge-in 1500ms var(--ease-out) backwards;
+  }
+  .hero-note { animation: badge-in 1800ms var(--ease-out) backwards; }
+  .hero-spark { animation: spark-twinkle 5.5s ease-in-out infinite; }
+  .hero__glow { animation: glow-breathe 10s ease-in-out infinite alternate; }
+}
+@keyframes phone-in {
+  from { transform: perspective(1200px) rotateY(-7deg) rotateX(2deg) translateY(30px) scale(.92); }
+  to   { transform: perspective(1200px) rotateY(-7deg) rotateX(2deg); }
+}
+@keyframes fan-in-left {
+  0%, 34% { transform: translateX(-14%) translateY(9%) rotate(0deg) scale(.84); }
+  100%    { transform: translateX(-40%) translateY(3%) rotate(-11deg); }
+}
+@keyframes fan-in-right {
+  0%, 44% { transform: translateX(14%) translateY(9%) rotate(0deg) scale(.84); }
+  100%    { transform: translateX(40%) translateY(7%) rotate(11deg); }
+}
+
+/* Pointer play — the deck spreads and the hero phone straightens */
+@media (hover: hover) {
+  .hero__showcase:hover .hero-phone__tilt {
+    transform: perspective(1200px) rotateY(0deg) rotateX(0deg) scale(1.03);
+  }
+  .hero__showcase:hover .hero-phone--b {
+    transform: translateX(-50%) translateY(1%) rotate(-14deg);
+    opacity: .9;
+  }
+  .hero__showcase:hover .hero-phone--c {
+    transform: translateX(50%) translateY(5%) rotate(14deg);
+    opacity: .9;
+  }
+}
+
+/* Twinkling sparks around the composition */
+.hero-spark {
+  position: absolute;
+  z-index: 4;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--peach);
+  box-shadow: 0 0 14px 3px rgba(255, 179, 154, .5);
+  opacity: 0;
+  pointer-events: none;
+}
+.hero-spark--1 { top: 11%; left: 1%; }
+.hero-spark--2 { bottom: 13%; right: 2%; width: 4px; height: 4px; animation-delay: 1.6s; }
+.hero-spark--3 { top: 40%; right: -3%; animation-delay: 3s; }
+@keyframes spark-twinkle {
+  0%, 100% { opacity: 0; transform: scale(.55) translateY(0); }
+  35%      { opacity: .9; transform: scale(1) translateY(-5px); }
+  72%      { opacity: .2; transform: scale(.75) translateY(-12px); }
+}
+
+/* Floating glass badge with the app icon */
+.hero-mark {
+  position: absolute;
+  top: 5.5%;
+  right: -9%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 16px 7px 8px;
+  border-radius: 999px;
+  background: var(--glass-deep);
+  border: 1px solid var(--glass-edge);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .1);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+@keyframes mark-float {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-8px); }
+}
+@keyframes badge-in {
+  0%, 55% { opacity: 0; }
+  100%    { opacity: 1; }
+}
+.hero-mark img {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+.hero-mark__text {
+  display: grid;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+  text-align: left;
+  color: var(--text);
+  white-space: nowrap;
+}
+.hero-mark__text small {
+  font-size: .68rem;
+  font-weight: 600;
+  color: var(--peach-soft);
+}
+
+/* Live-status pill anchored to the phone base */
+.hero-note {
+  position: absolute;
+  bottom: 7.5%;
+  left: -8%;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--glass-deep);
+  border: 1px solid var(--glass-edge);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .1);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
 
 /* ------------------------------------------------------------
@@ -1391,6 +1637,7 @@ code {
 
   *, *::before, *::after {
     animation-duration: .001ms !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
     transition-delay: 0ms !important;
@@ -1420,6 +1667,16 @@ html { scrollbar-width: thin; scrollbar-color: #2E2A35 var(--bg); }
    ------------------------------------------------------------ */
 @media (max-width: 820px) {
   .perms { grid-template-columns: 1fr; }
+}
+
+/* Single column: copy first, mockup showcase beneath */
+@media (max-width: 1024px) {
+  .hero__inner {
+    grid-template-columns: 1fr;
+    gap: 60px;
+  }
+  .hero__copy { max-width: 640px; }
+  .hero__showcase { margin-top: 4px; }
 }
 
 /* Compact header: pill nav becomes a hamburger + dropdown panel */
@@ -1452,6 +1709,10 @@ html { scrollbar-width: thin; scrollbar-color: #2E2A35 var(--bg); }
   .stats li { padding-inline: 15px; }
   .perm { padding: 20px; }
   .sim__screen { padding: 24px; }
+
+  .hero__showcase { width: min(100%, 248px); margin-top: 12px; }
+  .hero-mark { top: 4%; right: -3%; }
+  .hero-note { bottom: 5.5%; left: -3%; }
 
   /* Dialogs become bottom sheets */
   .modal {
