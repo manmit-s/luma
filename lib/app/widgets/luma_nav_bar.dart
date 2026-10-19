@@ -33,8 +33,8 @@ class LumaNavBar extends StatelessWidget {
         boxShadow: [
           // Soft ambient drop shadow for floating elevation
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.38),
-            blurRadius: 30,
+            color: Colors.black.withValues(alpha: 0.32),
+            blurRadius: 28,
             offset: const Offset(0, 10),
             spreadRadius: -2,
           ),
@@ -43,14 +43,14 @@ class LumaNavBar extends StatelessWidget {
             color: (palette.id == LumaThemeId.lumaOriginal
                     ? const Color(0xFF542A52)
                     : palette.primaryAccent)
-                .withValues(alpha: 0.18),
+                .withValues(alpha: 0.16),
             blurRadius: 20,
             offset: const Offset(0, 3),
           ),
           // Sharp ground contact shadow
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.14),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -58,37 +58,37 @@ class LumaNavBar extends StatelessWidget {
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
             height: 72,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
               borderRadius: borderRadius,
-              // Apple-style multi-stop frosted glass gradient in the app's palette
+              // Blurry translucent frosted glass in the app's palette
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0.0, 0.42, 1.0],
+                stops: const [0.0, 0.45, 1.0],
                 colors: palette.id == LumaThemeId.lumaOriginal
                     ? [
-                        // Soft luminous specular sheen at the top edge
-                        const Color(0xFF2C223E).withValues(alpha: 0.68),
-                        // Translucent frosted core allowing background colors to blur through
-                        const Color(0xFF1B1527).withValues(alpha: 0.48),
-                        // Anchored base
-                        const Color(0xFF120E1C).withValues(alpha: 0.66),
+                        // Subtle specular top reflection
+                        const Color(0xFF352648).withValues(alpha: 0.38),
+                        // See-through translucent core letting underlying content blur through
+                        const Color(0xFF1B1527).withValues(alpha: 0.26),
+                        // Grounded base
+                        const Color(0xFF140E20).withValues(alpha: 0.36),
                       ]
                     : [
-                        Color.lerp(palette.elevated, Colors.white, 0.16)!
-                            .withValues(alpha: 0.68),
-                        palette.elevated.withValues(alpha: 0.48),
-                        palette.background.withValues(alpha: 0.66),
+                        Color.lerp(palette.elevated, Colors.white, 0.18)!
+                            .withValues(alpha: 0.38),
+                        palette.elevated.withValues(alpha: 0.26),
+                        palette.background.withValues(alpha: 0.36),
                       ],
               ),
               // Frosted rim catching light
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.18),
-                width: 1.1,
+                color: Colors.white.withValues(alpha: 0.24),
+                width: 1.2,
               ),
             ),
             child: Row(
