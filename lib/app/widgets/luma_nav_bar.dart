@@ -25,46 +25,71 @@ class LumaNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.lumaPalette;
-    return ClipRRect(
-        borderRadius: BorderRadius.circular(30),
+    const borderRadius = BorderRadius.all(Radius.circular(32));
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        boxShadow: [
+          // Soft ambient drop shadow for floating elevation
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.38),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+            spreadRadius: -2,
+          ),
+          // Subtle theme-accented glow echoing brand tones under the dock
+          BoxShadow(
+            color: (palette.id == LumaThemeId.lumaOriginal
+                    ? const Color(0xFF542A52)
+                    : palette.primaryAccent)
+                .withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 3),
+          ),
+          // Sharp ground contact shadow
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
           child: Container(
             height: 72,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
             decoration: BoxDecoration(
-              // Frosted multi-stop glass surface with specular gradient
+              borderRadius: borderRadius,
+              // Apple-style multi-stop frosted glass gradient in the app's palette
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const [0.0, 0.42, 1.0],
                 colors: palette.id == LumaThemeId.lumaOriginal
                     ? [
-                        const Color(0xFF221D30).withValues(alpha: 0.82),
-                        const Color(0xFF161222).withValues(alpha: 0.90),
+                        // Soft luminous specular sheen at the top edge
+                        const Color(0xFF2C223E).withValues(alpha: 0.68),
+                        // Translucent frosted core allowing background colors to blur through
+                        const Color(0xFF1B1527).withValues(alpha: 0.48),
+                        // Anchored base
+                        const Color(0xFF120E1C).withValues(alpha: 0.66),
                       ]
                     : [
-                        palette.elevated.withValues(alpha: 0.82),
-                        palette.background.withValues(alpha: 0.90),
+                        Color.lerp(palette.elevated, Colors.white, 0.16)!
+                            .withValues(alpha: 0.68),
+                        palette.elevated.withValues(alpha: 0.48),
+                        palette.background.withValues(alpha: 0.66),
                       ],
               ),
-              borderRadius: BorderRadius.circular(30),
               // Frosted rim catching light
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.14),
-                width: 1.0,
+                color: Colors.white.withValues(alpha: 0.18),
+                width: 1.1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.50),
-                  blurRadius: 28,
-                  offset: const Offset(0, 10),
-                ),
-                BoxShadow(
-                  color: palette.primaryAccent.withValues(alpha: 0.06),
-                  blurRadius: 20,
-                  offset: const Offset(0, 2),
-                ),
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -116,7 +141,8 @@ class LumaNavBar extends StatelessWidget {
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -143,130 +169,143 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.lumaPalette;
     return Semantics(
-        label: label,
-        selected: selected,
-        button: true,
-        child: Tooltip(
-          message: label,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(22),
-            onTap: onTap,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 54, minHeight: 52),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 250),
-                  curve: Curves.easeOutCubic,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
+      label: label,
+      selected: selected,
+      button: true,
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 54, minHeight: 52),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 3),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  gradient: selected
+                      ? LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color.lerp(
+                              palette.navIndicatorBackground,
+                              Colors.white,
+                              0.08,
+                            )!,
+                            palette.navIndicatorBackground,
+                          ],
+                        )
+                      : null,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
                     color: selected
-                        ? palette.navIndicatorBackground
+                        ? palette.navIndicatorBorder
                         : Colors.transparent,
-                    borderRadius: BorderRadius.circular(22),
-                    border: Border.all(
-                      color: selected
-                          ? palette.navIndicatorBorder
-                          : Colors.transparent,
-                      width: 1,
-                    ),
-                    boxShadow: selected
-                        ? [
-                            BoxShadow(
-                              color: palette.primaryAccent.withValues(
-                                  alpha: palette.id == LumaThemeId.lumaOriginal
-                                      ? 0.12
-                                      : 0.08),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
+                    width: 1,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          AnimatedScale(
-                            scale: selected ? 1.08 : 1.0,
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOutCubic,
-                            child: Icon(
-                              selected ? selectedIcon : icon,
-                              size: 21,
-                              color: selected
-                                  ? palette.primaryAccent
-                                  : palette.textSecondary,
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: palette.primaryAccent.withValues(
+                              alpha: palette.id == LumaThemeId.lumaOriginal
+                                  ? 0.14
+                                  : 0.08,
                             ),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
                           ),
-                          if (badgeCount > 0)
-                            Positioned(
-                              right: -10,
-                              top: -6,
-                              child: Container(
-                                constraints: const BoxConstraints(
-                                  minWidth: 16,
-                                  minHeight: 16,
+                        ]
+                      : null,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AnimatedScale(
+                          scale: selected ? 1.08 : 1.0,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOutCubic,
+                          child: Icon(
+                            selected ? selectedIcon : icon,
+                            size: 21,
+                            color: selected
+                                ? palette.primaryAccent
+                                : palette.textSecondary,
+                          ),
+                        ),
+                        if (badgeCount > 0)
+                          Positioned(
+                            right: -10,
+                            top: -6,
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: palette.chipSelectedBackground,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: palette.primaryAccent,
+                                  width: 1,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: palette.chipSelectedBackground,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: palette.primaryAccent,
-                                    width: 1,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: palette.primaryAccent.withValues(alpha: 0.3),
-                                      blurRadius: 4,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: palette.primaryAccent.withValues(
+                                      alpha: 0.3,
                                     ),
-                                  ],
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  badgeCount > 9 ? '9+' : '$badgeCount',
-                                  style: TextStyle(
-                                    color: palette.chipSelectedText,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    height: 1.2,
+                                    blurRadius: 4,
                                   ),
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                badgeCount > 9 ? '9+' : '$badgeCount',
+                                style: TextStyle(
+                                  color: palette.chipSelectedText,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.2,
                                 ),
                               ),
                             ),
-                        ],
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: selected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        letterSpacing: 0.1,
+                        color: selected
+                            ? palette.primaryAccent
+                            : palette.textSecondary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        label,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                          letterSpacing: 0.1,
-                          color: selected
-                              ? palette.primaryAccent
-                              : palette.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -286,62 +325,72 @@ class _CenterFabState extends State<_CenterFab> {
   Widget build(BuildContext context) {
     final palette = context.lumaPalette;
     return Semantics(
-        label: 'Add expense',
-        button: true,
-        child: Tooltip(
-          message: 'Add expense',
-          child: GestureDetector(
-            onTapDown: (_) => setState(() => _pressed = true),
-            onTapUp: (_) => setState(() => _pressed = false),
-            onTapCancel: () => setState(() => _pressed = false),
-            onTap: widget.onTap,
-            child: AnimatedScale(
-              scale: _pressed ? 0.92 : 1.0,
-              duration: const Duration(milliseconds: 140),
-              curve: Curves.easeOutCubic,
-              child: Container(
-                width: 52,
-                height: 52,
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: palette.id == LumaThemeId.lumaOriginal
-                        ? const [
-                            Color(0xFFFFB894),
-                            Color(0xFFFF9E79),
-                            Color(0xFFE2744B),
-                          ]
-                        : [
-                            Color.lerp(palette.primaryAccent, Colors.white, 0.18) ?? palette.primaryAccent,
-                            palette.primaryAccent,
-                            Color.lerp(palette.primaryAccent, Colors.black, 0.18) ?? palette.primaryAccent,
-                          ],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.40),
-                    width: 1.2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: palette.primaryAccent.withValues(alpha: 0.45),
-                      blurRadius: 18,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+      label: 'Add expense',
+      button: true,
+      child: Tooltip(
+        message: 'Add expense',
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _pressed = true),
+          onTapUp: (_) => setState(() => _pressed = false),
+          onTapCancel: () => setState(() => _pressed = false),
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: _pressed ? 0.92 : 1.0,
+            duration: const Duration(milliseconds: 140),
+            curve: Curves.easeOutCubic,
+            child: Container(
+              width: 52,
+              height: 52,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: palette.id == LumaThemeId.lumaOriginal
+                      ? const [
+                          Color(0xFFFFB894),
+                          Color(0xFFFF9E79),
+                          Color(0xFFE2744B),
+                        ]
+                      : [
+                          Color.lerp(
+                                palette.primaryAccent,
+                                Colors.white,
+                                0.18,
+                              ) ??
+                              palette.primaryAccent,
+                          palette.primaryAccent,
+                          Color.lerp(
+                                palette.primaryAccent,
+                                Colors.black,
+                                0.18,
+                              ) ??
+                              palette.primaryAccent,
+                        ],
                 ),
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.add_rounded,
-                  size: 27,
-                  color: palette.onPrimaryAccent,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.40),
+                  width: 1.2,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: palette.primaryAccent.withValues(alpha: 0.45),
+                    blurRadius: 18,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                Icons.add_rounded,
+                size: 27,
+                color: palette.onPrimaryAccent,
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
   }
 }
