@@ -93,9 +93,7 @@ void main() {
     await store.setUserName('Rey');
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          appSettingsStoreProvider.overrideWith((ref) => store),
-        ],
+        overrides: [appSettingsStoreProvider.overrideWith((ref) => store)],
         child: const LumaApp(),
       ),
     );
@@ -122,54 +120,52 @@ void main() {
     await tester.pumpAndSettle();
     // Seed data spans three days; grouped headers render alongside rows.
     expect(find.text('College Canteen'), findsWidgets);
-    expect(
-      find.textContaining(RegExp(r'Sep|Today|Yesterday')),
-      findsWidgets,
-    );
+    expect(find.textContaining(RegExp(r'Sep|Today|Yesterday')), findsWidgets);
   });
 
-  testWidgets('Settings allows selected SMS scanning with custom count dialog', (
-    WidgetTester tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1200);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(const ProviderScope(child: LumaApp()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Settings allows selected SMS scanning with custom count dialog',
+    (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(800, 1200);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(const ProviderScope(child: LumaApp()));
+      await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(LumaNavBar),
-        matching: find.text('Settings'),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(LumaNavBar),
+          matching: find.text('Settings'),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('SMS diagnostics'), findsOneWidget);
-    await tester.tap(find.text('SMS diagnostics'));
-    await tester.pumpAndSettle();
+      expect(find.text('SMS diagnostics'), findsOneWidget);
+      await tester.tap(find.text('SMS diagnostics'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Scan recent'), findsOneWidget);
+      expect(find.text('Scan recent'), findsOneWidget);
 
-    await tester.tap(find.text('Scan recent'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Scan recent'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Scan Recent SMS'), findsOneWidget);
-    expect(find.text('4 SMS'), findsOneWidget);
-    expect(
-      find.widgetWithText(TextField, 'Number of recent SMS'),
-      findsOneWidget,
-    );
+      expect(find.text('Scan Recent SMS'), findsOneWidget);
+      expect(find.text('4 SMS'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Number of recent SMS'),
+        findsOneWidget,
+      );
 
-    // Tap preset chip '2 SMS'
-    await tester.tap(find.text('2 SMS'));
-    await tester.pumpAndSettle();
+      // Tap preset chip '2 SMS'
+      await tester.tap(find.text('2 SMS'));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(find.text('Scan Recent SMS'), findsNothing);
-  });
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Scan Recent SMS'), findsNothing);
+    },
+  );
 
   testWidgets('Reset requires the typed final confirmation', (tester) async {
     tester.view.physicalSize = const Size(800, 1400);
@@ -178,7 +174,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const ProviderScope(child: LumaApp()));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: find.byType(LumaNavBar), matching: find.text('Settings')));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(LumaNavBar),
+        matching: find.text('Settings'),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete All Records'));
     await tester.pumpAndSettle();
@@ -187,11 +188,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Final Confirmation'), findsOneWidget);
     expect(find.text('Confirm reset'), findsOneWidget);
-    var confirm = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Confirm reset'));
+    var confirm = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Confirm reset'),
+    );
     expect(confirm.onPressed, isNull);
     await tester.enterText(find.byType(TextField).last, ' Confirm ');
     await tester.pumpAndSettle();
-    confirm = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Confirm reset'));
+    confirm = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Confirm reset'),
+    );
     expect(confirm.onPressed, isNotNull);
     await tester.tap(find.text('Cancel').last);
     await tester.pumpAndSettle();
@@ -208,20 +213,33 @@ void main() {
     expect(find.text('All records have been reset.'), findsOneWidget);
   });
 
-  testWidgets('Settings includes About Luma and developer links', (tester) async {
+  testWidgets('Settings includes About Luma and developer links', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1500);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const ProviderScope(child: LumaApp()));
     await tester.pumpAndSettle();
-    await tester.tap(find.descendant(of: find.byType(LumaNavBar), matching: find.text('Settings')));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(LumaNavBar),
+        matching: find.text('Settings'),
+      ),
+    );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Built by Manmit'), 500, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.text('Built by Manmit'),
+      500,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Built by Manmit'), findsOneWidget);
     expect(find.text('Python • ML • LLMs • Flutter'), findsOneWidget);
-    expect(find.text('work.manmit.samal@zohomail.in'), findsOneWidget);
-    expect(find.text('github.com/manmit-s/luma'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.text('Contact Developer'), findsOneWidget);
+    expect(find.text('Source Code'), findsOneWidget);
+    expect(find.text('GitHub Profile'), findsOneWidget);
+    expect(find.text('LinkedIn'), findsOneWidget);
   });
 }
-
