@@ -43,7 +43,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.manmit.luma"
+        applicationId = "com.manmit.luma.dev"
         minSdk = 24
         targetSdk = 34
         versionCode = flutter.versionCode
