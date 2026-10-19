@@ -1396,20 +1396,184 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 140),
       children: [
-        Text(
-          'Settings',
-          style: textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w700,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Settings',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Preferences & on-device controls',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: palette.border.withValues(alpha: 0.6)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: palette.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Local Only',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+
+        // Personal Profile & Accounts Hub Card
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                palette.surface,
+                palette.elevated.withValues(alpha: 0.6),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: palette.border.withValues(alpha: 0.8),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _editName,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor:
+                              palette.primaryAccent.withValues(alpha: 0.18),
+                          child: Text(
+                            _userName.trim().isNotEmpty
+                                ? _userName.trim()[0].toUpperCase()
+                                : 'L',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: palette.primaryAccent,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _loadingName
+                                          ? 'Loading…'
+                                          : _userName.isNotEmpty
+                                              ? _userName
+                                              : 'Set your name',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.edit_outlined,
+                                    size: 14,
+                                    color: palette.textSecondary,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Personal Workspace',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: palette.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _QuickStatPill(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: 'Starting balance',
+                        value: _loadingBalance
+                            ? '…'
+                            : formatAmount(_initialBalanceMinor),
+                        actionIcon: Icons.edit_outlined,
+                        onTap: _editInitialBalance,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _QuickStatPill(
+                        icon: Icons.repeat_rounded,
+                        label: 'Subscriptions',
+                        value: '$activeSubs active',
+                        actionIcon: Icons.arrow_forward_rounded,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SubscriptionsPage(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Keep Luma working quietly in the background',
-          style: textTheme.bodyMedium?.copyWith(
-            color: palette.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 14),
+
         const _SettingsSectionHeader('AUTOMATION'),
         _SettingsSectionCard(
           children: [
@@ -1436,79 +1600,99 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             ),
           ],
         ),
+
         const _SettingsSectionHeader('APPEARANCE'),
         _SettingsSectionCard(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
-                children: LumaThemeId.values.map((themeId) {
-                  final isSelected = currentTheme == themeId;
-                  final previewPalette = LumaPalette.of(themeId);
-                  return _ThemeOptionTile(
-                    themeId: themeId,
-                    palette: previewPalette,
-                    isSelected: isSelected,
-                    onSelect: () =>
-                        ref.read(themeProvider.notifier).setTheme(themeId),
-                  );
-                }).toList(),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ThemeOptionTile(
+                          themeId: LumaThemeId.values[0],
+                          palette: LumaPalette.of(LumaThemeId.values[0]),
+                          isSelected: currentTheme == LumaThemeId.values[0],
+                          onSelect: () => ref
+                              .read(themeProvider.notifier)
+                              .setTheme(LumaThemeId.values[0]),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ThemeOptionTile(
+                          themeId: LumaThemeId.values[1],
+                          palette: LumaPalette.of(LumaThemeId.values[1]),
+                          isSelected: currentTheme == LumaThemeId.values[1],
+                          onSelect: () => ref
+                              .read(themeProvider.notifier)
+                              .setTheme(LumaThemeId.values[1]),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ThemeOptionTile(
+                          themeId: LumaThemeId.values[2],
+                          palette: LumaPalette.of(LumaThemeId.values[2]),
+                          isSelected: currentTheme == LumaThemeId.values[2],
+                          onSelect: () => ref
+                              .read(themeProvider.notifier)
+                              .setTheme(LumaThemeId.values[2]),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ThemeOptionTile(
+                          themeId: LumaThemeId.values[3],
+                          palette: LumaPalette.of(LumaThemeId.values[3]),
+                          isSelected: currentTheme == LumaThemeId.values[3],
+                          onSelect: () => ref
+                              .read(themeProvider.notifier)
+                              .setTheme(LumaThemeId.values[3]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        const _SettingsSectionHeader('PERSONAL'),
-        _SettingsSectionCard(
-          children: [
-            _SettingsRow(
-              icon: Icons.person_outline_rounded,
-              title: 'Your name',
-              subtitle: _loadingName
-                  ? 'Loading…'
-                  : _userName.isEmpty
-                      ? 'Not set — tap to add'
-                      : _userName,
-              onTap: _editName,
-            ),
-            const _SettingsRowDivider(),
-            _SettingsRow(
-              icon: Icons.account_balance_wallet_outlined,
-              title: 'Starting balance',
-              subtitle: _loadingBalance
-                  ? 'Loading…'
-                  : formatAmount(_initialBalanceMinor),
-              onTap: _editInitialBalance,
-            ),
-            const _SettingsRowDivider(),
-            _SettingsRow(
-              icon: Icons.repeat_rounded,
-              title: 'Subscriptions',
-              subtitle: '$activeSubs active',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SubscriptionsPage(),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const _SettingsSectionHeader('PRIVACY'),
+
+        const _SettingsSectionHeader('SYSTEM & PRIVACY'),
         _SettingsSectionCard(
           children: [
             _SettingsRow(
               icon: Icons.shield_outlined,
+              iconColor: palette.primaryAccent,
               title: 'Private by design',
-              subtitle: 'Everything stays on this device',
+              subtitle: '100% on-device • Zero cloud sync',
+              trailing: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: palette.success.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Guaranteed',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: palette.success,
+                  ),
+                ),
+              ),
               onTap: _showPrivacySheet,
             ),
-          ],
-        ),
-        const _SettingsSectionHeader('ADVANCED'),
-        _SettingsSectionCard(
-          children: [
+            const _SettingsRowDivider(),
             _SettingsRow(
-              icon: Icons.bug_report_outlined,
+              icon: Icons.tune_rounded,
               title: 'SMS diagnostics',
               subtitle: 'Troubleshoot SMS detection and processing',
               onTap: () => Navigator.push(
@@ -1520,6 +1704,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             ),
           ],
         ),
+
         const _SettingsSectionHeader('DANGER ZONE'),
         _SettingsSectionCard(
           children: [
@@ -1538,39 +1723,151 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             ),
           ],
         ),
+
         const _SettingsSectionHeader('ABOUT'),
-        _SettingsSectionCard(children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Expanded(child: Text('About Luma', style: textTheme.titleLarge)),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: palette.secondaryAccent, borderRadius: BorderRadius.circular(24)), child: Text('v1.0.0', style: textTheme.labelMedium?.copyWith(color: palette.onSecondaryAccent))),
-              ]),
-              const SizedBox(height: 8),
-              Text('Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.', style: textTheme.bodyMedium),
-              const SizedBox(height: 18),
-              Text('Built by Manmit', style: textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text('Engineering student. AI/ML tinkerer. Serial side-project shipper.', style: textTheme.bodySmall),
-              const SizedBox(height: 8),
-              Text('I build things that solve real problems — fast, offline-first, and actually useful. Luma started as a "wouldn\'t it be cool if..." and turned into the app you\'re holding.', style: textTheme.bodyMedium),
-              const SizedBox(height: 10),
-              Text('Python • ML • LLMs • Flutter', style: textTheme.labelMedium?.copyWith(color: palette.primaryAccent)),
-              const SizedBox(height: 8),
-              Text('“Keep learning. Keep shipping.”', style: textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
-            ]),
-          ),
-          const _SettingsRowDivider(),
-          _SettingsRow(icon: Icons.email_outlined, title: 'Contact email', subtitle: 'work.manmit.samal@zohomail.in', onTap: () => _copyAboutValue('work.manmit.samal@zohomail.in')),
-          const _SettingsRowDivider(),
-          _SettingsRow(icon: Icons.work_outline, title: 'LinkedIn', subtitle: 'linkedin.com/in/manmit-samal', onTap: () => _copyAboutValue('https://www.linkedin.com/in/manmit-samal')),
-          const _SettingsRowDivider(),
-          _SettingsRow(icon: Icons.code, title: 'Developer GitHub', subtitle: 'github.com/manmit-s', onTap: () => _copyAboutValue('https://github.com/manmit-s')),
-          const _SettingsRowDivider(),
-          _SettingsRow(icon: Icons.source_outlined, title: 'App source code', subtitle: 'github.com/manmit-s/luma', onTap: () => _copyAboutValue('https://github.com/manmit-s/luma')),
-          Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), child: Text('Luma is open-source! Meaningful contributions, feature ideas, and bug reports via GitHub Issues/PRs are always welcome.', style: textTheme.bodySmall)),
-        ]),
+        _SettingsSectionCard(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'About Luma',
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.secondaryAccent.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: palette.secondaryAccent.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Text(
+                          'v1.0.0',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: palette.primaryAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.',
+                    style: textTheme.bodyMedium?.copyWith(height: 1.45),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: palette.elevated.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: palette.border.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Built by Manmit',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Engineering student. AI/ML tinkerer. Serial side-project shipper.',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'I build things that solve real problems — fast, offline-first, and actually useful. Luma started as a "wouldn\'t it be cool if..." and turned into the app you\'re holding.',
+                          style: textTheme.bodyMedium?.copyWith(height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Python • ML • LLMs • Flutter',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: palette.primaryAccent,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '“Keep learning. Keep shipping.”',
+                          style: textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _AboutChip(
+                        icon: Icons.email_outlined,
+                        label: 'work.manmit.samal@zohomail.in',
+                        onTap: () => _copyAboutValue(
+                          'work.manmit.samal@zohomail.in',
+                        ),
+                      ),
+                      _AboutChip(
+                        icon: Icons.work_outline,
+                        label: 'linkedin.com/in/manmit-samal',
+                        onTap: () => _copyAboutValue(
+                          'https://www.linkedin.com/in/manmit-samal',
+                        ),
+                      ),
+                      _AboutChip(
+                        icon: Icons.code,
+                        label: 'github.com/manmit-s',
+                        onTap: () => _copyAboutValue(
+                          'https://github.com/manmit-s',
+                        ),
+                      ),
+                      _AboutChip(
+                        icon: Icons.source_outlined,
+                        label: 'github.com/manmit-s/luma',
+                        onTap: () => _copyAboutValue(
+                          'https://github.com/manmit-s/luma',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Luma is open-source! Contributions, feature ideas, and bug reports via GitHub Issues/PRs are always welcome.',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: palette.textSecondary.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -1601,6 +1898,134 @@ class _FinalResetDialogState extends State<_FinalResetDialog> {
   );
 }
 
+class _QuickStatPill extends StatelessWidget {
+  const _QuickStatPill({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.actionIcon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final IconData actionIcon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: palette.background.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: palette.border.withValues(alpha: 0.6),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 14, color: palette.primaryAccent),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: palette.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(2.5),
+                    decoration: BoxDecoration(
+                      color: palette.elevated.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      actionIcon,
+                      size: 11,
+                      color: palette.primaryAccent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: palette.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+
+class _AboutChip extends StatelessWidget {
+  const _AboutChip({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return Material(
+      color: palette.elevated,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: palette.primaryAccent),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: palette.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ThemeOptionTile extends StatelessWidget {
   const _ThemeOptionTile({
     required this.themeId,
@@ -1617,80 +2042,89 @@ class _ThemeOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activePalette = context.lumaPalette;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onSelect,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? activePalette.primaryAccent.withAlpha(25)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onSelect,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
             color: isSelected
-                ? activePalette.primaryAccent
-                : activePalette.border.withAlpha(120),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_unchecked_rounded,
+                ? activePalette.primaryAccent.withValues(alpha: 0.12)
+                : activePalette.elevated.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
               color: isSelected
                   ? activePalette.primaryAccent
-                  : activePalette.textSecondary,
-              size: 20,
+                  : activePalette.border.withValues(alpha: 0.7),
+              width: isSelected ? 1.5 : 1.0,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    themeId.label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
-                      color: activePalette.textPrimary,
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: palette.background,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: palette.border, width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _SwatchDot(palette.surface),
+                        const SizedBox(width: 3),
+                        _SwatchDot(palette.primaryAccent),
+                        const SizedBox(width: 3),
+                        _SwatchDot(palette.secondaryAccent),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    themeId.description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: activePalette.textSecondary,
+                  if (isSelected)
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: activePalette.primaryAccent,
+                      size: 16,
+                    )
+                  else
+                    Icon(
+                      Icons.circle_outlined,
+                      color:
+                          activePalette.textSecondary.withValues(alpha: 0.4),
+                      size: 16,
                     ),
-                  ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              decoration: BoxDecoration(
-                color: palette.background,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: palette.border, width: 0.8),
+              const SizedBox(height: 10),
+              Text(
+                themeId.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: activePalette.textPrimary,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _SwatchDot(palette.surface),
-                  const SizedBox(width: 4),
-                  _SwatchDot(palette.primaryAccent),
-                  const SizedBox(width: 4),
-                  _SwatchDot(palette.secondaryAccent),
-                ],
+              const SizedBox(height: 2),
+              Text(
+                themeId.description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: activePalette.textSecondary,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
