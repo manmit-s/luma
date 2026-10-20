@@ -1,25 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers.dart';
 import '../theme/app_theme.dart';
+import 'category_icon.dart';
 
 /// Single source of truth for category badges / selectable chips.
-class CategoryChip extends StatelessWidget {
+class CategoryChip extends ConsumerWidget {
   const CategoryChip({
     super.key,
     required this.label,
     this.selected = true,
     this.onSelected,
     this.compact = false,
+    this.categoryId,
   });
 
   final String label;
   final bool selected;
   final ValueChanged<bool>? onSelected;
   final bool compact;
+  final String? categoryId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.lumaPalette;
+    final category = categoryId == null
+        ? null
+        : ref.watch(categoryControllerProvider).byId(categoryId);
+    final content = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (category != null) ...[
+          CategoryIcon(category: category, size: compact ? 14 : 16),
+          const SizedBox(width: 5),
+        ],
+        Text(
+          label,
+          style: TextStyle(
+            color: palette.chipSelectedText,
+            fontSize: compact ? 11 : 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
     if (onSelected == null) {
       return Container(
         padding: EdgeInsets.symmetric(
@@ -30,18 +55,11 @@ class CategoryChip extends StatelessWidget {
           color: palette.chipSelectedBackground,
           borderRadius: BorderRadius.circular(AppRadii.control),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: palette.chipSelectedText,
-            fontSize: compact ? 11 : 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        child: content,
       );
     }
     return ChoiceChip(
-      label: Text(label),
+      label: content,
       selected: selected,
       onSelected: onSelected,
       selectedColor: palette.chipSelectedBackground,
