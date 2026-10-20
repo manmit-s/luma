@@ -3260,6 +3260,7 @@ Future<void> showExpenseDetail(
     useSafeArea: true,
     builder: (context) {
       final palette = context.lumaPalette;
+      final category = ref.read(categoryControllerProvider).byId(expense.categoryId);
       return SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -3281,8 +3282,9 @@ Future<void> showExpenseDetail(
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   CategoryChip(
-                    label: categoryName(expense.categoryId),
+                    label: category?.name ?? categoryName(expense.categoryId),
                     compact: true,
+                    categoryId: expense.categoryId,
                   ),
                 ],
               ),
