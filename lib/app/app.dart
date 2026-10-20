@@ -19,6 +19,7 @@ import 'utils/external_links.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/category_chip.dart';
+import 'widgets/category_management_page.dart';
 import 'widgets/expense_cards.dart';
 import 'widgets/expense_sheets.dart';
 import 'widgets/first_launch_flow.dart';
@@ -1693,6 +1694,23 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                     ],
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+
+        const _SettingsSectionHeader('ADVANCED'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.category_outlined,
+              title: 'Manage Categories',
+              subtitle: 'Add, edit, and reorder your categories',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ManageCategoriesPage(),
+                ),
               ),
             ),
           ],
