@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:luma/data/repositories/memory_expense_repository.dart';
+import 'package:luma/data/repositories/memory_category_repository.dart';
 import 'package:luma/data/services/app_settings_store.dart';
+import 'package:luma/domain/entities/category.dart';
 import 'package:luma/domain/entities/expense.dart';
 import 'package:luma/services/export/export_service.dart';
 
@@ -115,6 +117,35 @@ void main() {
       expect(rows[7][8], 'R1');
       // Export marks persisted only after successful generation.
       expect(await repo.queryUnexported(), isEmpty);
+    });
+
+    test('custom category name is written to the XLSX category column', () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      final categories = MemoryCategoryRepository();
+      await categories.save(const CategoryModel(
+        id: 'gym',
+        name: 'Gym Membership',
+        iconKey: 'dumbbell',
+        colorValue: 0xFFB8A7A0,
+        sortOrder: 10,
+        isDefault: false,
+      ));
+      await _add(
+        repo,
+        amountMinor: 2500,
+        merchant: 'Fit Club',
+        categoryId: 'gym',
+      );
+      final service = ExportService(
+        repo,
+        null,
+        categoryRepository: categories,
+        outputDir: () async => dir,
+      );
+
+      final result = await service.generate(ExportMode.full);
+
+      expect(_rows(result.file)[7][3], 'Gym Membership');
     });
 
     test('incremental export excludes previously exported expenses',

@@ -9,6 +9,7 @@ import '../../core/utils/format.dart';
 import '../../data/database/luma_database.dart';
 import '../../data/services/app_settings_store.dart';
 import '../../domain/entities/expense.dart' as domain;
+import '../../domain/repositories/category_repository.dart';
 import '../../domain/repositories/expense_repository.dart';
 import '../../domain/repositories/subscription_repository.dart';
 
@@ -64,11 +65,13 @@ class ExportService {
     this._repository,
     this._db, {
     AppSettingsStore? settingsStore,
+    CategoryRepository? categoryRepository,
     SubscriptionRepository? subscriptionRepository,
     Future<Directory> Function()? outputDir,
     Future<File> Function(Directory dir, String filename, List<int> bytes)?
         writeFile,
   })  : _settingsStore = settingsStore ?? AppSettingsStore(_db),
+      _categoryRepository = categoryRepository,
         _subscriptionRepository = subscriptionRepository,
         _outputDir = outputDir ?? getTemporaryDirectory,
         _writeFile = writeFile ?? _defaultWrite;
@@ -76,6 +79,7 @@ class ExportService {
   final ExpenseRepository _repository;
   final LumaDatabase? _db;
   final AppSettingsStore _settingsStore;
+  final CategoryRepository? _categoryRepository;
   final SubscriptionRepository? _subscriptionRepository;
   final Future<Directory> Function() _outputDir;
   final Future<File> Function(Directory dir, String filename, List<int> bytes)
@@ -100,6 +104,7 @@ class ExportService {
   Future<ExportResult> generate(ExportMode mode, {DateTime? now}) async {
     final timestamp = now ?? DateTime.now();
     final allExpenses = await _repository.getAll();
+    final categories = await _categoryRepository?.getAll();
     final initialBalanceMinor = await _settingsStore.initialBalanceMinor();
 
     final expenses = mode == ExportMode.full
@@ -210,7 +215,7 @@ class ExportService {
         TextCellValue(_dateOf(localTimestamp)),
         TextCellValue(_timeOf(localTimestamp)),
         TextCellValue(expense.merchant ?? ''),
-        TextCellValue(categoryName(expense.categoryId)),
+        TextCellValue(categoryName(expense.categoryId, categories)),
         TextCellValue(_txLabel(expense.transactionType)),
         DoubleCellValue(expense.amountMinor / 100),
         DoubleCellValue(runningBalance / 100),
