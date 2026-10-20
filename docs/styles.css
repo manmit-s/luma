@@ -753,93 +753,40 @@ code {
   color: var(--muted);
 }
 
-/* --- package chip + copy --- */
-.chip {
-  position: relative;
+/* --- APK download --- */
+.download-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   margin-top: 32px;
-  padding: 6px 6px 6px 18px;
-  background: var(--raised);
-  border: 1px solid var(--border);
+  padding: 12px 20px;
+  border: 1px solid rgba(255, 179, 154, 0.7);
   border-radius: 999px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  background: var(--peach);
+  color: #1A1013;
+  box-shadow: 0 8px 24px rgba(255, 179, 154, 0.18);
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
   transition:
-    border-color 240ms var(--ease),
-    box-shadow 240ms var(--ease),
-    transform 240ms var(--ease);
+    background 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    transform 200ms var(--ease);
 }
 
-.chip:hover {
-  border-color: var(--border-hi);
-  box-shadow:
-    0 0 0 4px rgba(92, 46, 90, 0.2),
-    0 8px 28px rgba(0, 0, 0, 0.3);
+.download-btn:hover {
+  background: var(--peach-soft);
+  box-shadow: 0 10px 30px rgba(255, 179, 154, 0.3);
   transform: translateY(-1px);
 }
 
-.chip__code {
-  background: none;
-  border: 0;
-  padding: 0;
-  font-family: var(--mono);
-  font-size: .86rem;
-  color: var(--peach-soft);
+.download-btn:active {
+  box-shadow: 0 4px 14px rgba(255, 179, 154, 0.2);
+  transform: translateY(1px);
 }
 
-.chip__copy {
-  display: inline-grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid transparent;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    color 200ms var(--ease),
-    background 200ms var(--ease),
-    transform 200ms var(--ease);
-}
-.chip__copy svg {
-  width: 18px;
-  height: 18px;
-  transition: transform 240ms var(--ease);
-}
-.chip__copy:hover {
-  color: var(--peach);
-  background: rgba(92, 46, 90, 0.5);
-}
-.chip__copy:hover svg { transform: scale(1.1); }
-.chip__copy:active svg { transform: scale(.9); }
-
-.chip__tip {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 12px);
-  padding: 7px 14px;
-  border-radius: var(--r-sm);
-  background: var(--peach);
-  color: #1A1013;
-  font-size: .76rem;
-  font-weight: 700;
-  letter-spacing: .01em;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateY(6px);
-  pointer-events: none;
-  box-shadow: 0 8px 24px rgba(255, 179, 154, 0.3);
-  transition:
-    opacity 220ms var(--ease),
-    transform 220ms var(--ease);
-}
-.chip.is-copied .chip__tip {
-  opacity: 1;
-  transform: none;
-}
+.download-btn svg { flex: 0 0 auto; }
 
 /* --- hero stat strip --- */
 .stats {

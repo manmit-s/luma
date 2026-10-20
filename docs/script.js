@@ -1,6 +1,6 @@
 /* ============================================================
    Luma — Privacy Policy
-   Vanilla, dependency-free, no network requests.
+  Vanilla, dependency-free.
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -126,34 +126,32 @@
 })();
 
 /* ------------------------------------------------------------
-   4. Click-to-copy package name
+   4. Latest APK download
    ------------------------------------------------------------ */
-(function copyPackage() {
-  const button = document.querySelector('#copy-package');
-  if (!button) return;
+document.addEventListener('DOMContentLoaded', async function () {
+  const downloadButton = document.querySelector('#download-btn');
+  if (!downloadButton) return;
 
-  const chip = button.closest('.chip');
-  const live = document.querySelector('#copy-status');
-  let timer = null;
+  try {
+    const response = await fetch('https://api.github.com/repos/manmit-s/luma/releases/latest');
+    if (!response.ok) return;
 
-  button.addEventListener('click', function () {
-    const value = button.dataset.copy;
+    const release = await response.json();
+    const apkAsset = Array.isArray(release.assets)
+      ? release.assets.find(function (asset) {
+        return typeof asset.name === 'string' && asset.name.toLowerCase().endsWith('.apk');
+      })
+      : null;
 
-    // Fail silently when the Clipboard API is unavailable or denied —
-    // file:// and locked-down contexts must not throw.
-    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') return;
+    if (!apkAsset || !apkAsset.browser_download_url) return;
 
-    navigator.clipboard.writeText(value).then(function () {
-      chip.classList.add('is-copied');
-      if (live) live.textContent = 'Package name copied';
-      window.clearTimeout(timer);
-      timer = window.setTimeout(function () {
-        chip.classList.remove('is-copied');
-        if (live) live.textContent = '';
-      }, 1500);
-    }).catch(function () { /* Silently ignore. */ });
-  });
-})();
+    downloadButton.href = apkAsset.browser_download_url;
+    const label = downloadButton.querySelector('span');
+    if (label && release.tag_name) label.textContent = 'Download APK (' + release.tag_name + ')';
+  } catch (error) {
+    // Keep the fallback release page when GitHub is unavailable or rate limited.
+  }
+});
 
 /* ------------------------------------------------------------
    5. Reset simulator
