@@ -5,7 +5,6 @@ import 'dart:async';
 
 import '../application/expense_controller.dart';
 import '../core/utils/format.dart';
-import '../domain/entities/category.dart';
 import '../domain/entities/expense.dart';
 import '../domain/services/sms_transaction_parser.dart';
 import '../services/export/export_service.dart';
@@ -19,6 +18,7 @@ import 'utils/external_links.dart';
 import 'widgets/amount_display.dart';
 import 'widgets/balance_card.dart';
 import 'widgets/category_chip.dart';
+import 'widgets/category_management_page.dart';
 import 'widgets/expense_cards.dart';
 import 'widgets/expense_sheets.dart';
 import 'widgets/first_launch_flow.dart';
@@ -535,6 +535,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
   Widget build(BuildContext context) {
     super.build(context);
     final controller = ref.watch(expenseControllerProvider);
+    final categories = ref.watch(categoryControllerProvider).categories;
     final textTheme = Theme.of(context).textTheme;
     final normalizedQuery = query.trim().toLowerCase();
     final expenses = controller.expenses.where((expense) {
@@ -579,7 +580,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                 selected: selectedCategory == null,
                 onSelected: (_) => setState(() => selectedCategory = null),
               ),
-              ...defaultCategories.map(
+              ...categories.map(
                 (category) => _SelectableFilterChip(
                   label: category.name,
                   selected: selectedCategory == category.id,
@@ -1450,38 +1451,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                 ),
               ],
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: palette.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: palette.border.withValues(alpha: 0.6),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: palette.success,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Local Only',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: palette.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 18),
@@ -1698,6 +1667,23 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
           ],
         ),
 
+        const _SettingsSectionHeader('ADVANCED'),
+        _SettingsSectionCard(
+          children: [
+            _SettingsRow(
+              icon: Icons.category_outlined,
+              title: 'Manage Categories',
+              subtitle: 'Add, edit, and reorder your categories',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ManageCategoriesPage(),
+                ),
+              ),
+            ),
+          ],
+        ),
+
         const _SettingsSectionHeader('SYSTEM & PRIVACY'),
         _SettingsSectionCard(
           children: [
@@ -1758,158 +1744,13 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         const _SettingsSectionHeader('ABOUT'),
         _SettingsSectionCard(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'About Luma',
-                          style: textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: palette.secondaryAccent.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: palette.secondaryAccent.withValues(
-                              alpha: 0.5,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          'v1.0.0',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: palette.primaryAccent,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.',
-                    style: textTheme.bodyMedium?.copyWith(height: 1.45),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: palette.elevated.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: palette.border.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Built by Manmit',
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Engineering student. AI/ML tinkerer. Serial side-project shipper.',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: palette.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'I build things that solve real problems — fast, offline-first, and actually useful. Luma started as a "wouldn\'t it be cool if..." and turned into the app you\'re holding.',
-                          style: textTheme.bodyMedium?.copyWith(height: 1.4),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Python • ML • LLMs • Flutter',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: palette.primaryAccent,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '“Keep learning. Keep shipping.”',
-                          style: textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _AboutChip(
-                        icon: Icons.privacy_tip_outlined,
-                        label: 'Privacy Policy',
-                        onTap: () => ExternalLinks.openUrl(
-                          context,
-                          ExternalLinks.privacyPolicyUrl,
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.email_outlined,
-                        label: 'Contact Developer',
-                        onTap: () => ExternalLinks.openEmail(
-                          context,
-                          ExternalLinks.developerEmail,
-                          subject: 'Luma Feedback',
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.source_outlined,
-                        label: 'Source Code',
-                        onTap: () => ExternalLinks.openUrl(
-                          context,
-                          ExternalLinks.sourceCodeUrl,
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.code_rounded,
-                        label: 'GitHub Profile',
-                        onTap: () => ExternalLinks.openUrl(
-                          context,
-                          ExternalLinks.githubProfileUrl,
-                        ),
-                      ),
-                      _AboutChip(
-                        icon: Icons.work_outline,
-                        label: 'LinkedIn',
-                        onTap: () => ExternalLinks.openUrl(
-                          context,
-                          ExternalLinks.linkedinUrl,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Luma is open-source! Contributions, feature ideas, and bug reports via GitHub Issues/PRs are always welcome.',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: palette.textSecondary.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
+            _SettingsRow(
+              icon: Icons.info_outline_rounded,
+              title: 'About Luma',
+              subtitle: 'Version 1.0.1 • Built by Manmit',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const _AboutLumaPage()),
               ),
             ),
           ],
@@ -2043,6 +1884,124 @@ class _QuickStatPill extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AboutLumaPage extends StatelessWidget {
+  const _AboutLumaPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    final textTheme = Theme.of(context).textTheme;
+    return Scaffold(
+      appBar: AppBar(title: const Text('About Luma')),
+      body: ListView(
+        padding: AppSpacing.screenPadding.copyWith(bottom: 32),
+        children: [
+          Text(
+            'Luma',
+            style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text('Version 1.0.1', style: TextStyle(color: palette.textSecondary)),
+          const SizedBox(height: 20),
+          Text(
+            'Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.',
+            style: textTheme.bodyMedium?.copyWith(height: 1.45),
+          ),
+          const SizedBox(height: 20),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Built by Manmit',
+                    style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Engineering student. AI/ML tinkerer. Serial side-project shipper.',
+                    style: textTheme.bodySmall?.copyWith(color: palette.textSecondary),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Python • ML • LLMs • Flutter',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: palette.primaryAccent,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '“Keep learning. Keep shipping.”',
+                    style: textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _AboutChip(
+                icon: Icons.privacy_tip_outlined,
+                label: 'Privacy Policy',
+                onTap: () => ExternalLinks.openUrl(
+                  context,
+                  ExternalLinks.privacyPolicyUrl,
+                ),
+              ),
+              _AboutChip(
+                icon: Icons.email_outlined,
+                label: 'Contact Developer',
+                onTap: () => ExternalLinks.openEmail(
+                  context,
+                  ExternalLinks.developerEmail,
+                  subject: 'Luma Feedback',
+                ),
+              ),
+              _AboutChip(
+                icon: Icons.source_outlined,
+                label: 'Source Code',
+                onTap: () => ExternalLinks.openUrl(
+                  context,
+                  ExternalLinks.sourceCodeUrl,
+                ),
+              ),
+              _AboutChip(
+                icon: Icons.code_rounded,
+                label: 'GitHub Profile',
+                onTap: () => ExternalLinks.openUrl(
+                  context,
+                  ExternalLinks.githubProfileUrl,
+                ),
+              ),
+              _AboutChip(
+                icon: Icons.work_outline,
+                label: 'LinkedIn',
+                onTap: () => ExternalLinks.openUrl(
+                  context,
+                  ExternalLinks.linkedinUrl,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Luma is open-source! Contributions, feature ideas, and bug reports via GitHub Issues/PRs are always welcome.',
+            style: textTheme.bodySmall?.copyWith(
+              color: palette.textSecondary.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3260,6 +3219,7 @@ Future<void> showExpenseDetail(
     useSafeArea: true,
     builder: (context) {
       final palette = context.lumaPalette;
+      final category = ref.read(categoryControllerProvider).byId(expense.categoryId);
       return SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -3281,8 +3241,9 @@ Future<void> showExpenseDetail(
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   CategoryChip(
-                    label: categoryName(expense.categoryId),
+                    label: category?.name ?? categoryName(expense.categoryId),
                     compact: true,
+                    categoryId: expense.categoryId,
                   ),
                 ],
               ),

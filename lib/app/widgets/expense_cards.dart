@@ -1,35 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers.dart';
 import '../../core/utils/format.dart';
 import '../../domain/entities/expense.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
 import 'category_chip.dart';
+import 'category_icon.dart';
 
-IconData categoryIcon(String? id) => switch (id) {
-      'food' => Icons.restaurant_rounded,
-      'travel' => Icons.directions_car_rounded,
-      'shopping' => Icons.shopping_bag_outlined,
-      'subscriptions' => Icons.autorenew_rounded,
-      'bills' => Icons.receipt_long_rounded,
-      'entertainment' => Icons.movie_outlined,
-      'health' => Icons.favorite_outline,
-      'education' => Icons.school_outlined,
-      'personal' => Icons.person_outline,
-      _ => Icons.wallet_outlined,
-    };
+IconData categoryIcon(String? id) => categoryIconData(id);
 
 /// Completed expense row — single card style used by Home + History.
-class ExpenseCard extends StatelessWidget {
+class ExpenseCard extends ConsumerWidget {
   const ExpenseCard({super.key, required this.expense, required this.onTap});
 
   final Expense expense;
   final VoidCallback onTap;
 
   @override
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.lumaPalette;
+    final categories = ref.watch(categoryControllerProvider).categories;
+    final category = ref.read(categoryControllerProvider).byId(expense.categoryId);
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -44,11 +37,13 @@ class ExpenseCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: palette.chipSelectedBackground,
-                child: Icon(
-                  categoryIcon(expense.categoryId),
-                  color: palette.chipSelectedText,
-                  size: 19,
-                ),
+                child: category != null
+                    ? CategoryIcon(category: category, size: 19)
+                    : Icon(
+                        categoryIcon(expense.categoryId),
+                        color: palette.chipSelectedText,
+                        size: 19,
+                      ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -63,7 +58,7 @@ class ExpenseCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${categoryName(expense.categoryId)} · ${formatTime(expense.timestamp)}',
+                      '${categoryName(expense.categoryId, categories)} · ${formatTime(expense.timestamp)}',
                       style: TextStyle(
                         color: palette.textSecondary,
                         fontSize: 12,
@@ -88,7 +83,7 @@ class ExpenseCard extends StatelessWidget {
 }
 
 /// Pending expense — elevated distinction from completed (SPEC 43).
-class PendingExpenseCard extends StatelessWidget {
+class PendingExpenseCard extends ConsumerWidget {
   const PendingExpenseCard({
     super.key,
     required this.expense,
@@ -99,8 +94,9 @@ class PendingExpenseCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = context.lumaPalette;
+    final categories = ref.watch(categoryControllerProvider).categories;
     final isCredit = expense.transactionType == TransactionType.credit;
     return Material(
       color: palette.elevated,
@@ -197,8 +193,9 @@ class PendingExpenseCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 6),
                   CategoryChip(
-                    label: categoryName(expense.categoryId),
+                    label: categoryName(expense.categoryId, categories),
                     compact: true,
+                    categoryId: expense.categoryId,
                   ),
                 ],
               ),

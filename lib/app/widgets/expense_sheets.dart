@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/format.dart';
-import '../../domain/entities/category.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/subscription.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
-import 'expense_cards.dart' show categoryIcon;
+import 'category_icon.dart';
 import 'luma_buttons.dart';
 
 int parseAmountToMinor(String raw) {
@@ -158,7 +157,7 @@ class _TransactionTypeSelector extends StatelessWidget {
 }
 
 /// Horizontal swipable category cards with vector icon and label.
-class _CategoryCardSelector extends StatelessWidget {
+class _CategoryCardSelector extends ConsumerWidget {
   const _CategoryCardSelector({
     required this.selectedCategoryId,
     required this.onSelected,
@@ -168,16 +167,17 @@ class _CategoryCardSelector extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(categoryControllerProvider).categories;
     return SizedBox(
       height: 86,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: defaultCategories.length,
+        itemCount: categories.length,
         separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
-          final item = defaultCategories[index];
+          final item = categories[index];
           final isSelected = selectedCategoryId == item.id;
           final palette = context.lumaPalette;
           return GestureDetector(
@@ -205,13 +205,7 @@ class _CategoryCardSelector extends StatelessWidget {
                           : palette.elevated,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      categoryIcon(item.id),
-                      size: 20,
-                      color: isSelected
-                          ? palette.chipSelectedText
-                          : palette.textSecondary,
-                    ),
+                    child: CategoryIcon(category: item, size: 20),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -233,6 +227,55 @@ class _CategoryCardSelector extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _TimestampPickerRow extends StatelessWidget {
+  const _TimestampPickerRow({required this.timestamp, required this.onTap});
+
+  final DateTime timestamp;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
+    final period = timestamp.hour < 12 ? 'AM' : 'PM';
+    final time = '$hour:${timestamp.minute.toString().padLeft(2, '0')} $period';
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.event_outlined, color: palette.primaryAccent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Date and time'),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${formatDayLabel(timestamp)}, $time',
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: palette.textSecondary),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -715,6 +758,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   BillingCycle billingCycle = BillingCycle.monthly;
   PaymentMethod paymentMethod = PaymentMethod.autopay;
   DateTime nextRenewalDate = DateTime.now().add(const Duration(days: 30));
+  DateTime timestamp = DateTime.now();
 
   @override
   void dispose() {
@@ -722,6 +766,30 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
     merchant.dispose();
     note.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickTimestamp() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: timestamp,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate == null || !mounted) return;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(timestamp),
+    );
+    if (pickedTime == null || !mounted) return;
+    setState(() {
+      timestamp = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   @override
@@ -807,6 +875,11 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                   },
                 ),
               ],
+              const SizedBox(height: AppSpacing.md),
+              _TimestampPickerRow(
+                timestamp: timestamp,
+                onTap: _pickTimestamp,
+              ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -838,6 +911,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                           categoryId: category,
                           note: note.text.trim(),
                           transactionType: transactionType,
+                          timestamp: timestamp,
                         );
                     if (category == 'subscriptions' &&
                         isRecurringSubscription) {

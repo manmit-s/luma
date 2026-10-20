@@ -213,7 +213,7 @@ void main() {
     expect(find.text('All records have been reset.'), findsOneWidget);
   });
 
-  testWidgets('Settings includes About Luma and developer links', (
+  testWidgets('About Luma opens compactly from Settings with developer links', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1500);
@@ -229,11 +229,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Built by Manmit'),
-      500,
-      scrollable: find.byType(Scrollable).first,
-    );
+    await tester.tap(find.text('About Luma').first);
+    await tester.pumpAndSettle();
     expect(find.text('Built by Manmit'), findsOneWidget);
     expect(find.text('Python • ML • LLMs • Flutter'), findsOneWidget);
     expect(find.text('Privacy Policy'), findsOneWidget);
@@ -241,5 +238,6 @@ void main() {
     expect(find.text('Source Code'), findsOneWidget);
     expect(find.text('GitHub Profile'), findsOneWidget);
     expect(find.text('LinkedIn'), findsOneWidget);
+    expect(find.textContaining('I build things that solve real problems'), findsNothing);
   });
 }

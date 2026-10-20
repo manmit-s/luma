@@ -13,11 +13,24 @@ Future<void> seedLumaDatabase(LumaDatabase db) async {
             CategoriesCompanion.insert(
               id: category.id,
               name: category.name,
-              icon: category.icon,
+              icon: category.iconKey,
+              iconKey: Value(category.iconKey),
+              colorValue: Value(category.colorValue),
               sortOrder: category.sortOrder,
               isDefault: const Value(true),
             ),
             mode: InsertMode.insertOrIgnore,
+          );
+    } else if (existing.isDefault) {
+      await (db.update(db.categories)
+        ..where((row) => row.id.equals(category.id)))
+          .write(
+            CategoriesCompanion(
+              name: Value(category.name),
+              icon: Value(category.iconKey),
+              iconKey: Value(category.iconKey),
+              colorValue: Value(category.colorValue),
+            ),
           );
     }
   }

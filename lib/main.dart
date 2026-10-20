@@ -8,10 +8,13 @@ import 'package:path_provider/path_provider.dart';
 import 'app/app.dart';
 import 'app/providers.dart';
 import 'application/expense_controller.dart';
+import 'application/category_controller.dart';
 import 'application/subscription_controller.dart';
 import 'data/database/luma_database.dart';
 import 'data/database/seed.dart';
 import 'data/repositories/drift_expense_repository.dart';
+import 'data/repositories/drift_category_repository.dart';
+import 'data/repositories/memory_category_repository.dart';
 import 'data/repositories/drift_subscription_repository.dart';
 import 'data/repositories/drift_expected_payment_repository.dart';
 import 'data/repositories/memory_expense_repository.dart';
@@ -33,6 +36,11 @@ Future<void> main() async {
     final learning = DriftMerchantLearning(db);
     await learning.load();
     final repository = DriftExpenseRepository(db);
+    final categoryRepository = DriftCategoryRepository(db);
+    final categoryController = CategoryController(
+      repository: categoryRepository,
+    );
+    await categoryController.load();
     final subRepo = DriftSubscriptionRepository(db);
     final paymentRepo = DriftExpectedPaymentRepository(db);
     final subController = SubscriptionController(
@@ -51,6 +59,7 @@ Future<void> main() async {
     final exportService = ExportService(
       repository,
       db,
+        categoryRepository: categoryRepository,
       settingsStore: store,
       subscriptionRepository: subRepo,
     );
@@ -58,6 +67,7 @@ Future<void> main() async {
       ProviderScope(
         overrides: [
           expenseControllerProvider.overrideWith((ref) => controller),
+          categoryControllerProvider.overrideWith((ref) => categoryController),
           subscriptionControllerProvider.overrideWith((ref) => subController),
           appSettingsStoreProvider.overrideWith((ref) => store),
           exportServiceProvider.overrideWith((ref) => exportService),
@@ -82,6 +92,11 @@ Future<void> main() async {
       final learning = DriftMerchantLearning(cleanDb);
       await learning.load();
       final repository = DriftExpenseRepository(cleanDb);
+      final categoryRepository = DriftCategoryRepository(cleanDb);
+      final categoryController = CategoryController(
+        repository: categoryRepository,
+      );
+      await categoryController.load();
       final subRepo = DriftSubscriptionRepository(cleanDb);
       final paymentRepo = DriftExpectedPaymentRepository(cleanDb);
       final subController = SubscriptionController(
@@ -101,6 +116,7 @@ Future<void> main() async {
       final exportService = ExportService(
         repository,
         cleanDb,
+        categoryRepository: categoryRepository,
         settingsStore: store,
         subscriptionRepository: subRepo,
       );
@@ -108,6 +124,7 @@ Future<void> main() async {
         ProviderScope(
           overrides: [
             expenseControllerProvider.overrideWith((ref) => controller),
+            categoryControllerProvider.overrideWith((ref) => categoryController),
             subscriptionControllerProvider
                 .overrideWith((ref) => subController),
             appSettingsStoreProvider.overrideWith((ref) => store),
@@ -123,6 +140,9 @@ Future<void> main() async {
     }
 
     final memoryRepo = MemoryExpenseRepository(seed: false);
+    final categoryRepository = MemoryCategoryRepository();
+    final categoryController = CategoryController(repository: categoryRepository);
+    await categoryController.load();
     final memorySubRepo = MemorySubscriptionRepository();
     final memoryPaymentRepo = MemoryExpectedPaymentRepository();
     final subController = SubscriptionController(
@@ -139,6 +159,7 @@ Future<void> main() async {
       ProviderScope(
         overrides: [
           expenseControllerProvider.overrideWith((ref) => fallback),
+          categoryControllerProvider.overrideWith((ref) => categoryController),
           subscriptionControllerProvider
               .overrideWith((ref) => subController),
           appSettingsStoreProvider
@@ -147,6 +168,7 @@ Future<void> main() async {
           exportServiceProvider.overrideWith((ref) => ExportService(
                 memoryRepo,
                 null,
+                categoryRepository: categoryRepository,
                 subscriptionRepository: memorySubRepo,
               )),
         ],

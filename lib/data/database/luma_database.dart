@@ -47,6 +47,8 @@ class Categories extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get icon => text()();
+  TextColumn get iconKey => text().named('icon_key').withDefault(const Constant('other'))();
+  IntColumn get colorValue => integer().named('color_value').withDefault(const Constant(0xFFB8A7A0))();
   IntColumn get sortOrder => integer()();
   BoolColumn get isDefault => boolean().withDefault(const Constant(true))();
 
@@ -132,7 +134,7 @@ class LumaDatabase extends _$LumaDatabase {
   LumaDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -165,6 +167,17 @@ class LumaDatabase extends _$LumaDatabase {
             } catch (_) {
               // Best effort if already created
             }
+          }
+          if (from < 5) {
+            await m.database.customStatement(
+              "ALTER TABLE categories ADD COLUMN icon_key TEXT NOT NULL DEFAULT 'other'",
+            );
+            await m.database.customStatement(
+              'ALTER TABLE categories ADD COLUMN color_value INTEGER NOT NULL DEFAULT -467584',
+            );
+            await m.database.customStatement(
+              'UPDATE categories SET icon_key = icon WHERE icon IS NOT NULL',
+            );
           }
         },
       );
