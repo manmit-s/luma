@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/format.dart';
-import '../../domain/entities/category.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/subscription.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
-import 'expense_cards.dart' show categoryIcon;
+import 'category_icon.dart';
 import 'luma_buttons.dart';
 
 int parseAmountToMinor(String raw) {
@@ -158,7 +157,7 @@ class _TransactionTypeSelector extends StatelessWidget {
 }
 
 /// Horizontal swipable category cards with vector icon and label.
-class _CategoryCardSelector extends StatelessWidget {
+class _CategoryCardSelector extends ConsumerWidget {
   const _CategoryCardSelector({
     required this.selectedCategoryId,
     required this.onSelected,
@@ -168,16 +167,17 @@ class _CategoryCardSelector extends StatelessWidget {
   final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categories = ref.watch(categoryControllerProvider).categories;
     return SizedBox(
       height: 86,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: defaultCategories.length,
+        itemCount: categories.length,
         separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.sm),
         itemBuilder: (context, index) {
-          final item = defaultCategories[index];
+          final item = categories[index];
           final isSelected = selectedCategoryId == item.id;
           final palette = context.lumaPalette;
           return GestureDetector(
@@ -205,13 +205,7 @@ class _CategoryCardSelector extends StatelessWidget {
                           : palette.elevated,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      categoryIcon(item.id),
-                      size: 20,
-                      color: isSelected
-                          ? palette.chipSelectedText
-                          : palette.textSecondary,
-                    ),
+                    child: CategoryIcon(category: item, size: 20),
                   ),
                   const SizedBox(height: 6),
                   Text(
