@@ -139,15 +139,17 @@ class ExpenseController extends ChangeNotifier {
       required String merchant,
       required String categoryId,
       String note = '',
-      TransactionType transactionType = TransactionType.debit}) async {
+      TransactionType transactionType = TransactionType.debit,
+      DateTime? timestamp}) async {
     final now = DateTime.now();
+    final expenseTimestamp = timestamp ?? now;
     final draft = Expense(
         id: 0,
         amountMinor: amountMinor,
         merchant: merchant.isEmpty ? null : merchant,
         categoryId: categoryId,
         note: note,
-        timestamp: now,
+        timestamp: expenseTimestamp,
         status: ExpenseStatus.completed,
         transactionType: transactionType,
         source: ExpenseSource.manual,

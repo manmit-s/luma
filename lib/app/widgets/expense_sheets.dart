@@ -232,6 +232,55 @@ class _CategoryCardSelector extends ConsumerWidget {
   }
 }
 
+class _TimestampPickerRow extends StatelessWidget {
+  const _TimestampPickerRow({required this.timestamp, required this.onTap});
+
+  final DateTime timestamp;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
+    final period = timestamp.hour < 12 ? 'AM' : 'PM';
+    final time = '$hour:${timestamp.minute.toString().padLeft(2, '0')} $period';
+    return Material(
+      color: palette.surface,
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Icon(Icons.event_outlined, color: palette.primaryAccent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Date and time'),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${formatDayLabel(timestamp)}, $time',
+                      style: TextStyle(
+                        color: palette.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: palette.textSecondary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Compact progressive disclosure control for recurring subscriptions.
 class _RecurringSubscriptionOption extends StatelessWidget {
   const _RecurringSubscriptionOption({
@@ -709,6 +758,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   BillingCycle billingCycle = BillingCycle.monthly;
   PaymentMethod paymentMethod = PaymentMethod.autopay;
   DateTime nextRenewalDate = DateTime.now().add(const Duration(days: 30));
+  DateTime timestamp = DateTime.now();
 
   @override
   void dispose() {
@@ -716,6 +766,30 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
     merchant.dispose();
     note.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickTimestamp() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: timestamp,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (pickedDate == null || !mounted) return;
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(timestamp),
+    );
+    if (pickedTime == null || !mounted) return;
+    setState(() {
+      timestamp = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   @override
@@ -801,6 +875,11 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                   },
                 ),
               ],
+              const SizedBox(height: AppSpacing.md),
+              _TimestampPickerRow(
+                timestamp: timestamp,
+                onTap: _pickTimestamp,
+              ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -832,6 +911,7 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                           categoryId: category,
                           note: note.text.trim(),
                           transactionType: transactionType,
+                          timestamp: timestamp,
                         );
                     if (category == 'subscriptions' &&
                         isRecurringSubscription) {
