@@ -5,7 +5,6 @@ import 'dart:async';
 
 import '../application/expense_controller.dart';
 import '../core/utils/format.dart';
-import '../domain/entities/category.dart';
 import '../domain/entities/expense.dart';
 import '../domain/services/sms_transaction_parser.dart';
 import '../services/export/export_service.dart';
@@ -536,6 +535,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
   Widget build(BuildContext context) {
     super.build(context);
     final controller = ref.watch(expenseControllerProvider);
+    final categories = ref.watch(categoryControllerProvider).categories;
     final textTheme = Theme.of(context).textTheme;
     final normalizedQuery = query.trim().toLowerCase();
     final expenses = controller.expenses.where((expense) {
@@ -580,7 +580,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                 selected: selectedCategory == null,
                 onSelected: (_) => setState(() => selectedCategory = null),
               ),
-              ...defaultCategories.map(
+              ...categories.map(
                 (category) => _SelectableFilterChip(
                   label: category.name,
                   selected: selectedCategory == category.id,
