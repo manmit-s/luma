@@ -56,8 +56,8 @@ String greetingFor(DateTime now) {
   return 'Good evening';
 }
 
-String categoryName(String? id) {
-  for (final category in defaultCategories) {
+String categoryName(String? id, [Iterable<CategoryModel>? categories]) {
+  for (final category in categories ?? defaultCategories) {
     if (category.id == id) return category.name;
   }
   return 'Uncategorized';
