@@ -35,6 +35,7 @@ class MemoryExpenseRepository implements ExpenseRepository {
         status: expense.status,
         transactionType: expense.transactionType,
         source: expense.source,
+        sourceId: expense.sourceId,
         note: expense.note,
         referenceNumber: expense.referenceNumber,
         smsFingerprint: expense.smsFingerprint,
