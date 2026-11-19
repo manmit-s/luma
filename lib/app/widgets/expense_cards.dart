@@ -23,6 +23,15 @@ class ExpenseCard extends ConsumerWidget {
     final palette = context.lumaPalette;
     final categories = ref.watch(categoryControllerProvider).categories;
     final category = ref.read(categoryControllerProvider).byId(expense.categoryId);
+    final sourceController = ref.watch(sourceControllerProvider);
+    final source = sourceController.byId(expense.sourceId);
+    final sourceLabel = source?.shortLabel ??
+        (expense.sourceId != null ? 'Source #${expense.sourceId}' : null);
+    final subtitle = [
+      categoryName(expense.categoryId, categories),
+      if (sourceLabel != null) sourceLabel,
+      formatTime(expense.timestamp),
+    ].join(' · ');
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
@@ -58,7 +67,7 @@ class ExpenseCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${categoryName(expense.categoryId, categories)} · ${formatTime(expense.timestamp)}',
+                      subtitle,
                       style: TextStyle(
                         color: palette.textSecondary,
                         fontSize: 12,
