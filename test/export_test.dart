@@ -2,8 +2,10 @@ import 'dart:io';
 
 import 'package:excel/excel.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:luma/data/repositories/memory_expense_repository.dart';
 import 'package:luma/data/repositories/memory_category_repository.dart';
+import 'package:luma/data/repositories/memory_source_repository.dart';
 import 'package:luma/data/services/app_settings_store.dart';
 import 'package:luma/domain/entities/category.dart';
 import 'package:luma/domain/entities/expense.dart';
@@ -333,6 +335,174 @@ void main() {
       final unexported = await repo.queryUnexported();
       expect(unexported.length, 1);
       expect(unexported.first.lastExportedAt, isNull);
+    });
+
+    test('full export saves into "Full history" and auto-updates "Backup/luma_backup_latest.xlsx"',
+        () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      await _add(repo, amountMinor: 5000, merchant: 'Grocery Store');
+      final service = _service(repo, dir);
+
+      final result = await service.generate(
+        ExportMode.full,
+        now: DateTime(2026, 11, 20, 14, 30),
+      );
+
+      // Verify folder hierarchy
+      expect(p.basename(result.file.parent.path), 'Full history');
+      expect(result.file.existsSync(), isTrue);
+
+      final backupFile = File(p.join(dir.path, 'Backup', 'luma_backup_latest.xlsx'));
+      expect(backupFile.existsSync(), isTrue,
+          reason: 'Full export must auto-save latest full history into Backup/luma_backup_latest.xlsx');
+
+      // Verify both files have identical content
+      expect(backupFile.readAsBytesSync(), equals(result.file.readAsBytesSync()));
+    });
+
+    test('incremental export saves into "Since Last Export" and does not touch Backup',
+        () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      await _add(repo, amountMinor: 1500, merchant: 'Coffee Shop');
+      final service = _service(repo, dir);
+
+      final result = await service.generate(
+        ExportMode.incremental,
+        now: DateTime(2026, 11, 20, 16, 45),
+      );
+
+      // Verify folder hierarchy
+      expect(p.basename(result.file.parent.path), 'Since Last Export');
+      expect(result.file.existsSync(), isTrue);
+
+      final backupFile = File(p.join(dir.path, 'Backup', 'luma_backup_latest.xlsx'));
+      expect(backupFile.existsSync(), isFalse,
+          reason: 'Incremental export must NOT overwrite or create auto backup');
+    });
+
+    test('resolveManualBackupFile normalizes user paths, typos, quotes, and directories', () async {
+      // 1. Create a dummy backup file
+      final backupDir = Directory(p.join(dir.path, 'Luma Expenses', 'Backup'));
+      backupDir.createSync(recursive: true);
+      final testBackup = File(p.join(backupDir.path, 'luma_backup_latest.xlsx'));
+      testBackup.writeAsStringSync('dummy content');
+
+      // Exact path
+      expect(ExportService.resolveManualBackupFile(testBackup.path), isNotNull);
+
+      // Path with quotes
+      expect(ExportService.resolveManualBackupFile('"${testBackup.path}"'), isNotNull);
+
+      // Path with file://
+      expect(ExportService.resolveManualBackupFile('file://${testBackup.path}'), isNotNull);
+
+      // Directory path (finds luma_backup_latest.xlsx inside Backup)
+      final lumaDir = Directory(p.join(dir.path, 'Luma Expenses'));
+      expect(ExportService.resolveManualBackupFile(lumaDir.path), isNotNull);
+
+      // Typos: Luma_Expenses instead of Luma Expenses
+      final typoPath = testBackup.path.replaceAll('Luma Expenses', 'Luma_Expenses');
+      expect(ExportService.resolveManualBackupFile(typoPath), isNotNull);
+
+      // Empty string returns null
+      expect(ExportService.resolveManualBackupFile(''), isNull);
+      expect(ExportService.resolveManualBackupFile('   '), isNull);
+    });
+
+    test('importing legacy backup (pre multi-bank) restores initial slided balance and assigns all transactions to Cash Wallet', () async {
+      final repo = MemoryExpenseRepository()..clearForTest();
+      final sourceRepo = MemorySourceRepository();
+      final categoryRepo = MemoryCategoryRepository();
+      final service = ExportService(
+        repo,
+        null,
+        categoryRepository: categoryRepo,
+        sourceRepository: sourceRepo,
+        outputDir: () async => dir,
+      );
+
+      // Create a legacy Excel workbook with only 'Expenses' sheet (no Accounts, no Wallets)
+      final excel = Excel.createExcel();
+      const sheetName = 'Expenses';
+      excel.rename('Sheet1', sheetName);
+
+      // Summary section with initial/slided balance = ₹5,000 (500000 minor)
+      excel.appendRow(sheetName, [TextCellValue('LUMA EXPENSE SUMMARY')]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Initial Balance:'),
+        DoubleCellValue(5000.0),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Total Credits:'),
+        DoubleCellValue(1000.0),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Total Debits:'),
+        DoubleCellValue(200.0),
+      ]);
+      excel.appendRow(sheetName, [
+        TextCellValue('Current Balance:'),
+        DoubleCellValue(5800.0),
+      ]);
+      excel.appendRow(sheetName, [TextCellValue('')]);
+
+      // Legacy headers without Payment Source or Account ID
+      excel.appendRow(sheetName, [
+        TextCellValue('Date'),
+        TextCellValue('Time'),
+        TextCellValue('Description'),
+        TextCellValue('Category'),
+        TextCellValue('Type'),
+        TextCellValue('Amount'),
+        TextCellValue('Balance'),
+        TextCellValue('Note'),
+        TextCellValue('Reference Number'),
+      ]);
+
+      // Row 1: Debit 200
+      excel.appendRow(sheetName, [
+        TextCellValue('2026-09-25'),
+        TextCellValue('12:00'),
+        TextCellValue('Grocery Store'),
+        TextCellValue('food'),
+        TextCellValue('Debit'),
+        DoubleCellValue(200.0),
+        DoubleCellValue(4800.0),
+        TextCellValue('Weekly groceries'),
+        TextCellValue('REF001'),
+      ]);
+
+      // Row 2: Credit 1000
+      excel.appendRow(sheetName, [
+        TextCellValue('2026-09-25'),
+        TextCellValue('14:30'),
+        TextCellValue('ATM Cash Withdrawal'),
+        TextCellValue('other'),
+        TextCellValue('Credit'),
+        DoubleCellValue(1000.0),
+        DoubleCellValue(5800.0),
+        TextCellValue('Cash added'),
+        TextCellValue('REF002'),
+      ]);
+
+      final bytes = excel.encode()!;
+      final result = await service.importExcel(bytes);
+
+      expect(result.isLegacyBackup, isTrue);
+      expect(result.initialBalanceRestored, 500000); // ₹5,000 in paise
+      expect(result.transactionsRestored, 2);
+
+      // Verify the Cash Wallet opening balance was restored to 500000
+      final sources = await sourceRepo.getAllSources();
+      final cashWallet = sources.firstWhere((s) => s.isWallet);
+      expect(cashWallet.openingBalanceMinor, 500000);
+
+      // Verify all imported transactions are assigned to cashWallet.id
+      final allExpenses = await repo.getAll();
+      expect(allExpenses.length, 2);
+      for (final e in allExpenses) {
+        expect(e.sourceId, cashWallet.id);
+      }
     });
   });
 }
