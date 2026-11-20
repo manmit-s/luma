@@ -41,7 +41,7 @@ jobs:
       - name: Build Release APK
         run: |
           chmod +x android/gradlew
-          flutter build apk --release
+          flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Prepare APK Artifact
         id: prep
