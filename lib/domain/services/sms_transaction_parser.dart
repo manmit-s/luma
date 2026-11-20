@@ -1,7 +1,20 @@
 import '../entities/expense.dart';
+import '../entities/payment_source.dart';
 
 class ParsedTransaction {
-  const ParsedTransaction({required this.amountMinor, required this.transactionType, this.merchant, this.referenceNumber, this.timestamp, required this.rawMessage, required this.confidence});
+  const ParsedTransaction({
+    required this.amountMinor,
+    required this.transactionType,
+    this.merchant,
+    this.referenceNumber,
+    this.timestamp,
+    required this.rawMessage,
+    required this.confidence,
+    this.bankName,
+    this.bankIdentifier,
+    this.accountNumberSuffix,
+    this.senderId,
+  });
   final int amountMinor;
   final TransactionType transactionType;
   final String? merchant;
@@ -9,6 +22,10 @@ class ParsedTransaction {
   final DateTime? timestamp;
   final String rawMessage;
   final double confidence;
+  final String? bankName;
+  final String? bankIdentifier;
+  final String? accountNumberSuffix;
+  final String? senderId;
 }
 
 class SmsTransactionParser {
@@ -205,7 +222,161 @@ class SmsTransactionParser {
     caseSensitive: false,
   );
 
-  ParsedTransaction? parse(String message, {DateTime? receivedAt}) {
+  static final _accountSuffixPatterns = [
+    RegExp(
+      r'\b(?:a\/c|acct|account|acc|card|a\/c\s+no|card\s+no)\s*[:#\.\s*xX-]*([0-9]{3,4})\b',
+      caseSensitive: false,
+    ),
+    RegExp(
+      r'(?:[*xX]{2,}|\.{2,})([0-9]{3,4})\b',
+      caseSensitive: false,
+    ),
+    RegExp(
+      r'\b(?:ending\s+(?:with|in)?)\s*[:#\.\s*xX-]*([0-9]{3,4})\b',
+      caseSensitive: false,
+    ),
+  ];
+
+  static final _senderPrefixPattern = RegExp(
+    r'^(?:\[([A-Za-z0-9_-]{4,12})\]|([A-Za-z]{2}[-_][A-Za-z0-9]{3,8}):?\s*)',
+  );
+
+  static final _embeddedSenderPattern = RegExp(
+    r'\b([A-Za-z]{2}[-_][A-Za-z0-9]{3,8})\b',
+  );
+
+  static String? extractAccountSuffix(String message) {
+    for (final pattern in _accountSuffixPatterns) {
+      final match = pattern.firstMatch(message);
+      if (match != null) {
+        final val = match.group(1);
+        if (val != null && val.length >= 3 && val.length <= 4) {
+          return val;
+        }
+      }
+    }
+    return null;
+  }
+
+  static String? extractSenderId(String message, [String? explicitSender]) {
+    if (explicitSender != null && explicitSender.trim().isNotEmpty) {
+      final trimmed = explicitSender.trim();
+      final match = _embeddedSenderPattern.firstMatch(trimmed);
+      return match != null ? match.group(1) : trimmed;
+    }
+    final prefixMatch = _senderPrefixPattern.firstMatch(message);
+    if (prefixMatch != null) {
+      return prefixMatch.group(1) ?? prefixMatch.group(2);
+    }
+    final embeddedMatch = _embeddedSenderPattern.firstMatch(message);
+    if (embeddedMatch != null) {
+      return embeddedMatch.group(1);
+    }
+    return null;
+  }
+
+  static ({String? bankName, String? bankIdentifier}) extractBank(
+    String message,
+    String? senderId,
+  ) {
+    // 1. Authoritative: match sender ID against bank catalogue
+    if (senderId != null) {
+      final code = senderId.contains('-')
+          ? senderId.split('-').last
+          : (senderId.contains('_') ? senderId.split('_').last : senderId);
+      final bank = findBankInCatalogue(code);
+      if (bank != null) {
+        return (bankName: bank.name, bankIdentifier: bank.id);
+      }
+    }
+
+    final lower = message.toLowerCase();
+
+    // 2. Check explicit bank name attached to account keyword:
+    // e.g. "from SBI A/c", "in HDFC Bank account", "Kotak Bank A/C", etc.
+    for (final bank in indianBankCatalogue) {
+      final bankNameLower = bank.name.toLowerCase();
+      final shortNameLower = bank.shortName.toLowerCase();
+
+      final boundPattern = RegExp(
+        '\\b(?:${RegExp.escape(bankNameLower)}|${RegExp.escape(shortNameLower)})\\s*(?:bank)?\\s*(?:a\\/c|acct|account|card)',
+        caseSensitive: false,
+      );
+      if (boundPattern.hasMatch(lower)) {
+        return (bankName: bank.name, bankIdentifier: bank.id);
+      }
+
+      // Check trailing signature: "- Kotak Mahindra Bank", "Team SBI", "- Canara Bank"
+      final sigPattern = RegExp(
+        '(?:[-–—|~]\\s*|team\\s+)(?:${RegExp.escape(bankNameLower)}|${RegExp.escape(shortNameLower)})\\b',
+        caseSensitive: false,
+      );
+      if (sigPattern.hasMatch(lower)) {
+        return (bankName: bank.name, bankIdentifier: bank.id);
+      }
+    }
+
+    // 3. Fallback: check if the bank full name appears in the message
+    for (final bank in indianBankCatalogue) {
+      final bankNameLower = bank.name.toLowerCase();
+      if (lower.contains(bankNameLower)) {
+        return (bankName: bank.name, bankIdentifier: bank.id);
+      }
+    }
+
+    return (bankName: null, bankIdentifier: null);
+  }
+
+  static int? matchConfiguredSource({
+    required ParsedTransaction parsed,
+    required List<PaymentSource> sources,
+  }) {
+    final activeBanks = sources.where((s) => s.isActive && s.isBank).toList();
+    if (activeBanks.isEmpty) return null;
+
+    final suffix = parsed.accountNumberSuffix;
+    final bankId = parsed.bankIdentifier;
+
+    if (suffix != null) {
+      final suffixMatches =
+          activeBanks.where((s) => s.accountNumberLast4 == suffix).toList();
+      if (suffixMatches.length == 1) {
+        if (bankId != null) {
+          if (suffixMatches.first.bankIdentifier == bankId) {
+            return suffixMatches.first.id;
+          }
+          return null; // conflicting bank
+        }
+        return suffixMatches.first.id;
+      } else if (suffixMatches.length > 1) {
+        if (bankId != null) {
+          final bothMatches = suffixMatches
+              .where((s) => s.bankIdentifier == bankId)
+              .toList();
+          if (bothMatches.length == 1) {
+            return bothMatches.first.id;
+          }
+        }
+        return null; // ambiguous between multiple matching accounts
+      }
+    }
+
+    if (bankId != null) {
+      final bankMatches =
+          activeBanks.where((s) => s.bankIdentifier == bankId).toList();
+      if (bankMatches.length == 1) {
+        return bankMatches.first.id;
+      }
+    }
+
+    return null;
+  }
+
+  ParsedTransaction? parse(
+    String message, {
+    DateTime? receivedAt,
+    String? sender,
+  }) {
     final normalized = message.replaceAll(RegExp(r'\s+'), ' ').trim();
     final amountMatch =
         _amountPattern.firstMatch(normalized) ?? _bareAmountPattern.firstMatch(normalized);
@@ -259,6 +430,9 @@ class SmsTransactionParser {
         amountMatch.start + amountMatch.group(0)!.indexOf(digits);
 
     final timestamp = _parseTimestamp(normalized, receivedAt: receivedAt);
+    final senderId = extractSenderId(normalized, sender);
+    final accountSuffix = extractAccountSuffix(normalized);
+    final bankInfo = extractBank(normalized, senderId);
 
     return ParsedTransaction(
       amountMinor: (amount * 100).round(),
@@ -268,6 +442,10 @@ class SmsTransactionParser {
       timestamp: timestamp,
       rawMessage: message,
       confidence: reference == null ? 0.75 : 0.9,
+      senderId: senderId,
+      accountNumberSuffix: accountSuffix,
+      bankName: bankInfo.bankName,
+      bankIdentifier: bankInfo.bankIdentifier,
     );
   }
 

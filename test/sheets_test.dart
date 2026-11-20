@@ -49,6 +49,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Save expense'));
     await tester.pumpAndSettle();
+    if (find.text('Proceed Anyway').evaluate().isNotEmpty) {
+      await tester.tap(find.text('Proceed Anyway'));
+      await tester.pumpAndSettle();
+    }
     expect(tester.takeException(), isNull);
     // Sheet closed (FAB tooltip still reads 'Add expense', so assert on Save).
     expect(find.text('Save expense'), findsNothing);

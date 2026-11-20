@@ -134,11 +134,44 @@ class LumaDatabase extends _$LumaDatabase {
   LumaDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async => m.createAll(),
+        onCreate: (m) async {
+          await m.createAll();
+          try {
+            await m.database.customStatement('''
+              CREATE TABLE IF NOT EXISTS payment_sources (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                type TEXT NOT NULL,
+                bank_name TEXT,
+                bank_identifier TEXT,
+                nickname TEXT,
+                account_number_last4 TEXT,
+                opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              )
+            ''');
+            await m.database.customStatement('''
+              CREATE TABLE IF NOT EXISTS internal_transfers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                from_source_id INTEGER NOT NULL,
+                to_source_id INTEGER NOT NULL,
+                amount_minor INTEGER NOT NULL,
+                timestamp INTEGER NOT NULL,
+                note TEXT NOT NULL DEFAULT '',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              )
+            ''');
+            await m.database.customStatement(
+              'ALTER TABLE expenses ADD COLUMN source_id INTEGER NULL',
+            );
+          } catch (_) {}
+        },
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             try {
@@ -178,6 +211,39 @@ class LumaDatabase extends _$LumaDatabase {
             await m.database.customStatement(
               'UPDATE categories SET icon_key = icon WHERE icon IS NOT NULL',
             );
+          }
+          if (from < 6) {
+            try {
+              await m.database.customStatement('''
+                CREATE TABLE IF NOT EXISTS payment_sources (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  type TEXT NOT NULL,
+                  bank_name TEXT,
+                  bank_identifier TEXT,
+                  nickname TEXT,
+                  account_number_last4 TEXT,
+                  opening_balance_minor INTEGER NOT NULL DEFAULT 0,
+                  is_active INTEGER NOT NULL DEFAULT 1,
+                  created_at INTEGER NOT NULL,
+                  updated_at INTEGER NOT NULL
+                )
+              ''');
+              await m.database.customStatement('''
+                CREATE TABLE IF NOT EXISTS internal_transfers (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  from_source_id INTEGER NOT NULL,
+                  to_source_id INTEGER NOT NULL,
+                  amount_minor INTEGER NOT NULL,
+                  timestamp INTEGER NOT NULL,
+                  note TEXT NOT NULL DEFAULT '',
+                  created_at INTEGER NOT NULL,
+                  updated_at INTEGER NOT NULL
+                )
+              ''');
+              await m.database.customStatement(
+                'ALTER TABLE expenses ADD COLUMN source_id INTEGER NULL',
+              );
+            } catch (_) {}
           }
         },
       );

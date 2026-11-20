@@ -89,50 +89,68 @@ void main() {
       await tester.tap(continueButtonFinder);
       await tester.pumpAndSettle();
 
-      // Step 3: Initial Balance Screen
-      expect(find.textContaining('current balance?'), findsOneWidget);
+      // Step 3: Setup Screen (Import backup or Proceed)
+      expect(find.textContaining('Choose how to'), findsOneWidget);
       expect(find.text('Step 2 of 2'), findsOneWidget);
-      expect(
-        find.text(
-          'Enter the balance in your account right now. Luma will update it as transactions are recorded.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Import from backup file'), findsOneWidget);
+      expect(find.text('Proceed with fresh start'), findsOneWidget);
 
       final finishButtonFinder = find.widgetWithText(
         FilledButton,
-        'Start using Luma',
+        'Proceed to Luma',
       );
-      // Empty balance is disabled
-      expect(tester.widget<FilledButton>(finishButtonFinder).onPressed, isNull);
-
-      // Enter invalid balance
-      await tester.enterText(find.byType(TextField), '-50');
-      await tester.pumpAndSettle();
-      expect(tester.widget<FilledButton>(finishButtonFinder).onPressed, isNull);
-
-      // Enter 0 (valid: user has 0 balance)
-      await tester.enterText(find.byType(TextField), '0');
-      await tester.pumpAndSettle();
       expect(
         tester.widget<FilledButton>(finishButtonFinder).onPressed,
         isNotNull,
       );
 
-      // Enter ₹3,000.50
-      await tester.enterText(find.byType(TextField), '3000.50');
-      await tester.pumpAndSettle();
-      expect(
-        tester.widget<FilledButton>(finishButtonFinder).onPressed,
-        isNotNull,
-      );
-
-      // Tap "Start using Luma"
+      // Tap "Proceed to Luma"
       await tester.tap(finishButtonFinder);
       await tester.pumpAndSettle();
 
       expect(submittedName, 'Manmit');
-      expect(submittedBalanceMinor, 300050);
+      expect(submittedBalanceMinor, 0);
+    });
+
+    testWidgets('supports importing backup during onboarding', (
+      tester,
+    ) async {
+      String? submittedName;
+      bool importCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FirstLaunchFlow(
+            onComplete: (name, balanceMinor) async {
+              submittedName = name;
+            },
+            onImportBackup: (context) async {
+              importCalled = true;
+              return true;
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Consent & Get started
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Get started'));
+      await tester.pumpAndSettle();
+
+      // Enter name & Continue
+      await tester.enterText(find.byType(TextField), 'Manmit');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Continue'));
+      await tester.pumpAndSettle();
+
+      // Tap "Import from backup file"
+      await tester.tap(find.text('Import from backup file'));
+      await tester.pumpAndSettle();
+
+      expect(importCalled, isTrue);
+      expect(submittedName, 'Manmit');
     });
 
     testWidgets(

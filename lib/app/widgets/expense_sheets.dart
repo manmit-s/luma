@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/utils/format.dart';
 import '../../domain/entities/expense.dart';
+import '../../domain/entities/payment_source.dart';
 import '../../domain/entities/subscription.dart';
+import '../../domain/services/sms_transaction_parser.dart';
+import '../../application/source_controller.dart';
 import '../providers.dart';
 import '../theme/app_theme.dart';
 import 'amount_display.dart';
@@ -37,6 +40,117 @@ EdgeInsets _sheetPadding(BuildContext context) => EdgeInsets.fromLTRB(
       AppSpacing.xl,
       MediaQuery.viewInsetsOf(context).bottom + AppSpacing.xxl,
     );
+
+/// Non-restrictive confirmation popup when a payment amount exceeds the selected source balance.
+Future<bool> confirmInsufficientBalance({
+  required BuildContext context,
+  required PaymentSource source,
+  required int currentBalanceMinor,
+  required int amountMinor,
+}) async {
+  final palette = context.lumaPalette;
+  final resultingBalanceMinor = currentBalanceMinor - amountMinor;
+
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: palette.elevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+      ),
+      icon: Icon(
+        Icons.info_outline_rounded,
+        color: palette.primaryAccent,
+        size: 32,
+      ),
+      title: const Text(
+        'Balance Lower Than Payment',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                color: palette.textPrimary,
+                fontSize: 14,
+                height: 1.4,
+              ),
+              children: [
+                const TextSpan(text: 'The payment of '),
+                TextSpan(
+                  text: formatAmount(amountMinor),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const TextSpan(text: ' exceeds the current balance in '),
+                TextSpan(
+                  text: source.displayName,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                TextSpan(
+                  text: ' (${formatAmount(currentBalanceMinor)}).',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: palette.surface,
+              borderRadius: BorderRadius.circular(AppRadii.compact),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Resulting balance:',
+                  style: TextStyle(color: palette.textSecondary, fontSize: 12),
+                ),
+                Text(
+                  formatAmount(resultingBalanceMinor),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: resultingBalanceMinor < 0
+                        ? palette.error
+                        : palette.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Would you like to proceed with this payment or change the payment source?',
+            style: TextStyle(color: palette.textSecondary, fontSize: 13),
+          ),
+        ],
+      ),
+      actionsAlignment: MainAxisAlignment.spaceBetween,
+      actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      actions: [
+        OutlinedButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: palette.border),
+          ),
+          child: const Text('Change Source'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Proceed Anyway'),
+        ),
+      ],
+    ),
+  );
+
+  return confirmed ?? false;
+}
 
 /// Sleek segmented selector for toggling between Debit (Expense) and Credit (Income).
 class _TransactionTypeSelector extends StatelessWidget {
@@ -484,6 +598,7 @@ class _CompleteExpenseSheetState
   late String category;
   late TextEditingController note;
   late TransactionType transactionType;
+  int? selectedSourceId;
   bool isRecurringSubscription = false;
   BillingCycle billingCycle = BillingCycle.monthly;
   PaymentMethod paymentMethod = PaymentMethod.autopay;
@@ -495,7 +610,19 @@ class _CompleteExpenseSheetState
     category = widget.expense.categoryId ?? '';
     note = TextEditingController(text: widget.expense.note);
     transactionType = widget.expense.transactionType;
+    selectedSourceId = widget.expense.sourceId;
     nextRenewalDate = DateTime.now().add(const Duration(days: 30));
+
+    if (selectedSourceId == null && widget.expense.rawSms != null) {
+      final parsed = SmsTransactionParser().parse(widget.expense.rawSms!);
+      if (parsed != null) {
+        final activeSources = ref.read(sourceControllerProvider).activeSources;
+        selectedSourceId = SmsTransactionParser.matchConfiguredSource(
+          parsed: parsed,
+          sources: activeSources,
+        );
+      }
+    }
   }
 
   @override
@@ -636,6 +763,20 @@ class _CompleteExpenseSheetState
                 ),
               ],
               const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Payment Source',
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _PaymentSourceSelectorCard(
+                selectedSourceId: selectedSourceId,
+                onChanged: (val) => setState(() => selectedSourceId = val),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
                 maxLines: 2,
@@ -658,6 +799,31 @@ class _CompleteExpenseSheetState
                           transactionType == TransactionType.unknown)
                       ? null
                       : () async {
+                          if (transactionType == TransactionType.debit &&
+                              selectedSourceId != null) {
+                            final sController =
+                                ref.read(sourceControllerProvider);
+                            final eController =
+                                ref.read(expenseControllerProvider);
+                            final source = sController.byId(selectedSourceId);
+                            if (source != null) {
+                              final availableBal = sController.balanceFor(
+                                source.id,
+                                eController.expenses,
+                              );
+                              if (availableBal < widget.expense.amountMinor) {
+                                final proceed =
+                                    await confirmInsufficientBalance(
+                                  context: context,
+                                  source: source,
+                                  currentBalanceMinor: availableBal,
+                                  amountMinor: widget.expense.amountMinor,
+                                );
+                                if (!proceed) return;
+                              }
+                            }
+                          }
+
                           await ref
                               .read(expenseControllerProvider)
                               .complete(
@@ -665,6 +831,7 @@ class _CompleteExpenseSheetState
                                 categoryId: category,
                                 note: note.text.trim(),
                                 transactionType: transactionType,
+                                sourceId: selectedSourceId,
                               );
                           if (category == 'subscriptions' &&
                               isRecurringSubscription &&
@@ -685,7 +852,18 @@ class _CompleteExpenseSheetState
                         },
                 ),
               ),
-              if (category.isEmpty)
+              if (selectedSourceId == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    'Select a payment source to save.',
+                    style: TextStyle(
+                      color: palette.primaryAccent,
+                      fontSize: 12,
+                    ),
+                  ),
+                )
+              else if (category.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.sm),
                   child: Text(
@@ -753,12 +931,20 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
   final note = TextEditingController();
   String category = 'other';
   TransactionType transactionType = TransactionType.debit;
+  int? selectedSourceId;
   String? error;
   bool isRecurringSubscription = false;
   BillingCycle billingCycle = BillingCycle.monthly;
   PaymentMethod paymentMethod = PaymentMethod.autopay;
   DateTime nextRenewalDate = DateTime.now().add(const Duration(days: 30));
   DateTime timestamp = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    final active = ref.read(sourceControllerProvider).activeSources;
+    selectedSourceId = active.isNotEmpty ? active.first.id : null;
+  }
 
   @override
   void dispose() {
@@ -880,6 +1066,20 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                 timestamp: timestamp,
                 onTap: _pickTimestamp,
               ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Payment Source',
+                style: TextStyle(
+                  color: context.lumaPalette.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _PaymentSourceSelectorCard(
+                selectedSourceId: selectedSourceId,
+                onChanged: (val) => setState(() => selectedSourceId = val),
+              ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -905,12 +1105,34 @@ class _AddExpenseSheetState extends ConsumerState<_AddExpenseSheet> {
                       );
                       return;
                     }
+                    if (transactionType == TransactionType.debit &&
+                        selectedSourceId != null) {
+                      final sController = ref.read(sourceControllerProvider);
+                      final eController = ref.read(expenseControllerProvider);
+                      final source = sController.byId(selectedSourceId);
+                      if (source != null) {
+                        final availableBal = sController.balanceFor(
+                          source.id,
+                          eController.expenses,
+                        );
+                        if (availableBal < parsed) {
+                          final proceed = await confirmInsufficientBalance(
+                            context: context,
+                            source: source,
+                            currentBalanceMinor: availableBal,
+                            amountMinor: parsed,
+                          );
+                          if (!proceed) return;
+                        }
+                      }
+                    }
                     await ref.read(expenseControllerProvider).addManual(
                           amountMinor: parsed,
                           merchant: merchant.text.trim(),
                           categoryId: category,
                           note: note.text.trim(),
                           transactionType: transactionType,
+                          sourceId: selectedSourceId,
                           timestamp: timestamp,
                         );
                     if (category == 'subscriptions' &&
@@ -970,6 +1192,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
   late TextEditingController note;
   late String category;
   late TransactionType transactionType;
+  int? selectedSourceId;
   String? error;
 
   @override
@@ -981,6 +1204,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
     note = TextEditingController(text: widget.expense.note);
     category = widget.expense.categoryId ?? 'other';
     transactionType = widget.expense.transactionType;
+    selectedSourceId = widget.expense.sourceId;
   }
 
   @override
@@ -1092,6 +1316,21 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                 selectedCategoryId: category,
                 onSelected: (val) => setState(() => category = val),
               ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'Payment Source',
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _PaymentSourceSelectorCard(
+                allowUnassigned: true,
+                selectedSourceId: selectedSourceId,
+                onChanged: (val) => setState(() => selectedSourceId = val),
+              ),
               const SizedBox(height: AppSpacing.lg),
               TextField(
                 controller: note,
@@ -1115,6 +1354,35 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                       );
                       return;
                     }
+                    if (transactionType == TransactionType.debit &&
+                        selectedSourceId != null) {
+                      final sController = ref.read(sourceControllerProvider);
+                      final eController = ref.read(expenseControllerProvider);
+                      final source = sController.byId(selectedSourceId);
+                      if (source != null) {
+                        final currentBal = sController.balanceFor(
+                          source.id,
+                          eController.expenses,
+                        );
+                        final wasSameSourceAndDebit =
+                            widget.expense.sourceId == source.id &&
+                                widget.expense.transactionType ==
+                                    TransactionType.debit;
+                        final effectiveBal = currentBal +
+                            (wasSameSourceAndDebit
+                                ? widget.expense.amountMinor
+                                : 0);
+                        if (effectiveBal < parsed) {
+                          final proceed = await confirmInsufficientBalance(
+                            context: context,
+                            source: source,
+                            currentBalanceMinor: effectiveBal,
+                            amountMinor: parsed,
+                          );
+                          if (!proceed) return;
+                        }
+                      }
+                    }
                     final merchantText = merchant.text.trim();
                     final expense = widget.expense;
                     final updated = Expense(
@@ -1130,6 +1398,7 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
                       smsFingerprint: expense.smsFingerprint,
                       rawSms: expense.rawSms,
                       source: expense.source,
+                      sourceId: selectedSourceId,
                       createdAt: expense.createdAt,
                       updatedAt: DateTime.now(),
                       lastExportedAt: expense.lastExportedAt,
@@ -1161,5 +1430,240 @@ class _EditExpenseSheetState extends ConsumerState<_EditExpenseSheet> {
           ),
         ),
       );
+  }
+}
+
+class _PaymentSourceSelectorCard extends ConsumerWidget {
+  const _PaymentSourceSelectorCard({
+    required this.selectedSourceId,
+    required this.onChanged,
+    this.allowUnassigned = false,
+  });
+
+  final int? selectedSourceId;
+  final ValueChanged<int?> onChanged;
+  final bool allowUnassigned;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = context.lumaPalette;
+    final sourceController = ref.watch(sourceControllerProvider);
+    final expenseController = ref.watch(expenseControllerProvider);
+    final activeSources = sourceController.activeSources;
+    final selectedSource = sourceController.byId(selectedSourceId);
+
+    final isUnselected = selectedSourceId == null && !allowUnassigned;
+    final availableBalance = selectedSource != null
+        ? sourceController.balanceFor(
+            selectedSource.id,
+            expenseController.expenses,
+          )
+        : 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(
+          color: isUnselected
+              ? palette.primaryAccent
+              : palette.border,
+          width: isUnselected ? 1.5 : 1,
+        ),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
+        leading: CircleAvatar(
+          backgroundColor: selectedSource != null
+              ? palette.primaryAccent.withValues(alpha: 0.15)
+              : palette.elevated,
+          child: Icon(
+            selectedSource?.isBank == true
+                ? Icons.account_balance_rounded
+                : (selectedSource?.isWallet == true
+                    ? Icons.account_balance_wallet_rounded
+                    : Icons.help_outline_rounded),
+            color: selectedSource != null
+                ? palette.primaryAccent
+                : palette.textSecondary,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          selectedSource != null
+              ? selectedSource.displayName
+              : (selectedSourceId == null && allowUnassigned
+                  ? 'Unassigned'
+                  : 'Select payment source *'),
+          style: TextStyle(
+            fontWeight: selectedSource != null ? FontWeight.w600 : FontWeight.w500,
+            color: selectedSource != null
+                ? palette.textPrimary
+                : (isUnselected ? palette.primaryAccent : palette.textSecondary),
+            fontSize: 14,
+          ),
+        ),
+        subtitle: selectedSource != null
+            ? Text(
+                'Available: ${formatAmount(availableBalance)}',
+                style: TextStyle(color: palette.textSecondary, fontSize: 12),
+              )
+            : (isUnselected
+                ? const Text(
+                    'Required — tap to select account or wallet',
+                    style: TextStyle(fontSize: 11),
+                  )
+                : null),
+        trailing: const Icon(Icons.keyboard_arrow_down_rounded),
+        onTap: () async {
+          final picked = await showModalBottomSheet<int?>(
+            context: context,
+            isScrollControlled: true,
+            showDragHandle: true,
+            useSafeArea: true,
+            builder: (ctx) => _SourcePickerSheet(
+              activeSources: activeSources,
+              sourceController: sourceController,
+              expenses: expenseController.expenses,
+              selectedId: selectedSourceId,
+              allowUnassigned: allowUnassigned,
+            ),
+          );
+          if (picked != null || (allowUnassigned && picked == null)) {
+            onChanged(picked);
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SourcePickerSheet extends StatelessWidget {
+  const _SourcePickerSheet({
+    required this.activeSources,
+    required this.sourceController,
+    required this.expenses,
+    required this.selectedId,
+    required this.allowUnassigned,
+  });
+
+  final List<PaymentSource> activeSources;
+  final SourceController sourceController;
+  final List<Expense> expenses;
+  final int? selectedId;
+  final bool allowUnassigned;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Select Payment Source',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Only active accounts and wallets are displayed',
+              style: TextStyle(color: palette.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            if (allowUnassigned)
+              Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: selectedId == null
+                      ? palette.chipSelectedBackground
+                      : palette.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.card),
+                  border: Border.all(
+                    color: selectedId == null
+                        ? palette.primaryAccent
+                        : palette.border,
+                    width: selectedId == null ? 1.5 : 1,
+                  ),
+                ),
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: selectedId == null
+                        ? palette.primaryAccent.withValues(alpha: 0.15)
+                        : palette.elevated,
+                    child: Icon(
+                      Icons.help_outline_rounded,
+                      color: selectedId == null
+                          ? palette.primaryAccent
+                          : palette.textSecondary,
+                    ),
+                  ),
+                  title: const Text('Unassigned'),
+                  subtitle: const Text('Do not assign a payment source'),
+                  trailing: selectedId == null
+                      ? Icon(Icons.check_rounded, color: palette.primaryAccent)
+                      : null,
+                  onTap: () => Navigator.pop(context, null),
+                ),
+              ),
+            ...activeSources.map((source) {
+              final isSelected = source.id == selectedId;
+              final balance = sourceController.balanceFor(source.id, expenses);
+              return Container(
+                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? palette.chipSelectedBackground
+                      : palette.surface,
+                  borderRadius: BorderRadius.circular(AppRadii.card),
+                  border: Border.all(
+                    color: isSelected ? palette.primaryAccent : palette.border,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: isSelected
+                        ? palette.primaryAccent.withValues(alpha: 0.15)
+                        : palette.elevated,
+                    child: Icon(
+                      source.isBank
+                          ? Icons.account_balance_rounded
+                          : Icons.account_balance_wallet_rounded,
+                      color: isSelected
+                          ? palette.primaryAccent
+                          : palette.textSecondary,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(source.displayName),
+                  subtitle: Text('Balance: ${formatAmount(balance)}'),
+                  trailing: isSelected
+                      ? Icon(Icons.check_rounded, color: palette.primaryAccent)
+                      : null,
+                  onTap: () => Navigator.pop(context, source.id),
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
   }
 }

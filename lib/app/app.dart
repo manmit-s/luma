@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dart:async';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
 
 import '../application/expense_controller.dart';
 import '../core/utils/format.dart';
@@ -27,6 +30,7 @@ import 'widgets/luma_nav_bar.dart';
 import 'widgets/onboarding_sheet.dart';
 import 'widgets/section_header.dart';
 import 'widgets/sms_permission_flow.dart';
+import 'widgets/source_of_money_page.dart';
 import 'widgets/splash_screen.dart';
 import 'widgets/subscription_views.dart';
 import 'widgets/summary_card.dart';
@@ -95,18 +99,274 @@ class _LumaAppState extends ConsumerState<LumaApp> {
                   final store = ref.read(appSettingsStoreProvider);
                   await store.setUserName(name);
                   ref.read(userNameProvider.notifier).state = name;
-                  await store.setInitialBalanceMinor(initialBalanceMinor);
-                  ref
-                      .read(expenseControllerProvider)
-                      .setInitialBalance(initialBalanceMinor);
+                  if (initialBalanceMinor > 0) {
+                    await store.setInitialBalanceMinor(initialBalanceMinor);
+                    ref
+                        .read(expenseControllerProvider)
+                        .setInitialBalance(initialBalanceMinor);
+                  }
                   await store.markOnboardingDone();
                   if (mounted) {
                     setState(() => _needsOnboarding = false);
                   }
                 },
+                onImportBackup: (flowContext) async {
+                  final service = ref.read(exportServiceProvider);
+                  if (service == null) return false;
+                  return await _performBackupRestore(flowContext, service);
+                },
               )
             : const _MainShell(key: ValueKey('main_shell')),
       ),
+    );
+  }
+
+  Future<bool> _performBackupRestore(
+    BuildContext context,
+    ExportService service,
+  ) async {
+    try {
+      final candidates = await ExportService.findBackupCandidates();
+      if (!context.mounted) return false;
+
+      final chosenFile = await showDialog<File>(
+        context: context,
+        builder: (ctx) => _BackupRestoreDialog(candidates: candidates),
+      );
+
+      if (chosenFile != null) {
+        final bytes = await chosenFile.readAsBytes();
+        final result = await service.importExcel(bytes);
+        if (result.initialBalanceRestored > 0) {
+          final store = ref.read(appSettingsStoreProvider);
+          await store.setInitialBalanceMinor(result.initialBalanceRestored);
+          ref
+              .read(expenseControllerProvider)
+              .setInitialBalance(result.initialBalanceRestored);
+        }
+        await ref.read(expenseControllerProvider).load();
+        await ref.read(sourceControllerProvider).load();
+        if (context.mounted) {
+          final msg = result.isLegacyBackup
+              ? 'Restored ${result.transactionsRestored} transactions & cash starting balance of ${formatAmount(result.initialBalanceRestored)}.'
+              : 'Restored ${result.accountsRestored} accounts, ${result.walletsRestored} wallets, ${result.transfersRestored} transfers, ${result.transactionsRestored} transactions.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg)),
+          );
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to restore backup: $e')),
+        );
+      }
+      return false;
+    }
+  }
+}
+
+class _BackupRestoreDialog extends StatefulWidget {
+  const _BackupRestoreDialog({required this.candidates});
+
+  final List<File> candidates;
+
+  @override
+  State<_BackupRestoreDialog> createState() => _BackupRestoreDialogState();
+}
+
+class _BackupRestoreDialogState extends State<_BackupRestoreDialog> {
+  final _pathController = TextEditingController();
+  String? _errorMessage;
+  bool _pickingFile = false;
+
+  @override
+  void dispose() {
+    _pathController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFromFileManager() async {
+    setState(() {
+      _pickingFile = true;
+      _errorMessage = null;
+    });
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xlsx', 'xls'],
+      );
+      if (files.isNotEmpty) {
+        final path = files.first.path;
+        if (path != null) {
+          final file = File(path);
+          if (file.existsSync()) {
+            if (mounted) Navigator.pop(context, file);
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Could not open file manager: $e';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _pickingFile = false);
+    }
+  }
+
+  void _submitPath() {
+    final raw = _pathController.text.trim();
+    if (raw.isEmpty) {
+      setState(() => _errorMessage = 'Please enter a path or browse from file manager.');
+      return;
+    }
+    final file = ExportService.resolveManualBackupFile(raw);
+    if (file != null && file.existsSync()) {
+      Navigator.pop(context, file);
+    } else {
+      setState(() {
+        _errorMessage =
+            'File not found at this path. Please check the spelling or tap "Browse File Manager" above.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.lumaPalette;
+    return AlertDialog(
+      backgroundColor: palette.elevated,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+      ),
+      title: const Text('Restore from Backup'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Option 1: System File Manager picker
+            OutlinedButton.icon(
+              icon: _pickingFile
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.folder_open_rounded),
+              label: const Text('Browse File Manager'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.compact),
+                ),
+              ),
+              onPressed: _pickingFile ? null : _pickFromFileManager,
+            ),
+            const SizedBox(height: 16),
+
+            // Option 2: Detected backups list
+            if (widget.candidates.isNotEmpty) ...[
+              Text(
+                'Available backup files on device:',
+                style: TextStyle(
+                  color: palette.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 160,
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: widget.candidates.length,
+                  itemBuilder: (c, idx) {
+                    final file = widget.candidates[idx];
+                    final name = file.path.split(RegExp(r'[/\\]')).last;
+                    final parentName = p.basename(file.parent.path);
+                    final isBackup =
+                        file.path.endsWith('luma_backup_latest.xlsx') ||
+                            parentName == 'Backup';
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      decoration: BoxDecoration(
+                        color: palette.surface,
+                        borderRadius:
+                            BorderRadius.circular(AppRadii.compact),
+                        border: Border.all(color: palette.border),
+                      ),
+                      child: ListTile(
+                        dense: true,
+                        leading: Icon(
+                          isBackup
+                              ? Icons.backup_rounded
+                              : Icons.description_outlined,
+                          color: isBackup ? palette.primaryAccent : null,
+                        ),
+                        title: Text(
+                          name,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${isBackup ? "[Auto Backup] " : parentName.isNotEmpty ? "[$parentName] " : ""}${file.lastModifiedSync().toString().substring(0, 16)}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: palette.textSecondary,
+                          ),
+                        ),
+                        onTap: () => Navigator.pop(context, file),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+
+            const Divider(),
+            const SizedBox(height: 8),
+
+            // Option 3: Manual path input
+            Text(
+              'Or enter file/folder path directly:',
+              style: TextStyle(
+                color: palette.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _pathController,
+              decoration: InputDecoration(
+                hintText: '/storage/emulated/0/...',
+                prefixIcon: const Icon(Icons.link_rounded),
+                errorText: _errorMessage,
+                errorMaxLines: 3,
+              ),
+              onSubmitted: (_) => _submitPath(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submitPath,
+          child: const Text('Select File'),
+        ),
+      ],
     );
   }
 }
@@ -417,6 +677,17 @@ class _HomePageState extends ConsumerState<_HomePage>
         _smsState == SmsPermissionState.permanentlyDenied ||
         _smsState == SmsPermissionState.restricted;
 
+    final sourceController = ref.watch(sourceControllerProvider);
+    final breakdown = sourceController.breakdownFor(controller.expenses);
+    final hasActiveSources = sourceController.activeSources.isNotEmpty;
+    final effectiveCurrentBalance = hasActiveSources
+        ? breakdown.combinedBalanceMinor
+        : controller.currentBalanceMinor;
+    final effectiveInitialBalance = hasActiveSources
+        ? sourceController.activeSources
+            .fold(0, (sum, s) => sum + s.openingBalanceMinor)
+        : controller.initialBalanceMinor;
+
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 128),
       children: [
@@ -447,8 +718,18 @@ class _HomePageState extends ConsumerState<_HomePage>
         ],
         const SizedBox(height: AppSpacing.xxl),
         BalanceCard(
-          currentBalanceMinor: controller.currentBalanceMinor,
-          initialBalanceMinor: controller.initialBalanceMinor,
+          currentBalanceMinor: effectiveCurrentBalance,
+          initialBalanceMinor: effectiveInitialBalance,
+          totalBankBalanceMinor: breakdown.totalBankBalanceMinor,
+          cashBalanceMinor: breakdown.cashBalanceMinor,
+          sources: sourceController.sources,
+          sourceBalances: breakdown.individualBalances,
+          onSourceTap: (source) => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AccountDetailsPage(sourceId: source.id),
+            ),
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         SummaryCard(
@@ -527,6 +808,7 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
     with AutomaticKeepAliveClientMixin {
   String query = '';
   String? selectedCategory;
+  int? selectedSourceFilter;
 
   @override
   bool get wantKeepAlive => true;
@@ -536,12 +818,19 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
     super.build(context);
     final controller = ref.watch(expenseControllerProvider);
     final categories = ref.watch(categoryControllerProvider).categories;
+    final sourceController = ref.watch(sourceControllerProvider);
     final textTheme = Theme.of(context).textTheme;
     final normalizedQuery = query.trim().toLowerCase();
     final expenses = controller.expenses.where((expense) {
       final matchesCategory =
           selectedCategory == null || expense.categoryId == selectedCategory;
       if (!matchesCategory) return false;
+      final matchesSource = selectedSourceFilter == null
+          ? true
+          : (selectedSourceFilter == -1
+              ? expense.sourceId == null
+              : expense.sourceId == selectedSourceFilter);
+      if (!matchesSource) return false;
       if (normalizedQuery.isEmpty) return true;
       final merchant = (expense.merchant ?? '').toLowerCase();
       final note = expense.note.toLowerCase();
@@ -591,6 +880,39 @@ class _HistoryPageState extends ConsumerState<_HistoryPage>
                   ),
                 ),
               ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.only(right: AppSpacing.xl),
+          child: Row(
+            children: [
+              _SelectableFilterChip(
+                label: 'All Sources',
+                selected: selectedSourceFilter == null,
+                onSelected: (_) => setState(() => selectedSourceFilter = null),
+              ),
+              ...sourceController.sources.map(
+                (source) => _SelectableFilterChip(
+                  label: source.shortLabel,
+                  selected: selectedSourceFilter == source.id,
+                  onSelected: (_) => setState(
+                    () => selectedSourceFilter =
+                        selectedSourceFilter == source.id ? null : source.id,
+                  ),
+                ),
+              ),
+              if (controller.expenses.any((e) => e.sourceId == null))
+                _SelectableFilterChip(
+                  label: 'Unassigned',
+                  selected: selectedSourceFilter == -1,
+                  onSelected: (_) => setState(
+                    () => selectedSourceFilter =
+                        selectedSourceFilter == -1 ? null : -1,
+                  ),
+                ),
             ],
           ),
         ),
@@ -701,8 +1023,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
   bool _loadingAudit = true;
   String _userName = '';
   bool _loadingName = true;
-  int _initialBalanceMinor = 0;
-  bool _loadingBalance = true;
 
   @override
   bool get wantKeepAlive => true;
@@ -714,7 +1034,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     _refreshSmsState();
     _loadAuditState();
     _loadUserName();
-    _loadInitialBalance();
   }
 
   @override
@@ -763,18 +1082,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     }
   }
 
-  Future<void> _loadInitialBalance() async {
-    final balance = await ref
-        .read(appSettingsStoreProvider)
-        .initialBalanceMinor();
-    if (mounted) {
-      setState(() {
-        _initialBalanceMinor = balance;
-        _loadingBalance = false;
-      });
-    }
-  }
-
   Future<void> _editName() async {
     final name = await showDialog<String>(
       context: context,
@@ -784,20 +1091,6 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
     await ref.read(appSettingsStoreProvider).setUserName(name);
     ref.read(userNameProvider.notifier).state = name;
     if (mounted) setState(() => _userName = name);
-  }
-
-  Future<void> _editInitialBalance() async {
-    final newBalanceMinor = await showDialog<int>(
-      context: context,
-      builder: (context) =>
-          _EditBalanceDialog(initialMinor: _initialBalanceMinor),
-    );
-    if (newBalanceMinor == null || !mounted) return;
-    await ref
-        .read(appSettingsStoreProvider)
-        .setInitialBalanceMinor(newBalanceMinor);
-    ref.read(expenseControllerProvider).setInitialBalance(newBalanceMinor);
-    if (mounted) setState(() => _initialBalanceMinor = newBalanceMinor);
   }
 
   Future<void> _confirmResetAll() async {
@@ -1425,6 +1718,13 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         .subscriptions
         .where((s) => s.status.isOngoing)
         .length;
+    final sourceController = ref.watch(sourceControllerProvider);
+    final expenseController = ref.watch(expenseControllerProvider);
+    final cashWallet = sourceController.cashWallet;
+    final cashBalanceMinor = cashWallet != null
+        ? sourceController.balanceFor(cashWallet.id, expenseController.expenses)
+        : sourceController.cashBalanceMinor(expenseController.expenses);
+    final cashBalanceStr = formatAmount(cashBalanceMinor);
 
     return ListView(
       padding: AppSpacing.screenPadding.copyWith(bottom: 140),
@@ -1545,13 +1845,20 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                   children: [
                     Expanded(
                       child: _QuickStatPill(
-                        icon: Icons.account_balance_wallet_outlined,
-                        label: 'Starting balance',
-                        value: _loadingBalance
+                        icon: Icons.payments_outlined,
+                        label: cashWallet?.displayName ?? 'Cash Wallet',
+                        value: (sourceController.isLoading || expenseController.isLoading)
                             ? '…'
-                            : formatAmount(_initialBalanceMinor),
-                        actionIcon: Icons.edit_outlined,
-                        onTap: _editInitialBalance,
+                            : cashBalanceStr,
+                        actionIcon: Icons.arrow_forward_rounded,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => cashWallet != null
+                                ? AccountDetailsPage(sourceId: cashWallet.id)
+                                : const SourceOfMoneyPage(),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1671,6 +1978,17 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
         _SettingsSectionCard(
           children: [
             _SettingsRow(
+              icon: Icons.account_balance_outlined,
+              title: 'Source of Money',
+              subtitle: 'Bank accounts, cash wallet, and balances',
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SourceOfMoneyPage(),
+                ),
+              ),
+            ),
+            _SettingsRow(
               icon: Icons.category_outlined,
               title: 'Manage Categories',
               subtitle: 'Add, edit, and reorder your categories',
@@ -1747,7 +2065,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             _SettingsRow(
               icon: Icons.info_outline_rounded,
               title: 'About Luma',
-              subtitle: 'Version 1.0.1 • Built by Manmit',
+              subtitle: 'Version 1.1.0 • Built by Manmit',
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const _AboutLumaPage()),
@@ -1906,7 +2224,7 @@ class _AboutLumaPage extends StatelessWidget {
             style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Text('Version 1.0.1', style: TextStyle(color: palette.textSecondary)),
+          Text('Version 1.1.0', style: TextStyle(color: palette.textSecondary)),
           const SizedBox(height: 20),
           Text(
             'Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.',
@@ -2351,107 +2669,6 @@ class _EditNameDialogState extends State<_EditNameDialog> {
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, _controller.text.trim()),
-          child: const Text('Save'),
-        ),
-      ],
-    );
-  }
-}
-
-class _EditBalanceDialog extends StatefulWidget {
-  const _EditBalanceDialog({required this.initialMinor});
-
-  final int initialMinor;
-
-  @override
-  State<_EditBalanceDialog> createState() => _EditBalanceDialogState();
-}
-
-class _EditBalanceDialogState extends State<_EditBalanceDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    final initialRupees = widget.initialMinor / 100;
-    _controller = TextEditingController(
-      text: initialRupees == 0
-          ? '0'
-          : (initialRupees % 1 == 0
-                ? initialRupees.toInt().toString()
-                : initialRupees.toStringAsFixed(2)),
-    );
-    _controller.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  double? get _parsed {
-    final text = _controller.text.trim().replaceAll(',', '');
-    if (text.isEmpty) return null;
-    final val = double.tryParse(text);
-    if (val == null || val < 0 || val.isNaN || val.isInfinite) return null;
-    return val;
-  }
-
-  void _submit() {
-    final val = _parsed;
-    if (val != null) {
-      Navigator.pop(context, (val * 100).round());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = context.lumaPalette;
-    return AlertDialog(
-      backgroundColor: palette.elevated,
-      title: const Text('Starting balance'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Luma calculates your running balance and export summary from this starting amount.',
-            style: TextStyle(fontSize: 13, color: palette.textSecondary),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: _controller,
-            autofocus: true,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textInputAction: TextInputAction.done,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: palette.textPrimary,
-            ),
-            decoration: InputDecoration(
-              prefixText: '₹ ',
-              prefixStyle: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: palette.primaryAccent,
-              ),
-              hintText: '0.00',
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, null),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: _parsed != null ? _submit : null,
           child: const Text('Save'),
         ),
       ],
@@ -3286,33 +3503,50 @@ Future<void> showExpenseDetail(
                   value: 'Included in an export',
                 ),
               if (expense.rawSms?.isNotEmpty ?? false)
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  title: Text(
-                    'Raw SMS (debug)',
-                    style: TextStyle(
-                      color: palette.textSecondary,
-                      fontSize: 13,
-                    ),
+                Container(
+                  margin: const EdgeInsets.only(top: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: palette.surface,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    border: Border.all(color: palette.border),
                   ),
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      padding: AppSpacing.cardPadding,
-                      decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                        border: Border.all(color: palette.border),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      dividerColor: Colors.transparent,
+                    ),
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
                       ),
-                      child: Text(
-                        expense.rawSms!,
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      title: Text(
+                        'Raw SMS (debug)',
                         style: TextStyle(
                           color: palette.textSecondary,
-                          fontSize: 12,
+                          fontSize: 13,
                         ),
                       ),
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: palette.elevated,
+                            borderRadius: BorderRadius.circular(AppRadii.compact),
+                            border: Border.all(color: palette.border),
+                          ),
+                          child: SelectableText(
+                            expense.rawSms!,
+                            style: TextStyle(
+                              color: palette.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               const SizedBox(height: AppSpacing.lg),
               Row(
@@ -3426,9 +3660,53 @@ class _ExportPage extends ConsumerStatefulWidget {
 class _ExportPageState extends ConsumerState<_ExportPage>
     with AutomaticKeepAliveClientMixin {
   ExportMode? _busy;
+  bool _restoring = false;
 
   @override
   bool get wantKeepAlive => true;
+
+  Future<void> _runImport() async {
+    final service = ref.read(exportServiceProvider);
+    if (service == null) return;
+    setState(() => _restoring = true);
+    try {
+      final candidates = await ExportService.findBackupCandidates();
+      if (!mounted) return;
+
+      final chosenFile = await showDialog<File>(
+        context: context,
+        builder: (ctx) => _BackupRestoreDialog(candidates: candidates),
+      );
+
+      if (chosenFile != null && mounted) {
+        final bytes = await chosenFile.readAsBytes();
+        final result = await service.importExcel(bytes);
+        if (result.initialBalanceRestored > 0) {
+          final store = ref.read(appSettingsStoreProvider);
+          await store.setInitialBalanceMinor(result.initialBalanceRestored);
+          ref
+              .read(expenseControllerProvider)
+              .setInitialBalance(result.initialBalanceRestored);
+        }
+        await ref.read(expenseControllerProvider).load();
+        await ref.read(sourceControllerProvider).load();
+        if (!mounted) return;
+        final msg = result.isLegacyBackup
+            ? 'Restored ${result.transactionsRestored} transactions & cash starting balance of ${formatAmount(result.initialBalanceRestored)}.'
+            : 'Restored ${result.accountsRestored} accounts, ${result.walletsRestored} wallets, ${result.transfersRestored} transfers, ${result.transactionsRestored} transactions.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to restore backup: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _restoring = false);
+    }
+  }
 
   Future<void> _runExport(ExportMode mode) async {
     final service = ref.read(exportServiceProvider);
@@ -3532,6 +3810,15 @@ class _ExportPageState extends ConsumerState<_ExportPage>
           onPressed: controller.expenses.isEmpty || _busy != null
               ? null
               : () => _runExport(ExportMode.full),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _ExportOption(
+          title: 'Restore from backup',
+          subtitle:
+              'Restore accounts, wallets, transfers, and transactions from an Excel file.',
+          detail: 'Restores source associations and preserves ledger integrity',
+          actionLabel: _restoring ? 'Restoring…' : 'Restore from Excel',
+          onPressed: _restoring ? null : _runImport,
         ),
       ],
     );

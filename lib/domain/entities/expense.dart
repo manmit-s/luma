@@ -14,6 +14,7 @@ class Expense {
     required this.status,
     required this.transactionType,
     required this.source,
+    this.sourceId,
     this.note = '',
     this.referenceNumber,
     this.smsFingerprint,
@@ -36,6 +37,7 @@ class Expense {
   ExpenseStatus status;
   String? rawSms;
   ExpenseSource source;
+  int? sourceId;
   DateTime createdAt;
   DateTime updatedAt;
   DateTime? lastExportedAt;
@@ -51,6 +53,8 @@ class Expense {
     DateTime? timestamp,
     TransactionType? transactionType,
     ExpenseStatus? status,
+    int? sourceId,
+    bool clearSourceId = false,
     DateTime? updatedAt,
   }) => Expense(
     id: id,
@@ -61,6 +65,7 @@ class Expense {
     timestamp: timestamp ?? this.timestamp,
     transactionType: transactionType ?? this.transactionType,
     status: status ?? this.status,
+    sourceId: clearSourceId ? null : (sourceId ?? this.sourceId),
     referenceNumber: referenceNumber,
     smsFingerprint: smsFingerprint,
     rawSms: rawSms,

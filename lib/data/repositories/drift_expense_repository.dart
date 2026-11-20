@@ -36,7 +36,7 @@ int _sourceToInt(domain.ExpenseSource s) => switch (s) {
 domain.ExpenseSource _sourceFromInt(int v) =>
     v == 1 ? domain.ExpenseSource.manual : domain.ExpenseSource.sms;
 
-domain.Expense _toEntity(store.Expense row) => domain.Expense(
+domain.Expense _toEntity(store.Expense row, [int? sourceId]) => domain.Expense(
       id: row.id,
       amountMinor: row.amountMinor,
       merchant: row.merchant,
@@ -49,22 +49,60 @@ domain.Expense _toEntity(store.Expense row) => domain.Expense(
       transactionType: _txFromInt(row.transactionType),
       status: _statusFromInt(row.status),
       source: _sourceFromInt(row.source),
+      sourceId: sourceId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       lastExportedAt: row.lastExportedAt,
     );
 
 class DriftExpenseRepository implements ExpenseRepository {
-  DriftExpenseRepository(this.database);
+  DriftExpenseRepository(this.database) {
+    _ensureColumn();
+  }
 
   final store.LumaDatabase database;
+
+  Future<void> _ensureColumn() async {
+    try {
+      await database.customStatement(
+        'ALTER TABLE expenses ADD COLUMN source_id INTEGER NULL',
+      );
+    } catch (_) {}
+  }
+
+  Future<Map<int, int>> _getSourceIds() async {
+    try {
+      final rows = await database.customSelect(
+        'SELECT id, source_id FROM expenses WHERE source_id IS NOT NULL',
+      ).get();
+      return {
+        for (final r in rows) r.read<int>('id'): r.read<int>('source_id'),
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<int?> _getSourceIdFor(int id) async {
+    try {
+      final rows = await database.customSelect(
+        'SELECT source_id FROM expenses WHERE id = ? AND source_id IS NOT NULL',
+        variables: [Variable.withInt(id)],
+      ).get();
+      if (rows.isEmpty) return null;
+      return rows.first.read<int>('source_id');
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<List<domain.Expense>> getAll() async {
     final rows = await (database.select(database.expenses)
           ..orderBy([(t) => OrderingTerm.desc(t.timestamp)]))
         .get();
-    return rows.map(_toEntity).toList();
+    final sourceIds = await _getSourceIds();
+    return rows.map((r) => _toEntity(r, sourceIds[r.id])).toList();
   }
 
   @override
@@ -72,7 +110,9 @@ class DriftExpenseRepository implements ExpenseRepository {
     final row = await (database.select(database.expenses)
           ..where((t) => t.id.equals(id)))
         .getSingleOrNull();
-    return row == null ? null : _toEntity(row);
+    if (row == null) return null;
+    final sourceId = await _getSourceIdFor(id);
+    return _toEntity(row, sourceId);
   }
 
   @override
@@ -87,13 +127,19 @@ class DriftExpenseRepository implements ExpenseRepository {
       final byRef = await (database.select(database.expenses)
             ..where((t) => t.referenceNumber.equals(referenceNumber)))
           .getSingleOrNull();
-      if (byRef != null) return _toEntity(byRef);
+      if (byRef != null) {
+        final sourceId = await _getSourceIdFor(byRef.id);
+        return _toEntity(byRef, sourceId);
+      }
     }
     if (fingerprint != null && fingerprint.isNotEmpty) {
       final byFp = await (database.select(database.expenses)
             ..where((t) => t.smsFingerprint.equals(fingerprint)))
           .getSingleOrNull();
-      if (byFp != null) return _toEntity(byFp);
+      if (byFp != null) {
+        final sourceId = await _getSourceIdFor(byFp.id);
+        return _toEntity(byFp, sourceId);
+      }
     }
     final windowStart = timestamp.subtract(const Duration(minutes: 5));
     final windowEnd = timestamp.add(const Duration(minutes: 5));
@@ -108,7 +154,9 @@ class DriftExpenseRepository implements ExpenseRepository {
       query.where((t) => t.merchant.equals(merchant));
     }
     final match = await query.getSingleOrNull();
-    return match == null ? null : _toEntity(match);
+    if (match == null) return null;
+    final sourceId = await _getSourceIdFor(match.id);
+    return _toEntity(match, sourceId);
   }
 
   @override
@@ -132,6 +180,17 @@ class DriftExpenseRepository implements ExpenseRepository {
               lastExportedAt: Value(expense.lastExportedAt),
             ),
           );
+      try {
+        if (expense.sourceId != null) {
+          await database.customUpdate(
+            'UPDATE expenses SET source_id = ? WHERE id = ?',
+            variables: [
+              Variable.withInt(expense.sourceId!),
+              Variable.withInt(id),
+            ],
+          );
+        }
+      } catch (_) {}
       return domain.Expense(
         id: id,
         amountMinor: expense.amountMinor,
@@ -141,6 +200,7 @@ class DriftExpenseRepository implements ExpenseRepository {
         status: expense.status,
         transactionType: expense.transactionType,
         source: expense.source,
+        sourceId: expense.sourceId,
         note: expense.note,
         referenceNumber: expense.referenceNumber,
         smsFingerprint: expense.smsFingerprint,
@@ -169,6 +229,24 @@ class DriftExpenseRepository implements ExpenseRepository {
         lastExportedAt: Value(expense.lastExportedAt),
       ),
     );
+    try {
+      if (expense.sourceId != null) {
+        await database.customUpdate(
+          'UPDATE expenses SET source_id = ? WHERE id = ?',
+          variables: [
+            Variable.withInt(expense.sourceId!),
+            Variable.withInt(expense.id),
+          ],
+        );
+      } else {
+        await database.customUpdate(
+          'UPDATE expenses SET source_id = NULL WHERE id = ?',
+          variables: [
+            Variable.withInt(expense.id),
+          ],
+        );
+      }
+    } catch (_) {}
     return expense;
   }
 
@@ -191,7 +269,8 @@ class DriftExpenseRepository implements ExpenseRepository {
               t.updatedAt.isBiggerThan(t.lastExportedAt))
           ..orderBy([(t) => OrderingTerm.asc(t.timestamp)]))
         .get();
-    return rows.map(_toEntity).toList();
+    final sourceIds = await _getSourceIds();
+    return rows.map((r) => _toEntity(r, sourceIds[r.id])).toList();
   }
 
   @override

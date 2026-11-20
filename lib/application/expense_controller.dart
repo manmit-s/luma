@@ -8,6 +8,8 @@ import '../domain/services/category_suggester.dart';
 import '../domain/services/merchant_learning.dart';
 import '../domain/services/sms_transaction_parser.dart';
 
+import '../domain/entities/payment_source.dart';
+
 class ExpenseController extends ChangeNotifier {
   ExpenseController(
       {ExpenseRepository? repository, CategorySuggester? learning})
@@ -98,12 +100,14 @@ class ExpenseController extends ChangeNotifier {
   Future<void> complete(Expense expense,
       {required String categoryId,
       String note = '',
-      TransactionType? transactionType}) async {
+      TransactionType? transactionType,
+      int? sourceId}) async {
     final updated = expense.copyWith(
         categoryId: categoryId,
         note: note,
         transactionType: transactionType ?? expense.transactionType,
         status: ExpenseStatus.completed,
+        sourceId: sourceId ?? expense.sourceId,
         updatedAt: DateTime.now());
     await _repository.save(updated);
     await _learning.learn(updated);
@@ -140,6 +144,7 @@ class ExpenseController extends ChangeNotifier {
       required String categoryId,
       String note = '',
       TransactionType transactionType = TransactionType.debit,
+      int? sourceId,
       DateTime? timestamp}) async {
     final now = DateTime.now();
     final expenseTimestamp = timestamp ?? now;
@@ -153,6 +158,7 @@ class ExpenseController extends ChangeNotifier {
         status: ExpenseStatus.completed,
         transactionType: transactionType,
         source: ExpenseSource.manual,
+        sourceId: sourceId,
         createdAt: now,
         updatedAt: now);
     final saved = await _repository.save(draft);
@@ -160,9 +166,12 @@ class ExpenseController extends ChangeNotifier {
     await _refresh();
   }
 
-  Future<Expense?> processSms(String message, {DateTime? receivedAt}) async {
-    final parsed =
-        SmsTransactionParser().parse(message, receivedAt: receivedAt);
+  Future<Expense?> processSms(String message,
+      {DateTime? receivedAt,
+      String? sender,
+      List<PaymentSource>? sources}) async {
+    final parsed = SmsTransactionParser()
+        .parse(message, receivedAt: receivedAt, sender: sender);
     if (parsed == null) {
       return null;
     }
@@ -174,6 +183,15 @@ class ExpenseController extends ChangeNotifier {
         merchant: parsed.merchant,
         timestamp: parsed.timestamp ?? receivedAt ?? DateTime.now());
     if (duplicate != null) return duplicate;
+
+    int? preselectedSourceId;
+    if (sources != null && sources.isNotEmpty) {
+      preselectedSourceId = SmsTransactionParser.matchConfiguredSource(
+        parsed: parsed,
+        sources: sources,
+      );
+    }
+
     final now = DateTime.now();
     final draft = Expense(
         id: 0,
@@ -187,6 +205,7 @@ class ExpenseController extends ChangeNotifier {
         rawSms: parsed.rawMessage,
         smsFingerprint: fingerprint,
         source: ExpenseSource.sms,
+        sourceId: preselectedSourceId,
         createdAt: now,
         updatedAt: now);
     final saved = await _repository.save(draft);

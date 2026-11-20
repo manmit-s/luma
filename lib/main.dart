@@ -9,15 +9,18 @@ import 'app/app.dart';
 import 'app/providers.dart';
 import 'application/expense_controller.dart';
 import 'application/category_controller.dart';
+import 'application/source_controller.dart';
 import 'application/subscription_controller.dart';
 import 'data/database/luma_database.dart';
 import 'data/database/seed.dart';
 import 'data/repositories/drift_expense_repository.dart';
 import 'data/repositories/drift_category_repository.dart';
+import 'data/repositories/drift_source_repository.dart';
 import 'data/repositories/memory_category_repository.dart';
 import 'data/repositories/drift_subscription_repository.dart';
 import 'data/repositories/drift_expected_payment_repository.dart';
 import 'data/repositories/memory_expense_repository.dart';
+import 'data/repositories/memory_source_repository.dart';
 import 'data/repositories/memory_subscription_repository.dart';
 import 'data/repositories/memory_expected_payment_repository.dart';
 import 'data/services/app_settings_store.dart';
@@ -55,13 +58,21 @@ Future<void> main() async {
     final store = AppSettingsStore(db);
     final initialBalance = await store.initialBalanceMinor();
     controller.setInitialBalance(initialBalance);
+    final sourceRepo = DriftSourceRepository(db);
+    final sourceController = SourceController(repository: sourceRepo);
+    await sourceController.load();
+    sourceController.updateExpenses(controller.expenses);
+    controller.addListener(() {
+      sourceController.updateExpenses(controller.expenses);
+    });
     final name = await store.userName();
     final exportService = ExportService(
       repository,
       db,
-        categoryRepository: categoryRepository,
+      categoryRepository: categoryRepository,
       settingsStore: store,
       subscriptionRepository: subRepo,
+      sourceRepository: sourceRepo,
     );
     runApp(
       ProviderScope(
@@ -69,6 +80,8 @@ Future<void> main() async {
           expenseControllerProvider.overrideWith((ref) => controller),
           categoryControllerProvider.overrideWith((ref) => categoryController),
           subscriptionControllerProvider.overrideWith((ref) => subController),
+          sourceRepositoryProvider.overrideWith((ref) => sourceRepo),
+          sourceControllerProvider.overrideWith((ref) => sourceController),
           appSettingsStoreProvider.overrideWith((ref) => store),
           exportServiceProvider.overrideWith((ref) => exportService),
           if (name.isNotEmpty) userNameProvider.overrideWith((ref) => name),
@@ -112,6 +125,13 @@ Future<void> main() async {
       final store = AppSettingsStore(cleanDb);
       final initialBalance = await store.initialBalanceMinor();
       controller.setInitialBalance(initialBalance);
+      final sourceRepo = DriftSourceRepository(cleanDb);
+      final sourceController = SourceController(repository: sourceRepo);
+      await sourceController.load();
+      sourceController.updateExpenses(controller.expenses);
+      controller.addListener(() {
+        sourceController.updateExpenses(controller.expenses);
+      });
       final name = await store.userName();
       final exportService = ExportService(
         repository,
@@ -119,6 +139,7 @@ Future<void> main() async {
         categoryRepository: categoryRepository,
         settingsStore: store,
         subscriptionRepository: subRepo,
+        sourceRepository: sourceRepo,
       );
       runApp(
         ProviderScope(
@@ -127,6 +148,8 @@ Future<void> main() async {
             categoryControllerProvider.overrideWith((ref) => categoryController),
             subscriptionControllerProvider
                 .overrideWith((ref) => subController),
+            sourceRepositoryProvider.overrideWith((ref) => sourceRepo),
+            sourceControllerProvider.overrideWith((ref) => sourceController),
             appSettingsStoreProvider.overrideWith((ref) => store),
             exportServiceProvider.overrideWith((ref) => exportService),
             if (name.isNotEmpty) userNameProvider.overrideWith((ref) => name),
@@ -155,6 +178,13 @@ Future<void> main() async {
       learning: MerchantLearning(),
     );
     await fallback.load();
+    final memorySourceRepo = MemorySourceRepository();
+    final sourceController = SourceController(repository: memorySourceRepo);
+    await sourceController.load();
+    sourceController.updateExpenses(fallback.expenses);
+    fallback.addListener(() {
+      sourceController.updateExpenses(fallback.expenses);
+    });
     runApp(
       ProviderScope(
         overrides: [
@@ -162,6 +192,8 @@ Future<void> main() async {
           categoryControllerProvider.overrideWith((ref) => categoryController),
           subscriptionControllerProvider
               .overrideWith((ref) => subController),
+          sourceRepositoryProvider.overrideWith((ref) => memorySourceRepo),
+          sourceControllerProvider.overrideWith((ref) => sourceController),
           appSettingsStoreProvider
               .overrideWith((ref) => AppSettingsStore(null)),
           // Same repo instance the controller holds, so marks stay in sync.
@@ -170,6 +202,7 @@ Future<void> main() async {
                 null,
                 categoryRepository: categoryRepository,
                 subscriptionRepository: memorySubRepo,
+                sourceRepository: memorySourceRepo,
               )),
         ],
         child: const LumaApp(),

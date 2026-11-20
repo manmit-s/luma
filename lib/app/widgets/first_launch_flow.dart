@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -5,18 +7,21 @@ import '../theme/app_theme.dart';
 import '../utils/external_links.dart';
 import 'luma_buttons.dart';
 
-/// Serene, 3-step first-launch onboarding flow for Luma.
+/// Serene, first-launch onboarding flow for Luma.
 ///
 /// Flow:
 /// 1. Welcome ("Remember where your money went.")
 /// 2. Preferred Name ("What should Luma call you?")
-/// 3. Current Account Balance ("What's your current balance?")
-///
-/// Free of generic SaaS carousels, feature ads, and marketing fluff.
+/// 3. Setup ("Choose how to get started" — Import from backup or Proceed)
 class FirstLaunchFlow extends StatefulWidget {
-  const FirstLaunchFlow({super.key, required this.onComplete});
+  const FirstLaunchFlow({
+    super.key,
+    required this.onComplete,
+    this.onImportBackup,
+  });
 
   final Future<void> Function(String name, int initialBalanceMinor) onComplete;
+  final Future<bool> Function(BuildContext context)? onImportBackup;
 
   @override
   State<FirstLaunchFlow> createState() => _FirstLaunchFlowState();
@@ -25,10 +30,7 @@ class FirstLaunchFlow extends StatefulWidget {
 class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
   final PageController _pageController = PageController();
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _balanceController = TextEditingController();
-
   final FocusNode _nameFocus = FocusNode();
-  final FocusNode _balanceFocus = FocusNode();
 
   int _currentPage = 0;
   bool _isSubmitting = false;
@@ -49,7 +51,6 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
         ExternalLinks.openUrl(context, ExternalLinks.termsUrl);
       };
     _nameController.addListener(_onFieldChanged);
-    _balanceController.addListener(_onFieldChanged);
   }
 
   @override
@@ -58,9 +59,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     _termsRecognizer.dispose();
     _pageController.dispose();
     _nameController.dispose();
-    _balanceController.dispose();
     _nameFocus.dispose();
-    _balanceFocus.dispose();
     super.dispose();
   }
 
@@ -81,10 +80,8 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
         Future.delayed(const Duration(milliseconds: 150), () {
           if (mounted) _nameFocus.requestFocus();
         });
-      } else if (next == 2) {
-        Future.delayed(const Duration(milliseconds: 150), () {
-          if (mounted) _balanceFocus.requestFocus();
-        });
+      } else {
+        FocusScope.of(context).unfocus();
       }
     }
   }
@@ -110,28 +107,101 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
 
   bool get _isNameValid => _nameController.text.trim().isNotEmpty;
 
-  double? get _parsedBalance {
-    final text = _balanceController.text.trim().replaceAll(',', '');
-    if (text.isEmpty) return null;
-    final val = double.tryParse(text);
-    if (val == null || val < 0 || val.isNaN || val.isInfinite) return null;
-    return val;
-  }
-
-  bool get _isBalanceValid => _parsedBalance != null;
-
-  Future<void> _handleFinish() async {
+  Future<void> _handleProceed() async {
     final name = _nameController.text.trim();
-    final balanceVal = _parsedBalance;
-    if (name.isEmpty || balanceVal == null || _isSubmitting) return;
+    if (name.isEmpty || _isSubmitting) return;
 
     setState(() => _isSubmitting = true);
-    final balanceMinor = (balanceVal * 100).round();
     try {
-      await widget.onComplete(name, balanceMinor);
+      await widget.onComplete(name, 0);
     } catch (_) {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _handleImport() async {
+    final name = _nameController.text.trim();
+    if (_isSubmitting) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      if (widget.onImportBackup != null) {
+        final success = await widget.onImportBackup!(context);
+        if (success && mounted) {
+          await widget.onComplete(name.isEmpty ? 'Friend' : name, 0);
+          return;
+        }
+      } else {
+        final success = await _showFallbackImportDialog(context);
+        if (success && mounted) {
+          await widget.onComplete(name.isEmpty ? 'Friend' : name, 0);
+          return;
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to import backup: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<bool> _showFallbackImportDialog(BuildContext context) async {
+    final palette = context.lumaPalette;
+    final pathController = TextEditingController();
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: palette.elevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
+        title: const Text('Import from Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Specify the path to your Luma Excel backup (.xlsx) file to restore:',
+              style: TextStyle(color: palette.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: pathController,
+              decoration: const InputDecoration(
+                hintText: '/path/to/backup.xlsx',
+                prefixIcon: Icon(Icons.folder_open_rounded),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final p = pathController.text.trim();
+              if (p.isNotEmpty) {
+                final file = File(p);
+                if (file.existsSync()) {
+                  Navigator.pop(ctx, true);
+                  return;
+                }
+              }
+              Navigator.pop(ctx, false);
+            },
+            child: const Text('Import File'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   @override
@@ -156,7 +226,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   children: [
                     _buildWelcomeStep(palette),
                     _buildNameStep(palette),
-                    _buildBalanceStep(palette),
+                    _buildSetupStep(palette),
                   ],
                 ),
               ),
@@ -484,7 +554,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
     );
   }
 
-  Widget _buildBalanceStep(LumaPalette palette) {
+  Widget _buildSetupStep(LumaPalette palette) {
     return LayoutBuilder(
       builder: (context, constraints) => SingleChildScrollView(
         padding: AppSpacing.screenPadding,
@@ -502,7 +572,7 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                 children: [
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    'What\'s your\ncurrent balance?',
+                    'Choose how to\nget started',
                     style: TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w700,
@@ -513,97 +583,112 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Enter the balance in your account right now. Luma will update it as transactions are recorded.',
+                    'You can restore your accounts and history from a backup file, or start fresh and configure your sources anytime.',
                     style: TextStyle(
                       fontSize: 15,
                       color: palette.textSecondary,
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                  TextField(
-                    controller: _balanceController,
-                    focusNode: _balanceFocus,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
+                  const SizedBox(height: AppSpacing.xxl),
+
+                  // Option 1: Import from backup
+                  Container(
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      border: Border.all(color: palette.border),
                     ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) {
-                      if (_isBalanceValid) _handleFinish();
-                    },
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: palette.textPrimary,
-                    ),
-                    cursorColor: palette.primaryAccent,
-                    decoration: InputDecoration(
-                      prefixIcon: Padding(
-                        padding: const EdgeInsets.only(
-                          left: AppSpacing.lg,
-                          right: AppSpacing.sm,
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.card),
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor:
+                            palette.primaryAccent.withValues(alpha: 0.15),
+                        child: Icon(
+                          Icons.file_upload_outlined,
+                          color: palette.primaryAccent,
                         ),
+                      ),
+                      title: const Text(
+                        'Import from backup file',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          '₹',
+                          'Restore your accounts, wallets, categories, and past transactions from an Excel (.xlsx) file.',
                           style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                            color: palette.primaryAccent,
+                            fontSize: 12,
+                            color: palette.textSecondary,
+                            height: 1.35,
                           ),
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(
-                        minWidth: 0,
-                        minHeight: 0,
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
                       ),
-                      hintText: '0.00',
-                      hintStyle: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w500,
-                        color: palette.textMuted,
-                      ),
-                      filled: true,
-                      fillColor: palette.surface,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                        vertical: AppSpacing.lg,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: BorderSide(color: palette.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: BorderSide(color: palette.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                        borderSide: BorderSide(
-                          color: palette.primaryAccent,
-                          width: 1.5,
-                        ),
-                      ),
+                      onTap: _isSubmitting ? null : _handleImport,
                     ),
                   ),
+
                   const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        size: 14,
-                        color: palette.textSecondary,
+
+                  // Option 2: Proceed fresh
+                  Container(
+                    decoration: BoxDecoration(
+                      color: palette.surface,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      border: Border.all(color: palette.border),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.card),
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: palette.elevated,
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          color: palette.textPrimary,
+                        ),
+                      ),
+                      title: const Text(
+                        'Proceed with fresh start',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
-                          'Your starting point. Luma will update it as transactions are recorded.',
+                          'Start with a clean slate. Manage your physical cash wallet and add bank accounts in Source of Money.',
                           style: TextStyle(
+                            fontSize: 12,
                             color: palette.textSecondary,
-                            fontSize: 13,
+                            height: 1.35,
                           ),
                         ),
                       ),
-                    ],
+                      trailing: const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                      ),
+                      onTap: _isSubmitting ? null : _handleProceed,
+                    ),
                   ),
                 ],
               ),
@@ -613,10 +698,9 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   width: double.infinity,
                   height: 52,
                   child: PrimaryButton(
-                    label: _isSubmitting ? 'Setting up...' : 'Start using Luma',
-                    onPressed: (_isBalanceValid && !_isSubmitting)
-                        ? _handleFinish
-                        : null,
+                    label: _isSubmitting ? 'Setting up...' : 'Proceed to Luma',
+                    icon: Icons.arrow_forward_rounded,
+                    onPressed: _isSubmitting ? null : _handleProceed,
                   ),
                 ),
               ),
