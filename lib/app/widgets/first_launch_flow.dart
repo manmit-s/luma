@@ -593,21 +593,17 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                   const SizedBox(height: AppSpacing.xxl),
 
                   // Option 1: Import from backup
-                  Container(
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.card),
-                      border: Border.all(color: palette.border),
+                  ListTile(
+                    tileColor: palette.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                      ),
-                      leading: CircleAvatar(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      side: BorderSide(color: palette.border),
+                    ),
+                    leading: CircleAvatar(
                         backgroundColor:
                             palette.primaryAccent.withValues(alpha: 0.15),
                         child: Icon(
@@ -639,26 +635,21 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                       ),
                       onTap: _isSubmitting ? null : _handleImport,
                     ),
-                  ),
 
                   const SizedBox(height: AppSpacing.md),
 
                   // Option 2: Proceed fresh
-                  Container(
-                    decoration: BoxDecoration(
-                      color: palette.surface,
-                      borderRadius: BorderRadius.circular(AppRadii.card),
-                      border: Border.all(color: palette.border),
+                  ListTile(
+                    tileColor: palette.surface,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                      ),
-                      leading: CircleAvatar(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      side: BorderSide(color: palette.border),
+                    ),
+                    leading: CircleAvatar(
                         backgroundColor: palette.elevated,
                         child: Icon(
                           Icons.play_arrow_rounded,
@@ -689,7 +680,6 @@ class _FirstLaunchFlowState extends State<FirstLaunchFlow> {
                       ),
                       onTap: _isSubmitting ? null : _handleProceed,
                     ),
-                  ),
                 ],
               ),
               Padding(

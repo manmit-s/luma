@@ -911,18 +911,14 @@ class _BankCataloguePickerSheetState extends State<_BankCataloguePickerSheet> {
                 separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final bank = filtered[index];
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: palette.surface,
+                  return ListTile(
+                    tileColor: palette.surface,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadii.card),
-                      border: Border.all(color: palette.border),
+                      side: BorderSide(color: palette.border),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.card),
-                      ),
-                      leading: CircleAvatar(
+                    leading: CircleAvatar(
                         backgroundColor: palette.elevated,
                         child: Text(
                           bank.shortName.length > 3
@@ -946,8 +942,7 @@ class _BankCataloguePickerSheetState extends State<_BankCataloguePickerSheet> {
                       trailing: const Icon(Icons.arrow_forward_ios_rounded,
                           size: 14),
                       onTap: () => Navigator.pop(context, bank),
-                    ),
-                  );
+                    );
                 },
               ),
             ),
@@ -1068,23 +1063,20 @@ class _BankDetailsEditorSheetState extends State<_BankDetailsEditorSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: palette.surface,
+            SwitchListTile(
+              tileColor: palette.surface,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadii.card),
-                border: Border.all(color: palette.border),
+                side: BorderSide(color: palette.border),
               ),
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Account Active'),
-                subtitle: Text(
-                  'Include in combined homepage balance calculation',
-                  style: TextStyle(color: palette.textSecondary, fontSize: 12),
-                ),
-                value: isActive,
-                onChanged: (val) => setState(() => isActive = val),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              title: const Text('Account Active'),
+              subtitle: Text(
+                'Include in combined homepage balance calculation',
+                style: TextStyle(color: palette.textSecondary, fontSize: 12),
               ),
+              value: isActive,
+              onChanged: (val) => setState(() => isActive = val),
             ),
             const SizedBox(height: AppSpacing.lg),
             SizedBox(
@@ -1206,23 +1198,20 @@ class _WalletEditorSheetState extends State<_WalletEditorSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.md),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: palette.surface,
+            SwitchListTile(
+              tileColor: palette.surface,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppRadii.card),
-                border: Border.all(color: palette.border),
+                side: BorderSide(color: palette.border),
               ),
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Wallet Active'),
-                subtitle: Text(
-                  'Include in combined homepage balance calculation',
-                  style: TextStyle(color: palette.textSecondary, fontSize: 12),
-                ),
-                value: isActive,
-                onChanged: (val) => setState(() => isActive = val),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              title: const Text('Wallet Active'),
+              subtitle: Text(
+                'Include in combined homepage balance calculation',
+                style: TextStyle(color: palette.textSecondary, fontSize: 12),
               ),
+              value: isActive,
+              onChanged: (val) => setState(() => isActive = val),
             ),
             const SizedBox(height: AppSpacing.lg),
             SizedBox(

@@ -293,15 +293,15 @@ class _BackupRestoreDialogState extends State<_BackupRestoreDialog> {
                     final isBackup =
                         file.path.endsWith('luma_backup_latest.xlsx') ||
                             parentName == 'Backup';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      decoration: BoxDecoration(
-                        color: palette.surface,
-                        borderRadius:
-                            BorderRadius.circular(AppRadii.compact),
-                        border: Border.all(color: palette.border),
-                      ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
                       child: ListTile(
+                        tileColor: palette.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppRadii.compact),
+                          side: BorderSide(color: palette.border),
+                        ),
                         dense: true,
                         leading: Icon(
                           isBackup
@@ -1519,74 +1519,93 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
                                       ...pendingItems.take(4).map((expense) {
                                         final isFirst =
                                             expense == pendingItems.first;
-                                        return Container(
-                                          decoration: BoxDecoration(
-                                            border: isFirst
-                                                ? null
-                                                : Border(
-                                                    top: BorderSide(
-                                                      color: palette.border,
+                                        return InkWell(
+                                          onTap: () async {
+                                            Navigator.pop(sheetContext);
+                                            await openExpense(
+                                              context,
+                                              ref,
+                                              expense,
+                                            );
+                                          },
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              border: isFirst
+                                                  ? null
+                                                  : Border(
+                                                      top: BorderSide(
+                                                        color: palette.border,
+                                                      ),
                                                     ),
-                                                  ),
-                                          ),
-                                          child: ListTile(
-                                            dense: true,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                  horizontal: 14,
-                                                  vertical: 2,
-                                                ),
-                                            title: Text(
-                                              expense.merchant?.isNotEmpty ==
-                                                      true
-                                                  ? expense.merchant!
-                                                  : (expense.isDebit
-                                                        ? 'Expense'
-                                                        : 'Income'),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 14,
-                                                color: palette.textPrimary,
-                                              ),
                                             ),
-                                            subtitle: Text(
-                                              expense.isPending
-                                                  ? 'Pending review'
-                                                  : 'Uncategorized',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: palette.primaryAccent,
-                                              ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 10,
                                             ),
-                                            trailing: Row(
-                                              mainAxisSize: MainAxisSize.min,
+                                            child: Row(
                                               children: [
-                                                Text(
-                                                  '₹${(expense.amountMinor / 100).toStringAsFixed(expense.amountMinor % 100 == 0 ? 0 : 2)}',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                    color: palette.textPrimary,
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        expense.merchant?.isNotEmpty ==
+                                                                true
+                                                            ? expense.merchant!
+                                                            : (expense.isDebit
+                                                                  ? 'Expense'
+                                                                  : 'Income'),
+                                                        maxLines: 1,
+                                                        overflow:
+                                                            TextOverflow.ellipsis,
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                          fontSize: 14,
+                                                          color: palette
+                                                              .textPrimary,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        expense.isPending
+                                                            ? 'Pending review'
+                                                            : 'Uncategorized',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: palette
+                                                              .primaryAccent,
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
-                                                const SizedBox(width: 4),
-                                                Icon(
-                                                  Icons.chevron_right_rounded,
-                                                  size: 18,
-                                                  color: palette.textSecondary,
+                                                Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      '₹' + (expense.amountMinor / 100).toStringAsFixed(expense.amountMinor % 100 == 0 ? 0 : 2),
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 13,
+                                                        color: palette
+                                                            .textPrimary,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Icon(
+                                                      Icons
+                                                          .chevron_right_rounded,
+                                                      size: 18,
+                                                      color: palette
+                                                          .textSecondary,
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
                                             ),
-                                            onTap: () async {
-                                              Navigator.pop(sheetContext);
-                                              await openExpense(
-                                                context,
-                                                ref,
-                                                expense,
-                                              );
-                                            },
                                           ),
                                         );
                                       }),

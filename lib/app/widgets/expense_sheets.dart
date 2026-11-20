@@ -1460,22 +1460,18 @@ class _PaymentSourceSelectorCard extends ConsumerWidget {
           )
         : 0;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: palette.surface,
+    return ListTile(
+      tileColor: palette.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(
+        side: BorderSide(
           color: isUnselected
               ? palette.primaryAccent
               : palette.border,
           width: isUnselected ? 1.5 : 1,
         ),
       ),
-      child: ListTile(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.card),
-        ),
-        leading: CircleAvatar(
+      leading: CircleAvatar(
           backgroundColor: selectedSource != null
               ? palette.primaryAccent.withValues(alpha: 0.15)
               : palette.elevated,
@@ -1535,8 +1531,7 @@ class _PaymentSourceSelectorCard extends ConsumerWidget {
             onChanged(picked);
           }
         },
-      ),
-    );
+      );
   }
 }
 
@@ -1578,25 +1573,22 @@ class _SourcePickerSheet extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             if (allowUnassigned)
-              Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: selectedId == null
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListTile(
+                  tileColor: selectedId == null
                       ? palette.chipSelectedBackground
                       : palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.card),
-                  border: Border.all(
-                    color: selectedId == null
-                        ? palette.primaryAccent
-                        : palette.border,
-                    width: selectedId == null ? 1.5 : 1,
-                  ),
-                ),
-                child: ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadii.card),
+                    side: BorderSide(
+                      color: selectedId == null
+                          ? palette.primaryAccent
+                          : palette.border,
+                      width: selectedId == null ? 1.5 : 1,
+                    ),
                   ),
                   leading: CircleAvatar(
                     backgroundColor: selectedId == null
@@ -1620,23 +1612,20 @@ class _SourcePickerSheet extends StatelessWidget {
             ...activeSources.map((source) {
               final isSelected = source.id == selectedId;
               final balance = sourceController.balanceFor(source.id, expenses);
-              return Container(
-                margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: isSelected
+              return Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListTile(
+                  tileColor: isSelected
                       ? palette.chipSelectedBackground
                       : palette.surface,
-                  borderRadius: BorderRadius.circular(AppRadii.card),
-                  border: Border.all(
-                    color: isSelected ? palette.primaryAccent : palette.border,
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: ListTile(
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadii.card),
+                    side: BorderSide(
+                      color: isSelected ? palette.primaryAccent : palette.border,
+                      width: isSelected ? 1.5 : 1,
+                    ),
                   ),
                   leading: CircleAvatar(
                     backgroundColor: isSelected
