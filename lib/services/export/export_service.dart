@@ -572,8 +572,15 @@ class ExportService {
     var transactionsRestored = 0;
     var extractedInitialBalance = 0;
 
-    final isLegacyBackup =
-        excel.tables['Accounts'] == null && excel.tables['Wallets'] == null;
+    final accountsTable = _findSheet(excel, 'Accounts');
+    final walletsTable = _findSheet(excel, 'Wallets');
+    final transfersTable = _findSheet(excel, 'Transfers');
+    final txTable = _findSheet(excel, 'Expenses') ??
+        _findSheet(excel, 'Transactions') ??
+        _findSheet(excel, 'Sheet1') ??
+        (excel.tables.isNotEmpty ? excel.tables.values.first : null);
+
+    final isLegacyBackup = accountsTable == null && walletsTable == null;
 
     final existingSources = List<PaymentSource>.from(
       await _sourceRepository?.getAllSources() ?? [],
@@ -584,13 +591,15 @@ class ExportService {
     for (final s in existingSources) {
       sourceIdMap[s.id] = s.id;
       sourceNameMap[s.displayName.toLowerCase()] = s.id;
-      if (s.nickname != null) {
+      if (s.nickname != null && s.nickname!.isNotEmpty) {
         sourceNameMap[s.nickname!.toLowerCase()] = s.id;
+      }
+      if (s.bankName != null && s.bankName!.isNotEmpty) {
+        sourceNameMap[s.bankName!.toLowerCase()] = s.id;
       }
     }
 
     // 1. Restore Accounts sheet
-    final accountsTable = excel.tables['Accounts'];
     if (accountsTable != null && _sourceRepository != null) {
       for (var i = 1; i < accountsTable.rows.length; i++) {
         final row = accountsTable.rows[i];
@@ -608,11 +617,12 @@ class ExportService {
 
         if (bankName.isEmpty && bankIdentifier.isEmpty) continue;
 
-        // Check if matching account already exists
+        // Check if matching account already exists in existingSources
         PaymentSource? existing;
         for (final s in existingSources) {
           if (s.isBank &&
-              s.bankIdentifier == bankIdentifier &&
+              (s.bankIdentifier == bankIdentifier ||
+                  (s.bankName != null && bankName.isNotEmpty && s.bankName!.toLowerCase() == bankName.toLowerCase())) &&
               (last4.isEmpty || s.accountNumberLast4 == last4)) {
             existing = s;
             break;
@@ -620,16 +630,31 @@ class ExportService {
         }
 
         if (existing != null) {
-          if (rawId != null) sourceIdMap[rawId] = existing.id;
-          sourceNameMap[existing.displayName.toLowerCase()] = existing.id;
+          final updated = existing.copyWith(
+            openingBalanceMinor: opening > 0 ? opening : existing.openingBalanceMinor,
+            nickname: nickname.isNotEmpty ? nickname : existing.nickname,
+            isActive: isActive,
+          );
+          final saved = await _sourceRepository.saveSource(updated);
+          final idx = existingSources.indexWhere((s) => s.id == existing!.id);
+          if (idx != -1) existingSources[idx] = saved;
+          if (rawId != null) sourceIdMap[rawId] = saved.id;
+          sourceNameMap[saved.displayName.toLowerCase()] = saved.id;
+          if (saved.nickname != null && saved.nickname!.isNotEmpty) {
+            sourceNameMap[saved.nickname!.toLowerCase()] = saved.id;
+          }
+          if (saved.bankName != null && saved.bankName!.isNotEmpty) {
+            sourceNameMap[saved.bankName!.toLowerCase()] = saved.id;
+          }
+          accountsRestored++;
         } else {
           final newSource = PaymentSource(
-            id: rawId != null && rawId > 0 ? rawId : 0,
+            id: 0,
             type: PaymentSourceType.bank,
-            bankName: bankName,
-            bankIdentifier: bankIdentifier,
-            nickname: nickname.isEmpty ? null : nickname,
-            accountNumberLast4: last4.isEmpty ? null : last4,
+            bankName: bankName.isNotEmpty ? bankName : null,
+            bankIdentifier: bankIdentifier.isNotEmpty ? bankIdentifier : null,
+            nickname: nickname.isNotEmpty ? nickname : null,
+            accountNumberLast4: last4.isNotEmpty ? last4 : null,
             openingBalanceMinor: opening,
             isActive: isActive,
             createdAt: createdAt,
@@ -638,6 +663,12 @@ class ExportService {
           final saved = await _sourceRepository.saveSource(newSource);
           if (rawId != null) sourceIdMap[rawId] = saved.id;
           sourceNameMap[saved.displayName.toLowerCase()] = saved.id;
+          if (saved.nickname != null && saved.nickname!.isNotEmpty) {
+            sourceNameMap[saved.nickname!.toLowerCase()] = saved.id;
+          }
+          if (saved.bankName != null && saved.bankName!.isNotEmpty) {
+            sourceNameMap[saved.bankName!.toLowerCase()] = saved.id;
+          }
           existingSources.add(saved);
           accountsRestored++;
         }
@@ -645,7 +676,6 @@ class ExportService {
     }
 
     // 2. Restore Wallets sheet
-    final walletsTable = excel.tables['Wallets'];
     if (walletsTable != null && _sourceRepository != null) {
       for (var i = 1; i < walletsTable.rows.length; i++) {
         final row = walletsTable.rows[i];
@@ -672,13 +702,18 @@ class ExportService {
             isActive: isActive,
             nickname: name.isNotEmpty ? name : existingWallet.nickname,
           );
-          await _sourceRepository.saveSource(updated);
-          if (rawId != null) sourceIdMap[rawId] = existingWallet.id;
-          sourceNameMap[existingWallet.displayName.toLowerCase()] = existingWallet.id;
+          final saved = await _sourceRepository.saveSource(updated);
+          final idx = existingSources.indexWhere((s) => s.id == existingWallet!.id);
+          if (idx != -1) existingSources[idx] = saved;
+          if (rawId != null) sourceIdMap[rawId] = saved.id;
+          sourceNameMap[saved.displayName.toLowerCase()] = saved.id;
+          if (saved.nickname != null && saved.nickname!.isNotEmpty) {
+            sourceNameMap[saved.nickname!.toLowerCase()] = saved.id;
+          }
           walletsRestored++;
         } else {
           final newWallet = PaymentSource(
-            id: rawId != null && rawId > 0 ? rawId : 0,
+            id: 0,
             type: PaymentSourceType.wallet,
             bankIdentifier: 'cash_wallet',
             nickname: name.isNotEmpty ? name : 'Cash Wallet',
@@ -690,6 +725,9 @@ class ExportService {
           final saved = await _sourceRepository.saveSource(newWallet);
           if (rawId != null) sourceIdMap[rawId] = saved.id;
           sourceNameMap[saved.displayName.toLowerCase()] = saved.id;
+          if (saved.nickname != null && saved.nickname!.isNotEmpty) {
+            sourceNameMap[saved.nickname!.toLowerCase()] = saved.id;
+          }
           existingSources.add(saved);
           walletsRestored++;
         }
@@ -697,13 +735,12 @@ class ExportService {
     }
 
     // 3. Restore Transfers sheet
-    final transfersTable = excel.tables['Transfers'];
     if (transfersTable != null && _sourceRepository != null) {
       final existingTransfers = await _sourceRepository.getAllTransfers();
       for (var i = 1; i < transfersTable.rows.length; i++) {
         final row = transfersTable.rows[i];
         if (row.isEmpty) continue;
-        final rawId = _toInt(row.elementAtOrNull(0));
+        _toInt(row.elementAtOrNull(0));
         final dateStr = _toStr(row.elementAtOrNull(1));
         final timeStr = _toStr(row.elementAtOrNull(2));
         final rawFromId = _toInt(row.elementAtOrNull(3));
@@ -729,7 +766,7 @@ class ExportService {
 
         if (!isDupe) {
           final transfer = InternalTransfer(
-            id: rawId != null && rawId > 0 ? rawId : 0,
+            id: 0,
             fromSourceId: fromId,
             toSourceId: toId,
             amountMinor: amount,
@@ -745,10 +782,6 @@ class ExportService {
     }
 
     // 4. Restore Transactions from 'Expenses' or 'Transactions' sheet
-    final txTable = excel.tables['Expenses'] ??
-        excel.tables['Transactions'] ??
-        excel.tables['Sheet1'] ??
-        (excel.tables.isNotEmpty ? excel.tables.values.first : null);
     if (txTable != null) {
       var headerIndex = -1;
       var dateCol = -1;
@@ -986,6 +1019,15 @@ class ExportService {
       initialBalanceRestored: extractedInitialBalance,
       isLegacyBackup: isLegacyBackup,
     );
+  }
+
+  static Sheet? _findSheet(Excel excel, String name) {
+    for (final key in excel.tables.keys) {
+      if (key.trim().toLowerCase() == name.trim().toLowerCase()) {
+        return excel.tables[key];
+      }
+    }
+    return null;
   }
 
   static String _toStr(Data? cell) {

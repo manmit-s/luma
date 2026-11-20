@@ -2065,7 +2065,7 @@ class _SettingsPageState extends ConsumerState<_SettingsPage>
             _SettingsRow(
               icon: Icons.info_outline_rounded,
               title: 'About Luma',
-              subtitle: 'Version 1.0.1 • Built by Manmit',
+              subtitle: 'Version 1.1.0 • Built by Manmit',
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const _AboutLumaPage()),
@@ -2224,7 +2224,7 @@ class _AboutLumaPage extends StatelessWidget {
             style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Text('Version 1.0.1', style: TextStyle(color: palette.textSecondary)),
+          Text('Version 1.1.0', style: TextStyle(color: palette.textSecondary)),
           const SizedBox(height: 20),
           Text(
             'Luma is a 100% offline, privacy-first personal expense and subscription tracker. It automatically detects bank & UPI transactions from your SMS locally on your device—with zero internet access, zero cloud sync, and total peace of mind.',

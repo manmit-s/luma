@@ -146,10 +146,9 @@ class DriftSourceRepository implements SourceRepository {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final typeStr = source.isBank ? 'bank' : 'wallet';
 
-    if (source.id <= 0) {
-      final insertedId = await database.customInsert(
-        'INSERT INTO payment_sources (type, bank_name, bank_identifier, nickname, account_number_last4, opening_balance_minor, is_active, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    if (source.id > 0) {
+      final updatedRows = await database.customUpdate(
+        'UPDATE payment_sources SET type = ?, bank_name = ?, bank_identifier = ?, nickname = ?, account_number_last4 = ?, opening_balance_minor = ?, is_active = ?, updated_at = ? WHERE id = ?',
         variables: [
           Variable.withString(typeStr),
           Variable<String>(source.bankName),
@@ -158,16 +157,20 @@ class DriftSourceRepository implements SourceRepository {
           Variable<String>(source.accountNumberLast4),
           Variable.withInt(source.openingBalanceMinor),
           Variable.withInt(source.isActive ? 1 : 0),
-          Variable.withInt(source.createdAt.millisecondsSinceEpoch),
           Variable.withInt(nowMs),
+          Variable.withInt(source.id),
         ],
       );
-      return source.copyWith(id: insertedId, updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+      if (updatedRows > 0) {
+        return source.copyWith(updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+      }
     }
 
-    await database.customUpdate(
-      'UPDATE payment_sources SET type = ?, bank_name = ?, bank_identifier = ?, nickname = ?, account_number_last4 = ?, opening_balance_minor = ?, is_active = ?, updated_at = ? WHERE id = ?',
+    final insertedId = await database.customInsert(
+      'INSERT INTO payment_sources (${source.id > 0 ? "id, " : ""}type, bank_name, bank_identifier, nickname, account_number_last4, opening_balance_minor, is_active, created_at, updated_at) '
+      'VALUES (${source.id > 0 ? "?, " : ""}?, ?, ?, ?, ?, ?, ?, ?, ?)',
       variables: [
+        if (source.id > 0) Variable.withInt(source.id),
         Variable.withString(typeStr),
         Variable<String>(source.bankName),
         Variable<String>(source.bankIdentifier),
@@ -175,11 +178,11 @@ class DriftSourceRepository implements SourceRepository {
         Variable<String>(source.accountNumberLast4),
         Variable.withInt(source.openingBalanceMinor),
         Variable.withInt(source.isActive ? 1 : 0),
+        Variable.withInt(source.createdAt.millisecondsSinceEpoch),
         Variable.withInt(nowMs),
-        Variable.withInt(source.id),
       ],
     );
-    return source.copyWith(updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+    return source.copyWith(id: insertedId, updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
   }
 
   @override
@@ -216,36 +219,39 @@ class DriftSourceRepository implements SourceRepository {
     await _initFuture;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-    if (transfer.id <= 0) {
-      final insertedId = await database.customInsert(
-        'INSERT INTO internal_transfers (from_source_id, to_source_id, amount_minor, timestamp, note, created_at, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?)',
+    if (transfer.id > 0) {
+      final updatedRows = await database.customUpdate(
+        'UPDATE internal_transfers SET from_source_id = ?, to_source_id = ?, amount_minor = ?, timestamp = ?, note = ?, updated_at = ? WHERE id = ?',
         variables: [
           Variable.withInt(transfer.fromSourceId),
           Variable.withInt(transfer.toSourceId),
           Variable.withInt(transfer.amountMinor),
           Variable.withInt(transfer.timestamp.millisecondsSinceEpoch),
           Variable.withString(transfer.note),
-          Variable.withInt(transfer.createdAt.millisecondsSinceEpoch),
           Variable.withInt(nowMs),
+          Variable.withInt(transfer.id),
         ],
       );
-      return transfer.copyWith(id: insertedId, updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+      if (updatedRows > 0) {
+        return transfer.copyWith(updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+      }
     }
 
-    await database.customUpdate(
-      'UPDATE internal_transfers SET from_source_id = ?, to_source_id = ?, amount_minor = ?, timestamp = ?, note = ?, updated_at = ? WHERE id = ?',
+    final insertedId = await database.customInsert(
+      'INSERT INTO internal_transfers (${transfer.id > 0 ? "id, " : ""}from_source_id, to_source_id, amount_minor, timestamp, note, created_at, updated_at) '
+      'VALUES (${transfer.id > 0 ? "?, " : ""}?, ?, ?, ?, ?, ?, ?)',
       variables: [
+        if (transfer.id > 0) Variable.withInt(transfer.id),
         Variable.withInt(transfer.fromSourceId),
         Variable.withInt(transfer.toSourceId),
         Variable.withInt(transfer.amountMinor),
         Variable.withInt(transfer.timestamp.millisecondsSinceEpoch),
         Variable.withString(transfer.note),
+        Variable.withInt(transfer.createdAt.millisecondsSinceEpoch),
         Variable.withInt(nowMs),
-        Variable.withInt(transfer.id),
       ],
     );
-    return transfer.copyWith(updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
+    return transfer.copyWith(id: insertedId, updatedAt: DateTime.fromMillisecondsSinceEpoch(nowMs));
   }
 
   @override
