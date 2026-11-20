@@ -39,7 +39,9 @@ jobs:
         run: flutter test
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          chmod +x android/gradlew
+          flutter build apk --release
 
       - name: Prepare APK Artifact
         id: prep
