@@ -99,7 +99,10 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.textContaining('Exported'), findsOneWidget);
     expect(
-      dir.listSync().whereType<File>().where((f) => f.path.endsWith('.xlsx')),
+      dir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.xlsx')),
       isNotEmpty,
     );
     // Marks persisted: incremental scope drops to zero.
