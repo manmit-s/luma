@@ -10,7 +10,7 @@ Luma is a private, local-first Android expense tracker built with Flutter. It wa
 [![State](https://img.shields.io/badge/State-Riverpod-542A52)](https://riverpod.dev)
 [![DB](https://img.shields.io/badge/DB-Drift_%2B_SQLite-003B57)](https://drift.simonbinder.eu)
 [![Privacy](https://img.shields.io/badge/Privacy-Local--first_%E2%80%A2_No_cloud-121212)](./PRD.md)
-[![Version](https://img.shields.io/badge/Version-1.0.1%2B2-FFB39A)](./pubspec.yaml)
+[![Version](https://img.shields.io/badge/Version-1.1.0%2B3-FFB39A)](./pubspec.yaml)
 
 ---
 [![promotion-banner.png](https://i.postimg.cc/L5jWRCkR/promotion-banner.png)](https://postimg.cc/7JY9nNQQ)
@@ -39,49 +39,66 @@ Full product thinking lives in [`PRD.md`](./PRD.md). Build rules live in [`SPEC.
 
 ## Features
 
-### Automatic detection
+### Automatic SMS detection
 - Native Android `BroadcastReceiver` for `android.provider.Telephony.SMS_RECEIVED`
-- Fast, lightweight receiver — heavy parsing is delegated off the main path
-- Generic transaction parser with modular bank-specific extension points
-- Extracts amount, type (debit / credit / unknown), merchant, timestamp, reference, account hint, raw SMS
-- Supports `Rs.200`, `Rs 200`, `INR 200`, `₹200`, `₹200.90`, etc., stored as integer minor units (paise) — never floats
+- Queues detected messages for processing when the app resumes or opens
+- Parser coverage for SBI, HDFC, ICICI, Axis, Kotak, PNB, BOB, and many more Indian bank formats
+- Handles debit, credit, and unknown direction without guessing credit messages as debit
+- Extracts amount, merchant, timestamp, reference, bank/account hints, and raw SMS
+- Supports rupee and INR formats, comma-separated amounts, paise, and 12/24-hour timestamps
+- Stores money as integer minor units (paise), never as floating-point values
+- Triple-signal duplicate prevention: reference number, normalized SMS fingerprint, then amount/merchant/time window
 
-### Anti-forgetting UX
-- Every new expense starts as `PENDING`
-- High-visibility notification immediately after detection:
-  - `₹200.90 spent at Google India Dig — Tap to categorize`
-  - Tapping opens the exact expense, not just the home screen
-- Dedicated pending queue on Home (“Needs attention”)
-- Optional daily audit at 21:00: “You have X expenses waiting to be completed”
-- Ideal flow is 3 taps: notification → suggested category → Save
+### Money and payment sources
+- Track a physical cash wallet and named bank/wallet sources
+- Assign opening balances, account suffixes, nicknames, and active state
+- Match incoming SMS to configured sources using bank and account hints
+- Record internal transfers between sources
+- View source-level income, expenses, transfer activity, closing balance, and an overall financial summary
+- Initial cash starting balance is collected during onboarding
 
-### Learning, not AI hype
-- Fully local, deterministic frequency learning per normalized merchant
-- Normalization: lowercase, trim, collapse whitespace, strip noise — `GOOGLE INDIA DIG` == `google india dig`
-- Suggestion = highest-frequency category for that merchant
-- Confidence = `highestCount / totalCount` (internal only, no ML jargon in UI)
-- Learns from your final choice, not its own suggestion — you can always override
+### Expense workflow
+- Every SMS transaction starts in the pending queue until reviewed
+- Complete, ignore, edit, or delete pending and completed expenses
+- Add manual expenses for cash, missed SMS entries, corrections, and backfills
+- Search history and filter by category
+- Date-grouped history with expandable expense details and optional raw SMS debug view
+- Re-edited completed expenses are included again in the next incremental export
 
-### Manual expenses
-- Same `Expense` model for cash, missed SMS, corrections, and backfills
-- Amount (required), merchant (optional), category (required), date/time, note
+### Smart local category learning
+- Deterministic merchant frequency learning stored locally in Drift
+- Normalizes merchant names before matching
+- Suggests the category most frequently chosen for that merchant
+- Learns from the final user choice rather than the suggested choice
 
-### History that’s actually usable
-- Date-grouped list, search by merchant/note, category filter
-- Expense detail shows amount, merchant, category, time, note, reference, source (`SMS detected` / `Manually added`)
-- Raw SMS hidden under advanced/debug only
-- Edit amount, merchant, category, note, date/time. Delete supported.
+### Subscriptions and expected payments
+- Add monthly or yearly subscriptions with merchant patterns
+- Track active, trial, cancelled, and expired statuses
+- Generate a forward payment horizon and match debit SMS to expected payments
+- Surface amount mismatches and missed or upcoming renewals
+- Optional cancellation and payment reminder settings
 
-### Excel export that respects your workflow
-- Real `.xlsx` generation, stable column order:
-  `Date | Time | Amount | Merchant | Category | Note | Transaction Type | Reference Number`
-- Two modes:
-  - **Full History** — everything
-  - **Since Last Export** — only `lastExportedAt == null` or `updatedAt > lastExportedAt`
-- Filename: `Luma_Expenses_YYYY-MM-DD_HH-mm.xlsx`
-- Correct transactionality: query → generate → verify file → update export timestamps → open share sheet
-- Share via Android share sheet (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`) — pick Gmail or anything else. No SMTP, no credentials in Luma.
-- Tracking means “included in a file Luma generated”, not “delivered to recipient” — Luma never claims Gmail sent it.
+### Notifications and audit
+- Tap-to-open notifications for individual pending expenses
+- Ongoing pending-summary notification
+- Native SMS receiver notice for app-killed detection
+- Optional native 21:00-style daily audit, configurable in Settings
+- Boot and app-launch rescheduling so audit reminders heal after reboot
+
+### Category management and themes
+- Add, rename, reorder, and delete custom categories
+- Default categories are protected from accidental deletion
+- Icon and color selection for custom categories
+- Four themes: Luma Original (Plum × Peach), Rosé Grove, Lavender Latte, and Sage Soufflé
+
+### Excel export, backup, and restore
+- Full history export or incremental export since the last export
+- Multi-sheet `.xlsx` with ledger, accounts, wallets, transfers, and financial summary worksheets
+- Opening/closing balance and running-balance calculations
+- Stable numeric amount storage and chronological rows
+- Saves export copies and a full-backup copy where supported
+- Android share sheet integration through `share_plus`
+- Restore legacy or multi-bank backups by file picker or detected backup path
 
 ### Privacy by architecture
 - No backend. No accounts. No sync. No analytics. No crash reporters. No remote logging.
@@ -113,8 +130,8 @@ Dark-first, calm, minimal — designed to feel personal, not like a bank ERP.
 ---
 
 ## How it works
-
-```
+[![Luma-Offline-Finance-Flow.png](https://i.postimg.cc/Ght99p6k/Luma-Offline-Finance-Flow.png)](https://postimg.cc/CzywQwh1)
+<!-- ```
 ┌─────────────┐     ┌──────────────────┐     ┌───────────────────┐     ┌──────────────┐
 │ Bank SMS    │────▶│ SmsInboxReceiver │────▶│ SmsTransaction    │────▶│ Expense      │
 │ (Android)   │     │ (Kotlin, native) │     │ Parser (Dart)     │     │ Controller   │
@@ -129,7 +146,7 @@ Dark-first, calm, minimal — designed to feel personal, not like a bank ERP.
                                         ▼                                                        ▼
                                  Drift (SQLite)                                          Tap → Complete
                                  local-only                                              expense sheet
-```
+``` -->
 
 Duplicate prevention order:
 1. `referenceNumber` if present (preferred unique ID)
@@ -145,12 +162,14 @@ If a match is found, no second expense is created.
 | Layer | Choice |
 |---|---|
 | Framework | Flutter + Dart (`sdk: ^3.11.5`), Material 3 |
-| State | `flutter_riverpod ^2.6.1` — business logic stays out of widgets |
+| State | `flutter_riverpod ^2.6.1` — controllers keep UI and business logic separate |
 | Local DB | `drift 2.26.0` + `sqlite3_flutter_libs`, `path_provider`, `path` |
-| SMS permission | `permission_handler ^13.0.2` + native Kotlin receiver |
-| Notifications | `flutter_local_notifications ^22.3.1`, channels `expense_alerts` (high) + `daily_audit` |
-| Hashing | `crypto ^3.0.6` for SMS fingerprints |
-| Codegen | `drift_dev`, `build_runner` |
+| SMS permission | `permission_handler ^11.4.0` + native Kotlin receiver |
+| Notifications | `flutter_local_notifications ^22.3.1`; channels `expense_alerts` and `daily_audit` |
+| Export/backup | `excel ^4.0.6`, `share_plus ^13.3.0`, `file_picker ^13.4.0` |
+| Hashing | `crypto ^3.0.6` for normalized SMS fingerprints |
+| Codegen | `drift_dev 2.26.0`, `build_runner ^2.5.4` |
+| Assets/UI | `flutter_svg ^2.0.17`, Material 3, centralized theme tokens |
 | Lint | `flutter_lints ^6.0.0` |
 
 Platform target: **Android 16+, private sideloaded APK**. iOS / desktop / web folders are default Flutter scaffolding so the project stays runnable everywhere, but SMS detection is Android-only.
@@ -162,45 +181,40 @@ Platform target: **Android 16+, private sideloaded APK**. iOS / desktop / web fo
 ```
 lib/
   app/
-    app.dart                 # LumaApp, Home / History / Export / Settings, sheets
-    theme/app_theme.dart     # AppColors, radii, spacing, buildLumaTheme()
-    widgets/                 # amount_display, category_chip, expense_cards,
-                             # luma_buttons, luma_nav_bar, onboarding_sheet,
-                             # section_header, sms_permission_flow, summary_card
+    app.dart                 # Luma shell, tabs, onboarding, sheets, backup restore
+    providers.dart           # Riverpod controller and service providers
+    theme/app_theme.dart     # palettes, tokens, and Material 3 theme
+    widgets/                 # balances, cards, chips, onboarding, categories,
+                             # subscriptions, sources, permission flow, and nav UI
   application/
-    expense_controller.dart  # processSms, complete, addManual, dedupe, totals
+    expense_controller.dart
+    category_controller.dart
+    source_controller.dart
+    subscription_controller.dart
   core/
-    utils/format.dart        # amount + time formatting
+    utils/format.dart
     utils/sms_fingerprint.dart
   data/
-    database/
-      luma_database.dart     # Drift tables: Expense, MerchantProfile, Category,
-      luma_database.g.dart   # AppSettings, ExportRecord
-      seed.dart              # default categories + settings
-    repositories/
-      drift_expense_repository.dart
-      memory_expense_repository.dart  # fallback + tests
-    services/
-      app_settings_store.dart
-      drift_merchant_learning.dart
+    database/                # Drift schema, migrations, seed, generated code
+    repositories/            # Drift and memory implementations
+    services/                # settings and merchant learning persistence
   domain/
-    entities/expense.dart    # amount in minor units, DEBIT/CREDIT/UNKNOWN,
-    entities/category.dart   # PENDING/COMPLETED/IGNORED, SMS/MANUAL
-    repositories/expense_repository.dart
-    services/
-      sms_transaction_parser.dart
-      merchant_normalizer.dart
-      merchant_learning.dart
-      category_suggester.dart
+    entities/                # expenses, categories, sources, transfers, subscriptions
+    repositories/            # repository contracts
+    services/                # SMS parser, learning, subscriptions, matching
   services/
-    notification/notification_service.dart
-    permissions/sms_permission_service.dart
-  main.dart                  # Drift init → seed → controller → ProviderScope,
-                             # falls back to in-memory if DB fails
+    audit/                   # native-style daily audit bridge
+    export/                  # XLSX export, backup, and restore
+    notification/            # local notification and payload routing
+    permissions/             # runtime SMS permission handling
+    sms/                     # native queue drain and inbox scan
+  main.dart                  # Drift bootstrap and memory fallback
 
 android/app/src/main/kotlin/com/example/luma/
-  MainActivity.kt
-  SmsInboxReceiver.kt        # SMS_RECEIVED → MethodChannel luma/sms drainSmsQueue
+  MainActivity.kt             # SMS queue, audit schedule, settings bridge
+  SmsInboxReceiver.kt         # SMS_RECEIVED queue + immediate notice
+  DailyAuditReceiver.kt       # exact audit, reboot and package reschedule
+  SmsInboxScanner.kt          # inbox scan support
 
 test/
   domain_test.dart            # normalizer, parser, learning, dedupe
@@ -268,15 +282,23 @@ Install the APK on your phone manually — this is a private app, not a Play Sto
 
 ## Export format
 
-Generated file: `Luma_Expenses_2026-09-25_20-15.xlsx`
+Generated files use names such as `Luma_Expenses_2026-09-25_20-15.xlsx` and `luma_backup_latest.xlsx`.
 
-| Date | Time | Amount | Merchant | Category | Note | Transaction Type | Reference Number |
-|---|---|---|---|---|---|---|---|
-| 2026-09-25 | 13:03 | 200.90 | Google India Dig | Subscriptions | domain renewal | DEBIT | 123456789 |
+The workbook contains:
 
-- Amounts are numeric spreadsheet values where practical, not strings.
-- Incremental export includes `lastExportedAt == null` OR `updatedAt > lastExportedAt`, then stamps `lastExportedAt = export timestamp` only after the file is verified.
-- Failed generation shows `Could not create the Excel file.` and touches no export state.
+- **Expenses** — summary, ledger, running balance, date, time, merchant, category, direction, amount, running balance, note, reference, and payment source
+- **Accounts** — bank sources and account metadata
+- **Wallets** — wallet sources and opening balances
+- **Transfers** — source-to-source internal transfers
+- **Financial Summary** — opening/income/expenses/transfers/closing balance by source
+
+Additional behavior:
+
+- Full history exports every expense.
+- Incremental export includes `lastExportedAt == null` OR `updatedAt > lastExportedAt`.
+- Export timestamps are committed only after the workbook is written and verified.
+- Backup restore supports current multi-source workbooks and legacy pre-multi-bank backups.
+- Amounts are numeric spreadsheet values; financial values are never written from floating-point arithmetic.
 
 ---
 
@@ -294,37 +316,34 @@ Financial data lives in app-private storage. Only the XLSX you explicitly genera
 flutter test
 ```
 
-Covered:
-- Amount parsing (`₹200` → `20000`, `₹200.90` → `20090`)
-- Merchant parsing + missing merchant / missing reference handling
-- Debit vs credit vs unrelated SMS (OTP must be ignored)
-- Duplicate detection (same ref, same fingerprint, same amount+merchant+time)
-- Merchant normalization (`Google India Dig` == `GOOGLE-INDIA DIG`)
-- Category learning + suggestion threshold
-- Export filtering: empty, single, multiple, full vs incremental, modified-after-export, failed export
-- Notification payload → correct expense routing
-- Permission states including denied / permanently denied / restricted
+The test suite spans 19 test files and covers:
+- Amount, date, merchant, reference, debit/credit, and unrelated-SMS parsing
+- Duplicate detection across reference, fingerprint, and time-window signals
+- Merchant normalization and deterministic category learning
+- Drift persistence, migrations, edits, deletes, and incremental export filtering
+- XLSX generation, running balance, backup save locations, legacy restore, and multi-source restore
+- Notifications and tap payload routing
+- SMS permissions and restricted-settings behavior
+- Onboarding and initial balance
+- Categories, themes, subscriptions, and source-of-money balances
+- SMS inbox watch and scan behavior
+- Widget sheets and navigation surfaces
 
 ---
 
-## Roadmap (deliberately narrow)
+## Scope boundaries
 
-V1 will **not** include: bank APIs, UPI APIs, cloud sync, accounts, social, shared budgets, investments, credit scores, ads, subscriptions, crypto, recommendations, chatbots, or server ML. See `PRD.md` §27.
+Luma remains local-first. It does not add bank APIs, UPI APIs, cloud sync, accounts, analytics, ads, remote ML, or server-side data storage.
 
-What *is* on the table after V1 ships:
-- Keyword rules for suggestions
-- Export preferences polish
-- Better parser coverage as real SMS formats are observed
-- Intentionally-designed light theme (no auto-invert)
-
-Definition of done is checklist-driven in `SPEC.md` §55 — from “SMS produces a pending expense” through “incremental export has no duplicates” to “works without internet”.
+The implemented roadmap now also includes subscriptions, multi-source balances, internal transfers, category themes, and XLSX backup/restore. Future parser improvements should be driven by real SMS formats and kept offline unless the product explicitly changes scope.
 
 ---
 
 ## Docs
 
 - [`PRD.md`](./PRD.md) — what Luma is, who it’s for, pending workflow, export behavior, UX philosophy
-- [`SPEC.md`](./SPEC.md) — how to build it: models, parser, duplicate detection, notifications, learning algorithm, theme tokens, tests, privacy constraints
+- [`SPEC.md`](./SPEC.md) — original technical constraints and implementation rules
+- [`IMPLEMENTATION.md`](./IMPLEMENTATION.md) — implementation history and continuation notes
 
 If the docs and the code disagree, the docs win — update the code.
 
